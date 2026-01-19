@@ -917,7 +917,7 @@ if (mode === "adminMenu") {
       <button
         className="primary-btn"
         style={{ marginTop: 16 }}
-        onClick={() => setMode("adminMenu")}
+        onClick={() => setMode("menu")}
       >
         ← Назад
       </button>

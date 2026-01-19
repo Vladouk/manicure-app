@@ -105,6 +105,11 @@ function validateInitData(initData) {
 
 // =============== DATABASE ===============
 const db = new sqlite3.Database('manicure.db');
+
+// Create uploads directory
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads', { recursive: true });
+}
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS work_slots (
