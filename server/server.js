@@ -370,8 +370,8 @@ app.post(
 
             db.run(
               `INSERT INTO appointments 
-              (client, date, time, design, length, type, service, price, comment, reference_image, tg_id, username)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              (client, date, time, design, length, type, service, price, comment, reference_image, tg_id)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 client,
                 slot.date,
@@ -379,12 +379,11 @@ app.post(
                 design,
                 length,
                 type,
-                price,
+                service,
                 finalPrice,
                 comment,
                 referenceImage,
-                tg_id,
-                username
+                tg_id
               ],
               function (err) {
                 if (err) {
