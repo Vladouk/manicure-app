@@ -1,8 +1,7 @@
 {
   "scripts": {
     "start": "node server/server.js",
-    "postinstall": "cd client && npm run build",
-    "build": "cd client && npm run build"
+    "build": "cd client && npx react-scripts build"
   },
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
