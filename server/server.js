@@ -1303,13 +1303,6 @@ ORDER BY ws.date, ws.time
           );
         });
 
-        // =============== FRONTEND BUILD ===============
-        app.use(express.static(path.join(__dirname, '../client/build')));
-
-        app.use((req, res) => {
-          res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
-        });
-
         // =============== HOURLY REMINDERS (3 HOURS BEFORE) ===============
         setInterval(() => {
           const now = new Date();
