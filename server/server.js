@@ -5,12 +5,19 @@ const fs = require('fs');
 const crypto = require('crypto');
 const TelegramBot = require('node-telegram-bot-api');
 const multer = require("multer");
-const BOT_TOKEN = '8563725373:AAGd_R_w9c6rSUx7JmqqUvIJmFOJthAJCNo';
+const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_TG_IDS = [1342762796];
 const ADMIN_TG_ID = ADMIN_TG_IDS[0]; // for messages
 
 // 🔥 Telegram bot для надсилання повідомлень клієнтам
 const bot = new TelegramBot(BOT_TOKEN, { polling: false });
+
+// Set webhook
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
+if (WEBHOOK_URL) {
+  bot.setWebHook(WEBHOOK_URL);
+}
+
 const app = express();
 app.use(express.json());
 
@@ -1317,6 +1324,13 @@ ORDER BY ws.date, ws.time
         }, 5 * 60 * 1000); // кожні 5 хв
 
 
+        // Webhook route for bot
+        app.post('/bot', (req, res) => {
+          bot.processUpdate(req.body);
+          res.sendStatus(200);
+        });
+
         // =============== START SERVER ===============
-        app.listen(3000, () =>
-          console.log('🔥 SERVER ON http://localhost:3000'))
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () =>
+          console.log(`🔥 SERVER ON PORT ${PORT}`))

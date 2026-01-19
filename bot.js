@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 
-const token = '8563725373:AAGd_R_w9c6rSUx7JmqqUvIJmFOJthAJCNo';
+const token = process.env.BOT_TOKEN;
 const ADMIN_TG_ID = 1342762796;
 
 const bot = new TelegramBot(token, { polling: true });
@@ -18,7 +18,7 @@ bot.onText(/\/start/, (msg) => {
           {
             text: 'Записатися на манікюр 💅',
             web_app: {
-              url: 'https://german-unperfected-zaid.ngrok-free.dev'
+              url: process.env.CLIENT_URL
             }
           }
         ]
@@ -39,7 +39,7 @@ bot.onText(/\/admin/, (msg) => {
         {
           text: 'Відкрити адмінку 📋',
           web_app: {
-            url: 'https://german-unperfected-zaid.ngrok-free.dev/admin'
+            url: `${process.env.CLIENT_URL}/admin`
           }
         }
       ]]
