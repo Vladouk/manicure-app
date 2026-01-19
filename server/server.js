@@ -60,6 +60,15 @@ bot.onText(/\/admin/, (msg) => {
 
 const app = express();
 app.use(express.json());
+const path = require("path");
+
+// 👉 віддаємо React build
+app.use(express.static(path.join(__dirname, "build")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
+});
+
 
 // =============== FILE UPLOADS ===============
 app.use("/uploads", express.static("uploads"));
