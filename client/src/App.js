@@ -187,7 +187,41 @@ const [reference, setReference] = useState(null);
       .then(data => setBonusPoints(data.points || 0))
       .catch(() => setBonusPoints(0));
 
-      WebApp.MainButton.hide();
+      const handleClick = () => {
+        if (!selectedSlotId) {
+          alert("❗ Обери дату і час");
+          return;
+        }
+
+        const formData = new FormData();
+formData.append("client", tgUser?.first_name || "Anon");
+formData.append("slot_id", selectedSlotId);
+formData.append("design", design);
+formData.append("length", length);
+formData.append("type", type);
+formData.append("comment", comment);
+formData.append("tg_id", tgUser?.id);
+
+if (reference) {
+  formData.append("reference", reference);
+}
+
+fetch(`${API}/api/appointment`, {
+  method: "POST",
+  body: formData
+})
+  .then(r => r.json())
+  .then(() => {
+    alert("✅ Запис створено!");
+  })
+  .catch(() => alert("❌ Помилка при відправці"));
+
+          
+      };
+
+      WebApp.MainButton.setText("📅 Записатися");
+      WebApp.MainButton.show();
+      WebApp.MainButton.onClick(handleClick);
 
     }
 
