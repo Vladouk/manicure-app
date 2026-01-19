@@ -182,10 +182,6 @@ const [reference, setReference] = useState(null);
     });
 
   if (effectiveMode === "client") {
-    fetch(`${API}/api/appointment/my?tg_id=${tgUser?.id}`)
-      .then(r => r.json())
-      .then(setMyAppointment);
-
     fetch(`${API}/api/client/points?tg_id=${tgUser?.id}`)
       .then(r => r.json())
       .then(data => setBonusPoints(data.points || 0))
