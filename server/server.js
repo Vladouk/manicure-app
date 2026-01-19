@@ -1,5 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const fs = require('fs');
 const crypto = require('crypto');
 const TelegramBot = require('node-telegram-bot-api');
@@ -104,7 +104,10 @@ function validateInitData(initData) {
 }
 
 // =============== DATABASE ===============
-const db = new sqlite3.Database('manicure.db');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+});
 
 // Create uploads directory
 if (!fs.existsSync('uploads')) {
@@ -299,135 +302,133 @@ app.post(
     }
 
     // Check if first-time client for 20% discount
-    db.get(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = ? AND status != 'canceled'`, [tg_id], (err, firstTimeRow) => {
-      if (err) return res.status(500).json({ error: "DB error" });
+    pool.query(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = $1 AND status != 'canceled'`, [tg_id])
+      .then(result => {
+        const firstTimeRow = result.rows[0];
+        let finalPrice = price;
+        let discountApplied = 0;
+        let referralInfo = null;
 
-      let finalPrice = price;
-      let discountApplied = 0;
-      let referralInfo = null;
-
-      // Apply first-time discount (20%)
-      if (firstTimeRow.count === 0) {
-        discountApplied = Math.round(price * 0.2);
-        finalPrice = price - discountApplied;
-      }
-
-      // Check for referral discount available
-      db.get(`SELECT referral_discount_available FROM client_points WHERE tg_id = ?`, [tg_id], (err, referralRow) => {
-        if (err) return res.status(500).json({ error: "DB error" });
-
-        if (referralRow && referralRow.referral_discount_available) {
-          const referralDiscount = Math.round(price * 0.2);
-          finalPrice = finalPrice - referralDiscount;
-          discountApplied += referralDiscount;
-          db.run(`UPDATE client_points SET referral_discount_available = 0 WHERE tg_id = ?`, [tg_id], (err) => {
-            if (err) console.error('Error resetting referral discount:', err);
-          });
+        // Apply first-time discount (20%)
+        if (firstTimeRow.count === 0) {
+          discountApplied = Math.round(price * 0.2);
+          finalPrice = price - discountApplied;
         }
 
-        // Handle referral code if provided
-        if (referral_code) {
-          db.get(`SELECT id, tg_id as referrer_tg_id FROM referral_codes WHERE code = ? AND is_active = 1`, [referral_code], (err, codeRow) => {
-            if (err) return res.status(500).json({ error: "DB error" });
+        // Check for referral discount available
+        return pool.query(`SELECT referral_discount_available FROM client_points WHERE tg_id = $1`, [tg_id])
+          .then(result => {
+            const referralRow = result.rows[0];
+            if (referralRow && referralRow.referral_discount_available) {
+              const referralDiscount = Math.round(price * 0.2);
+              finalPrice = finalPrice - referralDiscount;
+              discountApplied += referralDiscount;
+              pool.query(`UPDATE client_points SET referral_discount_available = 0 WHERE tg_id = $1`, [tg_id])
+                .catch(err => console.error('Error resetting referral discount:', err));
+            }
 
-            if (codeRow) {
-              // Check if user already used this referral code
-              db.get(`SELECT id FROM referral_uses WHERE referral_code_id = ? AND used_by_tg_id = ?`, [codeRow.id, tg_id], (err, useRow) => {
-                if (err) return res.status(500).json({ error: "DB error" });
+            // Handle referral code if provided
+            if (referral_code) {
+              return pool.query(`SELECT id, tg_id as referrer_tg_id FROM referral_codes WHERE code = $1 AND is_active = true`, [referral_code])
+                .then(result => {
+                  const codeRow = result.rows[0];
+                  if (codeRow) {
+                    // Check if user already used this referral code
+                    return pool.query(`SELECT id FROM referral_uses WHERE referral_code_id = $1 AND used_by_tg_id = $2`, [codeRow.id, tg_id])
+                      .then(result => {
+                        const useRow = result.rows[0];
+                        if (!useRow) {
+                          // Give referral discount to the referrer
+                          pool.query(`UPDATE client_points SET referral_discount_available = 1 WHERE tg_id = $1`, [codeRow.referrer_tg_id])
+                            .catch(err => console.error('Error updating referral discount:', err));
 
-                if (!useRow) {
-                  // Give referral discount to the referrer
-                  db.run(`UPDATE client_points SET referral_discount_available = 1 WHERE tg_id = ?`, [codeRow.referrer_tg_id], (err) => {
-                    if (err) console.error('Error updating referral discount:', err);
-                  });
+                          // Record the referral use
+                          pool.query(`INSERT INTO referral_uses (referral_code_id, used_by_tg_id, discount_applied) VALUES ($1, $2, 0)`, [codeRow.id, tg_id])
+                            .catch(err => console.error('Error inserting referral use:', err));
 
-                  // Record the referral use
-                  db.run(`INSERT INTO referral_uses (referral_code_id, used_by_tg_id, discount_applied) VALUES (?, ?, 0)`, [codeRow.id, tg_id], (err) => {
-                    if (err) console.error('Error inserting referral use:', err);
-                  });
+                          referralInfo = {
+                            code_id: codeRow.id,
+                            referrer_tg_id: codeRow.referrer_tg_id,
+                            discount_available: true
+                          };
+                        }
 
-                  referralInfo = {
-                    code_id: codeRow.id,
-                    referrer_tg_id: codeRow.referrer_tg_id,
-                    discount_available: true
-                  };
-                }
-
-                createAppointment();
-              });
+                        return createAppointment(finalPrice, discountApplied, referralInfo);
+                      });
+                  } else {
+                    return createAppointment(finalPrice, discountApplied, referralInfo);
+                  }
+                });
             } else {
-              createAppointment();
+              return createAppointment(finalPrice, discountApplied, referralInfo);
             }
           });
-        } else {
-          createAppointment();
-        }
-      });
+      })
+      .catch(err => res.status(500).json({ error: "DB error" }));
 
-      function createAppointment() {
-        db.get(
-          `SELECT date, time FROM work_slots WHERE id = ? AND is_booked = 0`,
-          [slot_id],
-          (err, slot) => {
-            if (err || !slot) {
-              return res.status(400).json({ error: "Slot not available" });
+    function createAppointment(finalPrice, discountApplied, referralInfo) {
+      // Check slot availability
+      pool.query(`SELECT date, time FROM work_slots WHERE id = $1 AND is_booked = false`, [slot_id])
+        .then(result => {
+          const slot = result.rows[0];
+          if (!slot) {
+            return res.status(400).json({ error: "Slot not available" });
+          }
+
+          // Insert appointment
+          return pool.query(
+            `INSERT INTO appointments 
+            (client, date, time, design, length, type, service, price, comment, reference_image, tg_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING id`,
+            [
+              client,
+              slot.date,
+              slot.time,
+              design,
+              length,
+              type,
+              service,
+              finalPrice,
+              comment,
+              referenceImage,
+              tg_id
+            ]
+          )
+          .then(result => {
+            const appointmentId = result.rows[0].id;
+            console.log("Appointment inserted with id", appointmentId);
+
+            // Insert reminder
+            pool.query(`INSERT INTO reminders (appointment_id) VALUES ($1)`, [appointmentId])
+              .catch(err => console.error("Reminder insert error:", err));
+
+            // Handle referral use
+            if (referralInfo) {
+              pool.query(
+                `INSERT INTO referral_uses (referral_code_id, used_by_tg_id, appointment_id, discount_applied) VALUES ($1, $2, $3, $4)`,
+                [referralInfo.code_id, tg_id, appointmentId, 0],  // Assuming discount_applied is 0 for now
+                (err) => {
+                  if (!err) {
+                    // Update referral code usage count
+                    pool.query(`UPDATE referral_codes SET used_count = used_count + 1 WHERE id = $1`, [referralInfo.code_id])
+                      .catch(err => console.error("Referral code update error:", err));
+
+                    // Give referrer 10zl bonus (add to points or notify)
+                    // For now, we'll just log it - can be extended to add points
+                    console.log(`Referral bonus: ${referralInfo.referrer_tg_id} gets 10zl for referring ${tg_id}`);
+                  }
+                }
+              )
+              .catch(err => console.error("Referral use insert error:", err));
             }
 
-            db.run(
-              `INSERT INTO appointments 
-              (client, date, time, design, length, type, service, price, comment, reference_image, tg_id)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                client,
-                slot.date,
-                slot.time,
-                design,
-                length,
-                type,
-                service,
-                finalPrice,
-                comment,
-                referenceImage,
-                tg_id
-              ],
-              function (err) {
-                if (err) {
-                  console.error("INSERT error:", err);
-                  return res.status(500).json({ error: "DB error" });
-                }
-                console.log("Appointment inserted with id", this.lastID);
-                const appointmentId = this.lastID;
+            // Update slot as booked
+            pool.query(`UPDATE work_slots SET is_booked = true WHERE id = $1`, [slot_id])
+              .catch(err => console.error("Slot update error:", err));
 
-                db.run(
-                  `INSERT INTO reminders (appointment_id) VALUES (?)`,
-                  [appointmentId]
-                );
-
-                // Handle referral use
-                if (referralInfo) {
-                  db.run(
-                    `INSERT INTO referral_uses (referral_code_id, used_by_tg_id, appointment_id, discount_applied) VALUES (?, ?, ?, ?)`,
-                    [referralInfo.code_id, tg_id, appointmentId, referralInfo.discount],
-                    (err) => {
-                      if (!err) {
-                        // Update referral code usage count
-                        db.run(`UPDATE referral_codes SET used_count = used_count + 1 WHERE id = ?`, [referralInfo.code_id]);
-
-                        // Give referrer 10zl bonus (add to points or notify)
-                        // For now, we'll just log it - can be extended to add points
-                        console.log(`Referral bonus: ${referralInfo.referrer_tg_id} gets 10zl for referring ${tg_id}`);
-                      }
-                    }
-                  );
-                }
-
-                db.run(
-                  `UPDATE work_slots SET is_booked = 1 WHERE id = ?`,
-                  [slot_id]
-                );
-
-                // 🔔 Сповіщення клієнту
-                let clientMessage = `💅 *Запис створено!*  
+            // 🔔 Сповіщення клієнту
+            let clientMessage = `💅 *Запис створено!*  
 
 📅 Дата: ${slot.date}  
 ⏰ Час: ${slot.time}  
@@ -439,24 +440,24 @@ app.post(
 
 💰 Ціна: ${finalPrice} zł`;
 
-                if (discountApplied > 0) {
-                  clientMessage += `\n💸 Знижка: ${discountApplied} zł`;
-                }
+            if (discountApplied > 0) {
+              clientMessage += `\n💸 Знижка: ${discountApplied} zł`;
+            }
 
-                if (referralInfo) {
-                  clientMessage += `\n🎉 Використано реферальний код!`;
-                }
+            if (referralInfo) {
+              clientMessage += `\n🎉 Використано реферальний код!`;
+            }
 
-                clientMessage += `\n\n⏳ *Статус:* очікує підтвердження`;
+            clientMessage += `\n\n⏳ *Статус:* очікує підтвердження`;
 
-                bot.sendMessage(
-                  tg_id,
-                  clientMessage,
-                  { parse_mode: "Markdown" }
-                );
+            bot.sendMessage(
+              tg_id,
+              clientMessage,
+              { parse_mode: "Markdown" }
+            );
 
-                // 🔥 Сповіщення адміну — РОЗШИРЕНА ВЕРСІЯ
-                let adminMessage = `🔔 *Новий запис!*
+            // 🔥 Сповіщення адміну — РОЗШИРЕНА ВЕРСІЯ
+            let adminMessage = `🔔 *Новий запис!*
 
 👤 Клієнт: [${client}](tg://user?id=${tg_id})
 
@@ -469,32 +470,32 @@ app.post(
 💼 Послуга: *${service}*
 💰 Ціна: *${finalPrice} zł*`;
 
-                if (discountApplied > 0) {
-                  adminMessage += `\n💸 Знижка: *${discountApplied} zł*`;
-                }
+            if (discountApplied > 0) {
+              adminMessage += `\n💸 Знижка: *${discountApplied} zł*`;
+            }
 
-                if (referralInfo) {
-                  adminMessage += `\n🎉 *Рефералка від користувача ${referralInfo.referrer_tg_id}*`;
-                }
+            if (referralInfo) {
+              adminMessage += `\n🎉 *Рефералка від користувача ${referralInfo.referrer_tg_id}*`;
+            }
 
-                if (comment && comment.trim() !== "") {
-                  adminMessage += `\n💬 *Коментар клієнта:*\n${comment}`;
-                }
+            if (comment && comment.trim() !== "") {
+              adminMessage += `\n💬 *Коментар клієнта:*\n${comment}`;
+            }
 
-                bot.sendMessage(
-                  ADMIN_TG_ID,
-                  adminMessage,
-                  { parse_mode: "Markdown" }
-                );
-
-
-                res.json({ ok: true, appointment_id: appointmentId, final_price: finalPrice, discount: discountApplied });
-              }
+            bot.sendMessage(
+              ADMIN_TG_ID,
+              adminMessage,
+              { parse_mode: "Markdown" }
             );
-          }
-        );
-      }
-    });
+
+            res.json({ ok: true, appointment_id: appointmentId, final_price: finalPrice, discount: discountApplied });
+          });
+        })
+        .catch(err => {
+          console.error("DB error in createAppointment:", err);
+          res.status(500).json({ error: "DB error" });
+        });
+    }
   }
 );
         app.get('/api/appointment/my', (req, res) => {
@@ -504,28 +505,23 @@ app.post(
             return res.status(400).json({ error: "Missing tg_id" });
           }
 
-          db.get(
-            `
+          pool.query(`
     SELECT id, date, time, design, length, type, status, comment
     FROM appointments
-    WHERE tg_id = ?
+    WHERE tg_id = $1
       AND status != 'canceled'
-    ORDER BY date DESC, time(date || ' ' || time) DESC
+    ORDER BY date DESC, time DESC
     LIMIT 1
-    `,
-            [tg_id],
-            (err, row) => {
-              if (err) {
-                console.error("DB ERROR:", err);
-                return res.status(500).json({ error: "DB error" });
-              }
-
-              // 👇 ЯВНО логнемо
+    `, [tg_id])
+            .then(result => {
+              const row = result.rows[0];
               console.log("📌 MY APPOINTMENT:", row);
-
               res.json(row || null);
-            }
-          );
+            })
+            .catch(err => {
+              console.error("DB ERROR:", err);
+              res.status(500).json({ error: "DB error" });
+            });
         });
 
         // ============== CLIENT CANCEL APPOINTMENT1 ===============
@@ -534,39 +530,37 @@ app.post(
 
           if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
-          db.get(
-            `SELECT id, date, time, design, length, comment, type FROM appointments WHERE tg_id = ? AND status != 'canceled'`,
-            [tg_id],
-            (err, row) => {
-              if (err || !row)
-                return res.status(400).json({ error: "No active appointment" });
+          pool.query(
+            `SELECT id, date, time, design, length, comment, type FROM appointments WHERE tg_id = $1 AND status != 'canceled'`,
+            [tg_id]
+          )
+          .then(result => {
+            const row = result.rows[0];
+            if (!row)
+              return res.status(400).json({ error: "No active appointment" });
 
-              // 1️⃣ Позначаємо запис як скасований
-              db.run(
-                `UPDATE appointments SET status='canceled' WHERE id = ?`,
-                [row.id]
-              );
+            // 1️⃣ Позначаємо запис як скасований
+            pool.query(`UPDATE appointments SET status='canceled' WHERE id = $1`, [row.id])
+              .catch(err => console.error("Cancel appointment error:", err));
 
-              // 2️⃣ Звільняємо слот
-              db.run(
-                `UPDATE work_slots SET is_booked = 0 WHERE date = ? AND time = ?`,
-                [row.date, row.time]
-              );
+            // 2️⃣ Звільняємо слот
+            pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time])
+              .catch(err => console.error("Free slot error:", err));
 
-              // 3️⃣ Повідомляємо клієнту
-              bot.sendMessage(
-                tg_id,
-                `❌ *Ваш запис скасовано!*
+            // 3️⃣ Повідомляємо клієнту
+            bot.sendMessage(
+              tg_id,
+              `❌ *Ваш запис скасовано!*
 
 📅 ${row.date}
 ⏰ ${row.time}`
-                , { parse_mode: "Markdown" }
-              );
+              , { parse_mode: "Markdown" }
+            );
 
-              // 4️⃣ Повідомляємо адміну
-              bot.sendMessage(
-                ADMIN_TG_ID,
-                `❗ *Клієнт сам скасував запис*  
+            // 4️⃣ Повідомляємо адміну
+            bot.sendMessage(
+              ADMIN_TG_ID,
+              `❗ *Клієнт сам скасував запис*  
 
 👤 [Клієнт](tg://user?id=${tg_id})  
 📅 ${row.date}  
@@ -576,11 +570,11 @@ app.post(
 📏 ${row.length}
 💅 ${row.type}
 `, { parse_mode: "Markdown" }
-              );
+            );
 
-              return res.json({ ok: true });
-            }
-          );
+            return res.json({ ok: true });
+          })
+          .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
         // =============== CLIENT: GET BONUS POINTS ===============
@@ -589,15 +583,12 @@ app.post(
 
           if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
-          db.get(
-            `SELECT points FROM client_points WHERE tg_id = ?`,
-            [tg_id],
-            (err, row) => {
-              if (err) return res.status(500).json({ error: "DB error" });
-
+          pool.query(`SELECT points FROM client_points WHERE tg_id = $1`, [tg_id])
+            .then(result => {
+              const row = result.rows[0];
               res.json({ points: row ? row.points : 0 });
-            }
-          );
+            })
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
         // =============== CLIENT: SPEND BONUS POINTS ===============
@@ -606,33 +597,29 @@ app.post(
 
           if (!tg_id || !points_to_spend) return res.status(400).json({ error: "Missing tg_id or points_to_spend" });
 
-          db.get(
-            `SELECT points FROM client_points WHERE tg_id = ?`,
-            [tg_id],
-            (err, row) => {
-              if (err) return res.status(500).json({ error: "DB error" });
+          pool.query(`SELECT points FROM client_points WHERE tg_id = $1`, [tg_id])
+            .then(result => {
+              const row = result.rows[0];
               const currentPoints = row ? row.points : 0;
               if (currentPoints < points_to_spend) return res.status(400).json({ error: "Not enough points" });
 
-              db.run(
-                `UPDATE client_points SET points = points - ? WHERE tg_id = ?`,
-                [points_to_spend, tg_id]
-              );
+              return pool.query(`UPDATE client_points SET points = points - $1 WHERE tg_id = $2`, [points_to_spend, tg_id])
+                .then(() => {
+                  // Відправити повідомлення клієнту
+                  let rewardText = "";
+                  if (points_to_spend === 10) rewardText = "Безкоштовний дизайн активовано! 🎨";
+                  else if (points_to_spend === 20) rewardText = "Знижка 30% активована! 💰";
+                  else if (points_to_spend === 30) rewardText = "Повний манікюр безкоштовно активовано! 💅";
 
-              // Відправити повідомлення клієнту
-              let rewardText = "";
-              if (points_to_spend === 10) rewardText = "Безкоштовний дизайн активовано! 🎨";
-              else if (points_to_spend === 20) rewardText = "Знижка 30% активована! 💰";
-              else if (points_to_spend === 30) rewardText = "Повний манікюр безкоштовно активовано! 💅";
+                  bot.sendMessage(tg_id, `🎁 *Винагорода активована!*\n\n${rewardText}`, { parse_mode: "Markdown" });
 
-              bot.sendMessage(tg_id, `🎁 *Винагорода активована!*\n\n${rewardText}`, { parse_mode: "Markdown" });
+                  // Повідомити адміна
+                  bot.sendMessage(ADMIN_TG_ID, `🎁 Клієнт витратив ${points_to_spend} балів на винагороду: ${rewardText}`, { parse_mode: "Markdown" });
 
-              // Повідомити адміна
-              bot.sendMessage(ADMIN_TG_ID, `🎁 Клієнт витратив ${points_to_spend} балів на винагороду: ${rewardText}`, { parse_mode: "Markdown" });
-
-              res.json({ ok: true });
-            }
-          );
+                  res.json({ ok: true });
+                });
+            })
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
         // =============== ADMIN: GET ALL APPOINTMENTS ===============
@@ -651,18 +638,18 @@ app.post(
           let params = [];
 
           if (status && status !== 'all') {
-            sql += ' WHERE status = ?';
+            sql += ' WHERE status = $1';
             params.push(status);
           }
 
           sql += `
   ORDER BY 
-    datetime(date || ' ' || time) ASC
+    date ASC, time ASC
 `;
 
-          db.all(sql, params, (_, rows) => {
-            res.json(rows);
-          });
+          pool.query(sql, params)
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
         // ====== ADMIN: APPROVE ======
@@ -677,16 +664,13 @@ app.post(
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.get(
-            `SELECT date, time, tg_id FROM appointments WHERE id = ?`,
-            [id],
-            (err, row) => {
+          pool.query(`SELECT date, time, tg_id FROM appointments WHERE id = $1`, [id])
+            .then(result => {
+              const row = result.rows[0];
               if (!row) return res.json({ ok: true });
 
-              db.run(
-                `UPDATE appointments SET status = ? WHERE id = ?`,
-                [status, id]
-              );
+              pool.query(`UPDATE appointments SET status = $1 WHERE id = $2`, [status, id])
+                .catch(err => console.error("Status update error:", err));
               let text = "";
 
               if (status === "approved") {
@@ -713,32 +697,27 @@ app.post(
 
               // Додати бали за підтверджений запис
               if (status === "approved") {
-                db.run(`INSERT OR IGNORE INTO client_points (tg_id, points) VALUES (?, 0)`, [row.tg_id]);
-                db.run(`UPDATE client_points SET points = points + 1 WHERE tg_id = ?`, [row.tg_id]);
+                pool.query(`INSERT INTO client_points (tg_id, points) VALUES ($1, 0) ON CONFLICT (tg_id) DO NOTHING`, [row.tg_id])
+                  .then(() => pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [row.tg_id]))
+                  .catch(err => console.error("Points update error:", err));
               }
 
 
               // ❗ якщо скасовано — розблокувати слот
               if (status === 'canceled') {
-                db.run(
-                  `UPDATE work_slots SET is_booked = 0 WHERE date = ? AND time = ?`,
-                  [row.date, row.time]
-                );
+                pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time])
+                  .catch(err => console.error("Slot unbook error:", err));
               }
 
-
               res.json({ ok: true });
-            }
-          );
+            })
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
         // =============== CLIENT: GET AVAILABLE SLOTS ===============
         app.get('/api/slots', (req, res) => {
-          db.all(
-            `SELECT id, date, time, is_booked FROM work_slots ORDER BY date, time`,
-            [],
-            (err, rows) => {
-              if (err) return res.status(500).json({ error: "DB error" });
-
+          pool.query(`SELECT id, date, time, is_booked FROM work_slots ORDER BY date, time`, [])
+            .then(result => {
+              const rows = result.rows;
               const now = new Date();
 
               const filtered = rows.filter(slot => {
@@ -748,13 +727,13 @@ app.post(
 
                 return (
                   diffMinutes >= 30 &&   // ❗ показуємо лише якщо до слота ≥ 30 хв
-                  slot.is_booked === 0   // ❗ слот не зайнятий
+                  slot.is_booked === false   // ❗ слот не зайнятий
                 );
               });
 
               res.json(filtered);
-            }
-          );
+            })
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
         // =============== ADMIN: GET ALL CLIENTS ===============
@@ -768,7 +747,7 @@ app.post(
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.all(
+          pool.query(
             `
     SELECT 
       tg_id,
@@ -778,9 +757,10 @@ app.post(
     GROUP BY tg_id, client
     ORDER BY last_visit DESC
     `,
-            [],
-            (_, rows) => res.json(rows)
-          );
+            []
+          )
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
         // =============== ADMIN: GET CLIENT HISTORY ===============
         app.get('/api/admin/client-history', (req, res) => {
@@ -796,17 +776,15 @@ app.post(
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.all(
-            `
+          pool.query(`
     SELECT 
       id, date, time, design, length, type, status, comment
     FROM appointments
-    WHERE tg_id = ?
-    ORDER BY date DESC, time(date || ' ' || time) DESC
-    `,
-            [tg_id],
-            (_, rows) => res.json(rows)
-          );
+    WHERE tg_id = $1
+    ORDER BY date DESC, time DESC
+    `, [tg_id])
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
         // =============== ADMIN: GET ALL WORK SLOTS ===============
         app.get('/api/admin/slots', (req, res) => {
@@ -819,8 +797,7 @@ app.post(
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.all(
-            `
+          pool.query(`
     SELECT 
   ws.id,
   ws.date,
@@ -832,11 +809,9 @@ FROM work_slots ws
 LEFT JOIN appointments a
   ON ws.date = a.date AND ws.time = a.time AND a.status != 'canceled'
 ORDER BY ws.date, ws.time
-
-    `,
-            [],
-            (_, rows) => res.json(rows)
-          );
+    `, [])
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
 
@@ -852,14 +827,9 @@ ORDER BY ws.date, ws.time
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.run(
-            `INSERT INTO work_slots (date, time) VALUES (?, ?)`,
-            [date, time],
-            err => {
-              if (err) return res.status(500).json({ error: 'DB error' });
-              res.json({ ok: true });
-            }
-          );
+          pool.query(`INSERT INTO work_slots (date, time) VALUES ($1, $2)`, [date, time])
+            .then(() => res.json({ ok: true }))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
         // ====== DELETE WORK SLOT ======
         app.post('/api/admin/delete-slot', (req, res) => {
@@ -873,14 +843,9 @@ ORDER BY ws.date, ws.time
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.run(
-            `DELETE FROM work_slots WHERE id = ? AND is_booked = 0`,
-            [id],
-            err => {
-              if (err) return res.status(500).json({ error: 'DB error' });
-              res.json({ ok: true });
-            }
-          );
+          pool.query(`DELETE FROM work_slots WHERE id = $1 AND is_booked = false`, [id])
+            .then(() => res.json({ ok: true }))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // =============== ADMIN: DELETE APPOINTMENT ===============
@@ -896,20 +861,19 @@ ORDER BY ws.date, ws.time
             return res.status(403).json({ error: 'Not admin' });
 
           // 1️⃣ беремо дату і час запису
-          db.get(
-            `SELECT date, time, tg_id FROM appointments WHERE id = ?`,
-            [id],
-            (err, row) => {
+          pool.query(`SELECT date, time, tg_id FROM appointments WHERE id = $1`, [id])
+            .then(result => {
+              const row = result.rows[0];
               if (!row) return res.json({ ok: true });
 
               // 2️⃣ видаляємо запис
-              db.run(`DELETE FROM appointments WHERE id = ?`, [id]);
+              pool.query(`DELETE FROM appointments WHERE id = $1`, [id])
+                .catch(err => console.error("Delete appointment error:", err));
 
               // 3️⃣ розблоковуємо слот
-              db.run(
-                `UPDATE work_slots SET is_booked = 0 WHERE date = ? AND time = ?`,
-                [row.date, row.time]
-              );
+              pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time])
+                .catch(err => console.error("Unbook slot error:", err));
+
               bot.sendMessage(
                 row.tg_id,
                 `🗑 *Ваш запис було видалено адміністратором*
@@ -921,10 +885,9 @@ ORDER BY ws.date, ws.time
                 { parse_mode: "Markdown" }
               );
 
-
               res.json({ ok: true });
-            }
-          );
+            })
+            .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
         // =============== PRICE LIST MANAGEMENT ===============
@@ -940,7 +903,7 @@ ORDER BY ws.date, ws.time
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.all(`
+          pool.query(`
     SELECT 
       c.id as category_id,
       c.name as category_name,
@@ -957,40 +920,42 @@ ORDER BY ws.date, ws.time
       s.is_active as service_active
     FROM service_categories c
     LEFT JOIN services s ON c.id = s.category_id
-    WHERE c.is_active = 1
+    WHERE c.is_active = true
     ORDER BY c.order_index, c.id, s.order_index, s.id
-  `, [], (err, rows) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
+  `, [])
+            .then(result => {
+              const rows = result.rows;
 
-            // Group by categories
-            const categories = {};
-            rows.forEach(row => {
-              if (!categories[row.category_id]) {
-                categories[row.category_id] = {
-                  id: row.category_id,
-                  name: row.category_name,
-                  description: row.category_description,
-                  order_index: row.category_order,
-                  is_active: row.category_active,
-                  services: []
-                };
-              }
-              if (row.service_id) {
-                categories[row.category_id].services.push({
-                  id: row.service_id,
-                  name: row.service_name,
-                  description: row.service_description,
-                  price: row.price,
-                  is_promotion: row.is_promotion,
-                  discount_price: row.discount_price,
-                  order_index: row.service_order,
-                  is_active: row.service_active
-                });
-              }
-            });
+              // Group by categories
+              const categories = {};
+              rows.forEach(row => {
+                if (!categories[row.category_id]) {
+                  categories[row.category_id] = {
+                    id: row.category_id,
+                    name: row.category_name,
+                    description: row.category_description,
+                    order_index: row.category_order,
+                    is_active: row.category_active,
+                    services: []
+                  };
+                }
+                if (row.service_id) {
+                  categories[row.category_id].services.push({
+                    id: row.service_id,
+                    name: row.service_name,
+                    description: row.service_description,
+                    price: row.price,
+                    is_promotion: row.is_promotion,
+                    discount_price: row.discount_price,
+                    order_index: row.service_order,
+                    is_active: row.service_active
+                  });
+                }
+              });
 
-            res.json(Object.values(categories));
-          });
+              res.json(Object.values(categories));
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // Add/Edit category
@@ -1007,24 +972,20 @@ ORDER BY ws.date, ws.time
 
           if (id) {
             // Update
-            db.run(
-              `UPDATE service_categories SET name = ?, description = ?, order_index = ?, is_active = ? WHERE id = ?`,
-              [name, description, order_index || 0, is_active ? 1 : 0, id],
-              function (err) {
-                if (err) return res.status(500).json({ error: 'DB error' });
-                res.json({ id: id });
-              }
-            );
+            pool.query(
+              `UPDATE service_categories SET name = $1, description = $2, order_index = $3, is_active = $4 WHERE id = $5`,
+              [name, description, order_index || 0, is_active, id]
+            )
+              .then(() => res.json({ id: id }))
+              .catch(err => res.status(500).json({ error: 'DB error' }));
           } else {
             // Insert
-            db.run(
-              `INSERT INTO service_categories (name, description, order_index, is_active) VALUES (?, ?, ?, ?)`,
-              [name, description, order_index || 0, is_active ? 1 : 0],
-              function (err) {
-                if (err) return res.status(500).json({ error: 'DB error' });
-                res.json({ id: this.lastID });
-              }
-            );
+            pool.query(
+              `INSERT INTO service_categories (name, description, order_index, is_active) VALUES ($1, $2, $3, $4) RETURNING id`,
+              [name, description, order_index || 0, is_active]
+            )
+              .then(result => res.json({ id: result.rows[0].id }))
+              .catch(err => res.status(500).json({ error: 'DB error' }));
           }
         });
 
@@ -1041,15 +1002,13 @@ ORDER BY ws.date, ws.time
             return res.status(403).json({ error: 'Not admin' });
 
           // First delete all services in this category
-          db.run(`DELETE FROM services WHERE category_id = ?`, [categoryId], (err) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
-
-            // Then delete the category
-            db.run(`DELETE FROM service_categories WHERE id = ?`, [categoryId], (err) => {
-              if (err) return res.status(500).json({ error: 'DB error' });
-              res.json({ ok: true });
-            });
-          });
+          pool.query(`DELETE FROM services WHERE category_id = $1`, [categoryId])
+            .then(() => {
+              // Then delete the category
+              return pool.query(`DELETE FROM service_categories WHERE id = $1`, [categoryId]);
+            })
+            .then(() => res.json({ ok: true }))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // Add/Edit service
@@ -1066,24 +1025,20 @@ ORDER BY ws.date, ws.time
 
           if (id) {
             // Update
-            db.run(
-              `UPDATE services SET category_id = ?, name = ?, description = ?, price = ?, is_promotion = ?, discount_price = ?, order_index = ?, is_active = ? WHERE id = ?`,
-              [category_id, name, description, price, is_promotion ? 1 : 0, discount_price, order_index || 0, is_active ? 1 : 0, id],
-              function (err) {
-                if (err) return res.status(500).json({ error: 'DB error' });
-                res.json({ id: id });
-              }
-            );
+            pool.query(
+              `UPDATE services SET category_id = $1, name = $2, description = $3, price = $4, is_promotion = $5, discount_price = $6, order_index = $7, is_active = $8 WHERE id = $9`,
+              [category_id, name, description, price, is_promotion, discount_price, order_index || 0, is_active, id]
+            )
+              .then(() => res.json({ id: id }))
+              .catch(err => res.status(500).json({ error: 'DB error' }));
           } else {
             // Insert
-            db.run(
-              `INSERT INTO services (category_id, name, description, price, is_promotion, discount_price, order_index, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-              [category_id, name, description, price, is_promotion ? 1 : 0, discount_price, order_index || 0, is_active ? 1 : 0],
-              function (err) {
-                if (err) return res.status(500).json({ error: 'DB error' });
-                res.json({ id: this.lastID });
-              }
-            );
+            pool.query(
+              `INSERT INTO services (category_id, name, description, price, is_promotion, discount_price, order_index, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+              [category_id, name, description, price, is_promotion, discount_price, order_index || 0, is_active]
+            )
+              .then(result => res.json({ id: result.rows[0].id }))
+              .catch(err => res.status(500).json({ error: 'DB error' }));
           }
         });
 
@@ -1099,15 +1054,14 @@ ORDER BY ws.date, ws.time
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.run(`DELETE FROM services WHERE id = ?`, [serviceId], (err) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
-            res.json({ ok: true });
-          });
+          pool.query(`DELETE FROM services WHERE id = $1`, [serviceId])
+            .then(() => res.json({ ok: true }))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // Get prices for client booking
         app.get('/api/prices', (req, res) => {
-          db.all(`
+          pool.query(`
     SELECT 
       c.id as category_id,
       c.name as category_name,
@@ -1120,36 +1074,38 @@ ORDER BY ws.date, ws.time
       s.discount_price
     FROM service_categories c
     LEFT JOIN services s ON c.id = s.category_id
-    WHERE c.is_active = 1 AND (s.is_active = 1 OR s.id IS NULL)
+    WHERE c.is_active = true AND (s.is_active = true OR s.id IS NULL)
     ORDER BY c.order_index, c.id, s.order_index, s.id
-  `, [], (err, rows) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
+  `, [])
+            .then(result => {
+              const rows = result.rows;
 
-            // Group by categories
-            const categories = {};
-            rows.forEach(row => {
-              if (!categories[row.category_id]) {
-                categories[row.category_id] = {
-                  id: row.category_id,
-                  name: row.category_name,
-                  description: row.category_description,
-                  services: []
-                };
-              }
-              if (row.service_id) {
-                categories[row.category_id].services.push({
-                  id: row.service_id,
-                  name: row.service_name,
-                  description: row.service_description,
-                  price: row.price,
-                  is_promotion: row.is_promotion,
-                  discount_price: row.discount_price
-                });
-              }
-            });
+              // Group by categories
+              const categories = {};
+              rows.forEach(row => {
+                if (!categories[row.category_id]) {
+                  categories[row.category_id] = {
+                    id: row.category_id,
+                    name: row.category_name,
+                    description: row.category_description,
+                    services: []
+                  };
+                }
+                if (row.service_id) {
+                  categories[row.category_id].services.push({
+                    id: row.service_id,
+                    name: row.service_name,
+                    description: row.service_description,
+                    price: row.price,
+                    is_promotion: row.is_promotion,
+                    discount_price: row.discount_price
+                  });
+                }
+              });
 
-            res.json(Object.values(categories));
-          });
+              res.json(Object.values(categories));
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // =============== PROMOTIONS AND REFERRALS MANAGEMENT ===============
@@ -1165,14 +1121,13 @@ ORDER BY ws.date, ws.time
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.all(`
+          pool.query(`
     SELECT id, name, description, discount_type, discount_value, is_active, valid_from, valid_until, conditions, created_at
     FROM promotions
     ORDER BY created_at DESC
-  `, [], (err, rows) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
-            res.json(rows);
-          });
+  `, [])
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // Add/Edit promotion
@@ -1189,24 +1144,20 @@ ORDER BY ws.date, ws.time
 
           if (id) {
             // Update
-            db.run(
-              `UPDATE promotions SET name = ?, description = ?, discount_type = ?, discount_value = ?, is_active = ?, valid_from = ?, valid_until = ?, conditions = ? WHERE id = ?`,
-              [name, description, discount_type, discount_value, is_active ? 1 : 0, valid_from, valid_until, conditions, id],
-              function (err) {
-                if (err) return res.status(500).json({ error: 'DB error' });
-                res.json({ id: id });
-              }
-            );
+            pool.query(
+              `UPDATE promotions SET name = $1, description = $2, discount_type = $3, discount_value = $4, is_active = $5, valid_from = $6, valid_until = $7, conditions = $8 WHERE id = $9`,
+              [name, description, discount_type, discount_value, is_active, valid_from, valid_until, conditions, id]
+            )
+              .then(() => res.json({ id: id }))
+              .catch(err => res.status(500).json({ error: 'DB error' }));
           } else {
             // Insert
-            db.run(
-              `INSERT INTO promotions (name, description, discount_type, discount_value, is_active, valid_from, valid_until, conditions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-              [name, description, discount_type, discount_value, is_active ? 1 : 0, valid_from, valid_until, conditions],
-              function (err) {
-                if (err) return res.status(500).json({ error: 'DB error' });
-                res.json({ id: this.lastID });
-              }
-            );
+            pool.query(
+              `INSERT INTO promotions (name, description, discount_type, discount_value, is_active, valid_from, valid_until, conditions) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+              [name, description, discount_type, discount_value, is_active, valid_from, valid_until, conditions]
+            )
+              .then(result => res.json({ id: result.rows[0].id }))
+              .catch(err => res.status(500).json({ error: 'DB error' }));
           }
         });
 
@@ -1222,10 +1173,9 @@ ORDER BY ws.date, ws.time
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          db.run(`DELETE FROM promotions WHERE id = ?`, [promotionId], (err) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
-            res.json({ ok: true });
-          });
+          pool.query(`DELETE FROM promotions WHERE id = $1`, [promotionId])
+            .then(() => res.json({ ok: true }))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // Get user's referral code
@@ -1235,22 +1185,21 @@ ORDER BY ws.date, ws.time
           if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
           // Check if user already has a referral code
-          db.get(`SELECT id, code, used_count FROM referral_codes WHERE tg_id = ? AND is_active = 1`, [tg_id], (err, row) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
+          pool.query(`SELECT id, code, used_count FROM referral_codes WHERE tg_id = $1 AND is_active = true`, [tg_id])
+            .then(result => {
+              const row = result.rows[0];
+              if (row) {
+                res.json({ code: row.code, used_count: row.used_count });
+              } else {
+                // Generate new referral code
+                const crypto = require('crypto');
+                const code = crypto.randomBytes(4).toString('hex').toUpperCase();
 
-            if (row) {
-              res.json({ code: row.code, used_count: row.used_count });
-            } else {
-              // Generate new referral code
-              const crypto = require('crypto');
-              const code = crypto.randomBytes(4).toString('hex').toUpperCase();
-
-              db.run(`INSERT INTO referral_codes (tg_id, code) VALUES (?, ?)`, [tg_id, code], function (err) {
-                if (err) return res.status(500).json({ error: 'DB error' });
-                res.json({ code: code, used_count: 0 });
-              });
-            }
-          });
+                return pool.query(`INSERT INTO referral_codes (tg_id, code) VALUES ($1, $2)`, [tg_id, code])
+                  .then(() => res.json({ code: code, used_count: 0 }));
+              }
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // Apply referral code
@@ -1262,43 +1211,45 @@ ORDER BY ws.date, ws.time
           }
 
           // Check if referral code exists and is active
-          db.get(`SELECT id, tg_id as referrer_tg_id FROM referral_codes WHERE code = ? AND is_active = 1`, [referral_code], (err, codeRow) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
-            if (!codeRow) return res.status(400).json({ error: "Invalid referral code" });
+          pool.query(`SELECT id, tg_id as referrer_tg_id FROM referral_codes WHERE code = $1 AND is_active = true`, [referral_code])
+            .then(result => {
+              const codeRow = result.rows[0];
+              if (!codeRow) return res.status(400).json({ error: "Invalid referral code" });
 
-            // Check if user already used this referral code
-            db.get(`SELECT id FROM referral_uses WHERE referral_code_id = ? AND used_by_tg_id = ?`, [codeRow.id, tg_id], (err, useRow) => {
-              if (err) return res.status(500).json({ error: 'DB error' });
-              if (useRow) return res.status(400).json({ error: "Referral code already used" });
+              // Check if user already used this referral code
+              return pool.query(`SELECT id FROM referral_uses WHERE referral_code_id = $1 AND used_by_tg_id = $2`, [codeRow.id, tg_id])
+                .then(result => {
+                  const useRow = result.rows[0];
+                  if (useRow) return res.status(400).json({ error: "Referral code already used" });
 
-              // Calculate discount for referee (30% off first booking)
-              const refereeDiscount = Math.round(appointment_price * 0.3);
+                  // Calculate discount for referee (30% off first booking)
+                  const refereeDiscount = Math.round(appointment_price * 0.3);
 
-              res.json({
-                valid: true,
-                referee_discount: refereeDiscount,
-                referrer_bonus: 10, // 10zl bonus for referrer
-                referrer_tg_id: codeRow.referrer_tg_id
-              });
-            });
-          });
+                  res.json({
+                    valid: true,
+                    referee_discount: refereeDiscount,
+                    referrer_bonus: 10, // 10zl bonus for referrer
+                    referrer_tg_id: codeRow.referrer_tg_id
+                  });
+                });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // Get active promotions for client
         app.get('/api/promotions', (req, res) => {
           const now = new Date().toISOString();
 
-          db.all(`
+          pool.query(`
     SELECT id, name, description, discount_type, discount_value, conditions
     FROM promotions
-    WHERE is_active = 1
-    AND (valid_from IS NULL OR valid_from <= ?)
-    AND (valid_until IS NULL OR valid_until >= ?)
+    WHERE is_active = true
+    AND (valid_from IS NULL OR valid_from <= $1)
+    AND (valid_until IS NULL OR valid_until >= $1)
     ORDER BY created_at DESC
-  `, [now, now], (err, rows) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
-            res.json(rows);
-          });
+  `, [now])
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // Check if user is first-time client
@@ -1307,10 +1258,12 @@ ORDER BY ws.date, ws.time
 
           if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
-          db.get(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = ? AND status != 'canceled'`, [tg_id], (err, row) => {
-            if (err) return res.status(500).json({ error: 'DB error' });
-            res.json({ is_first_time: row.count === 0 });
-          });
+          pool.query(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = $1 AND status != 'canceled'`, [tg_id])
+            .then(result => {
+              const row = result.rows[0];
+              res.json({ is_first_time: row.count === 0 });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         const cron = require('node-cron');
@@ -1327,95 +1280,102 @@ ORDER BY ws.date, ws.time
           const dd = String(tomorrow.getDate()).padStart(2, '0');
           const targetDate = `${yyyy}-${mm}-${dd}`;
 
-          db.all(
-            `SELECT id, client, date, time, tg_id 
-     FROM appointments 
-     WHERE date = ? AND status = 'approved' AND reminded = 0`,
-            [targetDate],
-            (err, rows) => {
-              if (err || rows.length === 0) return;
+          pool.query(
+            `SELECT id, client, date, time, tg_id
+     FROM appointments
+     WHERE date = $1 AND status = 'approved' AND reminded = false`,
+            [targetDate]
+          )
+          .then(result => {
+            const rows = result.rows;
+            if (rows.length === 0) return;
 
-              rows.forEach(a => {
-                // 🔔 повідомлення клієнту
-                bot.sendMessage(
-                  a.tg_id,
-                  `⏰ *Нагадування про ваш манікюр!*
+            rows.forEach(a => {
+              // 🔔 повідомлення клієнту
+              bot.sendMessage(
+                a.tg_id,
+                `⏰ *Нагадування про ваш манікюр!*
 
 📅 Дата: ${a.date}
 ⏰ Час: ${a.time}
 
 Чекаю вас завтра 🌸`,
-                  { parse_mode: "Markdown" }
-                );
+                { parse_mode: "Markdown" }
+              );
 
-                // 🔔 повідомлення адміна
-                bot.sendMessage(
-                  ADMIN_TG_ID,
-                  `📢 *Нагадування відправлено клієнту:* ${a.client}
+              // 🔔 повідомлення адміна
+              bot.sendMessage(
+                ADMIN_TG_ID,
+                `📢 *Нагадування відправлено клієнту:* ${a.client}
 
 📅 ${a.date}
 ⏰ ${a.time}`,
-                  { parse_mode: "Markdown" }
-                );
+                { parse_mode: "Markdown" }
+              );
 
-                // помічаємо як нагадано
-                db.run(`UPDATE appointments SET reminded = 1 WHERE id = ?`, [a.id]);
-              });
-            }
-          );
+              // помічаємо як нагадано
+              pool.query(`UPDATE appointments SET reminded = true WHERE id = $1`, [a.id])
+                .catch(err => console.error("Reminder update error:", err));
+            });
+          })
+          .catch(err => console.error("Reminder query error:", err));
         });
 
         // =============== HOURLY REMINDERS (3 HOURS BEFORE) ===============
         setInterval(() => {
           const now = new Date();
 
-          db.all(
+          pool.query(
             `
     SELECT a.id, a.client, a.date, a.time, a.tg_id, r.notified
     FROM appointments a
     JOIN reminders r ON a.id = r.appointment_id
-    WHERE a.status = 'approved' AND r.notified = 0
+    WHERE a.status = 'approved' AND r.notified = false
     `,
-            [],
-            (_, rows) => {
-              rows.forEach(row => {
-                const appointmentDateTime = new Date(`${row.date}T${row.time}:00`);
-                const diffMs = appointmentDateTime - now;
-                const diffHours = diffMs / 1000 / 60 / 60;
+            []
+          )
+          .then(result => {
+            const rows = result.rows;
+            rows.forEach(row => {
+              const appointmentDateTime = new Date(`${row.date}T${row.time}:00`);
+              const diffMs = appointmentDateTime - now;
+              const diffHours = diffMs / 1000 / 60 / 60;
 
-                // 🔥 Надсилаємо за 3 години
-                if (diffHours <= 3 && diffHours > 2.9) {
-                  bot.sendMessage(
-                    row.tg_id,
-                    `⏰ *Нагадування!*\n\nЧерез 3 години у вас манікюр 💅\n\n📅 ${row.date}\n⏰ ${row.time}`,
-                    { parse_mode: "Markdown" }
-                  );
+              // 🔥 Надсилаємо за 3 години
+              if (diffHours <= 3 && diffHours > 2.9) {
+                bot.sendMessage(
+                  row.tg_id,
+                  `⏰ *Нагадування!*\n\nЧерез 3 години у вас манікюр 💅\n\n📅 ${row.date}\n⏰ ${row.time}`,
+                  { parse_mode: "Markdown" }
+                );
 
-                  db.run(`UPDATE reminders SET notified = 1 WHERE appointment_id = ?`, [
-                    row.id
-                  ]);
-                }
-              });
-            }
-          );
+                pool.query(`UPDATE reminders SET notified = true WHERE appointment_id = $1`, [row.id])
+                  .catch(err => console.error("Reminder notified update error:", err));
+              }
+            });
+          })
+          .catch(err => console.error("Hourly reminder query error:", err));
         }, 5 * 60 * 1000); // кожні 5 хвилин
         setInterval(() => {
           const now = new Date();
 
-          db.all(
-            `SELECT id, date, time FROM work_slots WHERE is_booked = 0`,
-            [],
-            (_, rows) => {
-              rows.forEach(slot => {
-                const slotTime = new Date(`${slot.date}T${slot.time}:00`);
-                const diffMinutes = (slotTime - now) / 1000 / 60;
+          pool.query(
+            `SELECT id, date, time FROM work_slots WHERE is_booked = false`,
+            []
+          )
+          .then(result => {
+            const rows = result.rows;
+            rows.forEach(slot => {
+              const slotTime = new Date(`${slot.date}T${slot.time}:00`);
+              const diffMinutes = (slotTime - now) / 1000 / 60;
 
-                if (diffMinutes <= 30) {
-                  db.run(`DELETE FROM work_slots WHERE id = ?`, [slot.id]);
-                }
-              });
-            }
-          );
+              if (diffMinutes <= 30) {
+                pool.query(`DELETE FROM work_slots WHERE id = $1`, [slot.id])
+                  .catch(err => console.error("Slot cleanup error:", err));
+              }
+            });
+          })
+          .catch(err => console.error("Slot cleanup query error:", err));
         }, 5 * 60 * 1000); // кожні 5 хв
 
 
