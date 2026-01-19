@@ -18,6 +18,46 @@ if (WEBHOOK_URL) {
   bot.setWebHook(WEBHOOK_URL);
 }
 
+// Bot commands
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+
+  bot.sendMessage(chatId, 'Привіт! Натисни кнопку, щоб записатися на манікюр:', {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: 'Записатися на манікюр 💅',
+            web_app: {
+              url: process.env.CLIENT_URL
+            }
+          }
+        ]
+      ]
+    }
+  });
+});
+
+bot.onText(/\/admin/, (msg) => {
+  if (msg.from.id !== ADMIN_TG_ID) {
+    bot.sendMessage(msg.chat.id, '❌ Немає доступу');
+    return;
+  }
+
+  bot.sendMessage(msg.chat.id, '🔐 Адмін-панель:', {
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text: 'Відкрити адмінку 📋',
+          web_app: {
+            url: `${process.env.CLIENT_URL}/admin`
+          }
+        }
+      ]]
+    }
+  });
+});
+
 const app = express();
 app.use(express.json());
 
