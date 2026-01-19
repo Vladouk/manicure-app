@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "start": "node server/server.js"
+  },
   "dependencies": {
     "node-cron": "^4.2.1",
     "node-telegram-bot-api": "^0.67.0",
