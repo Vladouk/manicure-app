@@ -223,6 +223,63 @@ db.serialize(() => {
 
 });
 
+// Check if database is populated, if not, populate it
+db.get(`SELECT COUNT(*) as count FROM service_categories`, (err, row) => {
+  if (err) console.error('Error checking service_categories:', err);
+  else if (row.count === 0) {
+    console.log('Database empty, populating...');
+    // Run populate-db.js logic here
+    const categories = [
+      { name: 'Гібридний манікюр (gel polish / hybryda)', description: 'Класичний гібридний манікюр' },
+      { name: 'Нарощування / зміцнення гелем', description: 'Нарощування та зміцнення нігтів' },
+      { name: 'Зняття, ремонт, окремі нігті', description: 'Зняття покриття та ремонт' },
+      { name: 'Дизайн та декор', description: 'Декоративні послуги' }
+    ];
+
+    categories.forEach((cat, i) => {
+      db.run(
+        `INSERT OR IGNORE INTO service_categories (name, description, order_index, is_active) VALUES (?, ?, ?, 1)`,
+        [cat.name, cat.description, i]
+      );
+    });
+
+    // Add some services
+    const services = [
+      { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр — один колір', price: 135 },
+      { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр — френч / babyboomer', price: 155 },
+      { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр + вирівнювання базою', price: 155 },
+      { category: 'Нарощування / зміцнення гелем', name: 'Нарощування гелем', price: 200 },
+      { category: 'Зняття, ремонт, окремі нігті', name: 'Зняття гелю', price: 50 },
+      { category: 'Дизайн та декор', name: 'Дизайн нігтів', price: 30 }
+    ];
+
+    services.forEach(service => {
+      db.get(`SELECT id FROM service_categories WHERE name = ?`, [service.category], (err, catRow) => {
+        if (catRow) {
+          db.run(
+            `INSERT OR IGNORE INTO services (category_id, name, price, is_active) VALUES (?, ?, ?, 1)`,
+            [catRow.id, service.name, service.price]
+          );
+        }
+      });
+    });
+
+    // Add some initial work slots for next few days
+    const now = new Date();
+    for (let i = 1; i <= 7; i++) {
+      const date = new Date(now);
+      date.setDate(now.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      const times = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+      times.forEach(time => {
+        db.run(`INSERT OR IGNORE INTO work_slots (date, time) VALUES (?, ?)`, [dateStr, time]);
+      });
+    }
+
+    console.log('Database populated.');
+  }
+});
+
 // ============== CLIENT: CREATE APPOINTMENT ===============
 app.post(
   "/api/appointment",
