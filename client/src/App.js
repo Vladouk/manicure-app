@@ -35,7 +35,6 @@ function App() {
   const tgUser = WebApp.initDataUnsafe?.user;
   const isAdmin = ADMIN_TG_IDS.includes(tgUser?.id);
   const [slotsAdmin, setSlotsAdmin] = useState([]);
-  const [myAppointment, setMyAppointment] = useState(null);
   const [myHistory, setMyHistory] = useState([]);
   const [clientList, setClientList] = useState([]);
 const [clientHistory, setClientHistory] = useState([]);
@@ -181,27 +180,6 @@ const [reference, setReference] = useState(null);
         }
       }
     });
-function getSlotLabel(dateStr) {
-  const today = new Date();
-  const slotDate = new Date(dateStr);
-
-  const isToday =
-    slotDate.getFullYear() === today.getFullYear() &&
-    slotDate.getMonth() === today.getMonth() &&
-    slotDate.getDate() === today.getDate();
-
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-
-  const isTomorrow =
-    slotDate.getFullYear() === tomorrow.getFullYear() &&
-    slotDate.getMonth() === tomorrow.getMonth() &&
-    slotDate.getDate() === tomorrow.getDate();
-
-  if (isToday) return "today";
-  if (isTomorrow) return "tomorrow";
-  return "other";
-}
 
   if (effectiveMode === "client") {
     fetch(`${API}/api/appointment/my?tg_id=${tgUser?.id}`)
@@ -215,42 +193,10 @@ function getSlotLabel(dateStr) {
 
       WebApp.MainButton.hide();
 
-      const handleClick = () => {
-        if (!selectedSlotId) {
-          alert("❗ Обери дату і час");
-          return;
-        }
-
-        const formData = new FormData();
-formData.append("client", tgUser?.first_name || "Anon");
-formData.append("slot_id", selectedSlotId);
-formData.append("design", design);
-formData.append("length", length);
-formData.append("type", type);
-formData.append("comment", comment);
-formData.append("tg_id", tgUser?.id);
-
-if (reference) {
-  formData.append("reference", reference);
-}
-
-fetch(`${API}/api/appointment`, {
-  method: "POST",
-  body: formData
-})
-  .then(r => r.json())
-  .then(() => {
-    alert("✅ Запис створено!");
-  })
-  .catch(() => alert("❌ Помилка при відправці"));
-
-          
-      };
-
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, design, length, type, comment]);
+  }, [effectiveMode, selectedSlotId, design, length, type, comment, reference, tgUser?.first_name, tgUser?.id]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
@@ -259,7 +205,7 @@ fetch(`${API}/api/appointment`, {
         .then(data => setBonusPoints(data.points || 0))
         .catch(() => setBonusPoints(0));
     }
-  }, [mode]);
+  }, [mode, tgUser?.id]);
 
   const calculatePrice = (sub) => {
     if (!sub) return 0;
@@ -281,9 +227,6 @@ fetch(`${API}/api/appointment`, {
         .catch(() => setIsFirstTime(false));
     }
   }, [tgUser?.id]);
-
-  const today = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
@@ -339,25 +282,6 @@ fetch(`${API}/api/appointment`, {
         loadAppointments();
       })
       .catch(() => alert("❌ Помилка оновлення"));
-  };
-
-  const deleteAppointment = (id) => {
-    if (!window.confirm("Видалити цей запис?")) return;
-
-    fetch(`${API}/api/admin/delete`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-init-data": WebApp.initData
-      },
-      body: JSON.stringify({ id })
-    })
-      .then(r => r.json())
-      .then(() => {
-        alert("🗑 Видалено!");
-        loadAppointments();
-      })
-      .catch(() => alert("❌ Помилка видалення"));
   };
 
   // ADMIN PANEL
@@ -1625,7 +1549,7 @@ if (mode === "addSlot") {
       
       {/* СПИСОК */}
 
-      {appointments.map(a => (
+      {sortedAppointments.map(a => (
           <div
             className="admin-card"
             key={a.id}
@@ -1735,9 +1659,9 @@ if (mode === "addSlot") {
       ))}
 
       {/* EMPTY STATE */}
-      {appointments.length === 0 && (
+      {sortedAppointments.length === 0 && (
         <div className="admin-empty">
-          <img src="/admin-empty.png" className="admin-empty-img" />
+          <img src="/admin-empty.png" className="admin-empty-img" alt="" />
           <p>Записів поки що немає</p>
         </div>
       )}
