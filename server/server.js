@@ -1364,6 +1364,16 @@ ORDER BY ws.date, ws.time
           res.sendStatus(200);
         });
 
+        // Serve client build (SPA) if it exists — fixes "Cannot GET /" on deployment
+        const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+        if (fs.existsSync(clientBuildPath)) {
+          app.use(express.static(clientBuildPath));
+
+          // For any other route (except API routes defined above), send index.html
+          app.get('*', (req, res) => {
+            res.sendFile(path.join(clientBuildPath, 'index.html'));
+          });
+        }
         // =============== START SERVER ===============
         const PORT = process.env.PORT || 3000;
         app.listen(PORT, () =>
