@@ -3,6 +3,10 @@
     "start": "node server/server.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "node-telegram-bot-api": "^0.67.0",
     "sqlite3": "^5.1.7"
