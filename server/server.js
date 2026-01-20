@@ -1344,6 +1344,188 @@ ORDER BY ws.date, ws.time
             .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
+        // =============== ANALYTICS ENDPOINTS ===============
+        // 1. Most popular hours (найпопулярніші години)
+        app.get('/api/admin/analytics/hours', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          pool.query(`
+            SELECT 
+              EXTRACT(HOUR FROM time::time) as hour,
+              COUNT(*) as count
+            FROM appointments
+            WHERE status != 'canceled'
+            GROUP BY EXTRACT(HOUR FROM time::time)
+            ORDER BY count DESC
+          `)
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // 2. Most popular days (найпопулярніші дні)
+        app.get('/api/admin/analytics/days', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          pool.query(`
+            SELECT 
+              TO_CHAR(date::date, 'Day') as day_name,
+              EXTRACT(DOW FROM date::date)::int as day_num,
+              COUNT(*) as count
+            FROM appointments
+            WHERE status != 'canceled'
+            GROUP BY EXTRACT(DOW FROM date::date), TO_CHAR(date::date, 'Day')
+            ORDER BY day_num ASC
+          `)
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // 3. Monthly revenue (грошей за місяць)
+        app.get('/api/admin/analytics/monthly-revenue', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+
+          pool.query(`
+            SELECT 
+              SUM(price) as total_revenue,
+              COUNT(*) as total_appointments,
+              COUNT(DISTINCT tg_id) as unique_clients
+            FROM appointments
+            WHERE status = 'approved'
+            AND date LIKE $1
+          `, [`${year}-${month}%`])
+            .then(result => {
+              const row = result.rows[0];
+              res.json({
+                year,
+                month,
+                total_revenue: row.total_revenue || 0,
+                total_appointments: row.total_appointments || 0,
+                unique_clients: row.unique_clients || 0
+              });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // 4. Forecast for next month (прогноз на наступний місяць)
+        app.get('/api/admin/analytics/forecast', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const currentMonth = now.getMonth() + 1;
+          
+          // Get last 3 months average
+          pool.query(`
+            SELECT 
+              TO_CHAR(date::date, 'YYYY-MM') as month,
+              SUM(price) as revenue,
+              COUNT(*) as appointments
+            FROM appointments
+            WHERE status = 'approved'
+            AND date::date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '3 months')
+            GROUP BY TO_CHAR(date::date, 'YYYY-MM')
+            ORDER BY month DESC
+          `)
+            .then(result => {
+              const rows = result.rows;
+              const avgRevenue = rows.reduce((sum, row) => sum + (row.revenue || 0), 0) / Math.max(rows.length, 1);
+              const avgAppointments = rows.reduce((sum, row) => sum + (row.appointments || 0), 0) / Math.max(rows.length, 1);
+              
+              res.json({
+                forecast_revenue: Math.round(avgRevenue),
+                forecast_appointments: Math.round(avgAppointments),
+                based_on_months: rows.length
+              });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // 5. New clients graph (графік нових клієнтів)
+        app.get('/api/admin/analytics/new-clients', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          // Get new clients per day for last 30 days
+          pool.query(`
+            SELECT 
+              date::date as day,
+              COUNT(DISTINCT tg_id) as new_clients
+            FROM appointments
+            WHERE status != 'canceled'
+            AND date::date >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY date::date
+            ORDER BY date::date ASC
+          `)
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // Combined analytics endpoint
+        app.get('/api/admin/analytics', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          Promise.all([
+            pool.query(`SELECT EXTRACT(HOUR FROM time::time) as hour, COUNT(*) as count FROM appointments WHERE status != 'canceled' GROUP BY EXTRACT(HOUR FROM time::time) ORDER BY count DESC LIMIT 5`),
+            pool.query(`SELECT COUNT(DISTINCT tg_id) as total_clients FROM appointments WHERE status != 'canceled'`),
+            pool.query(`SELECT SUM(price) as total_revenue FROM appointments WHERE status = 'approved'`),
+            pool.query(`SELECT COUNT(*) as total_appointments FROM appointments WHERE status = 'approved'`),
+          ])
+            .then(results => {
+              res.json({
+                top_hours: results[0].rows,
+                total_clients: results[1].rows[0].total_clients || 0,
+                total_revenue: results[2].rows[0].total_revenue || 0,
+                total_appointments: results[3].rows[0].total_appointments || 0
+              });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
         const cron = require('node-cron');
 
         // =============== DAILY REMINDERS (18:00) ===============

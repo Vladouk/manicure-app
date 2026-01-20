@@ -53,6 +53,12 @@ const [reference, setReference] = useState(null);
   const [enteredReferralCode, setEnteredReferralCode] = useState("");
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsHours, setAnalyticsHours] = useState([]);
+  const [analyticsDays, setAnalyticsDays] = useState([]);
+  const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
+  const [analyticsForecast, setAnalyticsForecast] = useState(null);
+  const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
 
   const spendPoints = async (points) => {
     if (bonusPoints < points) return;
@@ -153,6 +159,9 @@ const [reference, setReference] = useState(null);
   const [serviceCategory, setServiceCategory] = useState("Гібридний манікюр");
   const [serviceSub, setServiceSub] = useState("Гібридний манікюр — один колір 120–150 zł");
   const [price, setPrice] = useState(135);
+  // Fallback for non-Telegram (web) users
+  const [manualName, setManualName] = useState("");
+  const [manualTgId, setManualTgId] = useState("");
 
   useEffect(() => {
   WebApp.ready();
@@ -195,13 +204,22 @@ const [reference, setReference] = useState(null);
         }
 
         const formData = new FormData();
-formData.append("client", tgUser?.first_name || "Anon");
+        // Use Telegram user data when available, otherwise use manual inputs for web users
+        const clientName = tgUser?.first_name || manualName || "Anon";
+        const effectiveTgId = tgUser?.id || manualTgId || '';
+
+        if (!effectiveTgId) {
+          alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
+          return;
+        }
+
+        formData.append("client", clientName);
 formData.append("slot_id", selectedSlotId);
 formData.append("design", design);
 formData.append("length", length);
 formData.append("type", type);
 formData.append("comment", comment);
-formData.append("tg_id", tgUser?.id);
+        formData.append("tg_id", effectiveTgId);
 
 if (reference) {
   formData.append("reference", reference);
@@ -770,6 +788,45 @@ if (mode === "menu") {
           </button>
         )}
 
+        {isAdmin && (
+          <button
+            className="primary-btn"
+            onClick={() => {
+              Promise.all([
+                fetch(`${API}/api/admin/analytics/hours`, {
+                  headers: { "x-init-data": WebApp.initData }
+                }).then(r => r.json()),
+                fetch(`${API}/api/admin/analytics/days`, {
+                  headers: { "x-init-data": WebApp.initData }
+                }).then(r => r.json()),
+                fetch(`${API}/api/admin/analytics/monthly-revenue`, {
+                  headers: { "x-init-data": WebApp.initData }
+                }).then(r => r.json()),
+                fetch(`${API}/api/admin/analytics/forecast`, {
+                  headers: { "x-init-data": WebApp.initData }
+                }).then(r => r.json()),
+                fetch(`${API}/api/admin/analytics/new-clients`, {
+                  headers: { "x-init-data": WebApp.initData }
+                }).then(r => r.json()),
+              ])
+                .then(([hours, days, revenue, forecast, newClients]) => {
+                  setAnalyticsHours(hours);
+                  setAnalyticsDays(days);
+                  setAnalyticsRevenue(revenue);
+                  setAnalyticsForecast(forecast);
+                  setAnalyticsNewClients(newClients);
+                  setMode("analytics");
+                })
+                .catch(err => {
+                  console.error('Error fetching analytics:', err);
+                  alert('❌ Помилка завантаження аналітики');
+                });
+            }}
+          >
+            💎 Аналітика 🔥
+          </button>
+        )}
+
         <button
           className="primary-btn"
           onClick={() => {
@@ -942,6 +999,141 @@ if (mode === "adminMenu") {
     </div>
   );
 }
+
+if (mode === "analytics") {
+  return (
+    <div className="app-container">
+      <div className="card">
+        <h2>💎 Аналітика 🔥</h2>
+        <p style={{ opacity: 0.7 }}>Статистика вашого бізнесу</p>
+      </div>
+
+      {/* Monthly Revenue */}
+      {analyticsRevenue && (
+        <div className="card" style={{ backgroundColor: "#f0f8ff", borderLeft: "4px solid #3498db" }}>
+          <h3>💰 Дохід цього місяця</h3>
+          <div style={{ fontSize: 28, fontWeight: "bold", color: "#27ae60", marginBottom: 10 }}>
+            {analyticsRevenue.total_revenue} zł
+          </div>
+          <p>📅 {analyticsRevenue.year}-{String(analyticsRevenue.month).padStart(2, '0')}</p>
+          <p>📋 Записів: {analyticsRevenue.total_appointments}</p>
+          <p>👥 Унікальних клієнтів: {analyticsRevenue.unique_clients}</p>
+        </div>
+      )}
+
+      {/* Forecast */}
+      {analyticsForecast && (
+        <div className="card" style={{ backgroundColor: "#fff8f0", borderLeft: "4px solid #e67e22" }}>
+          <h3>🔮 Прогноз на наступний місяць</h3>
+          <p style={{ fontSize: 20, fontWeight: "bold", color: "#e67e22" }}>
+            💵 {analyticsForecast.forecast_revenue} zł
+          </p>
+          <p>📊 Очікується записів: {analyticsForecast.forecast_appointments}</p>
+          <p style={{ fontSize: 12, opacity: 0.7 }}>Розраховано на основі {analyticsForecast.based_on_months} місяців</p>
+        </div>
+      )}
+
+      {/* Popular Hours */}
+      {analyticsHours && analyticsHours.length > 0 && (
+        <div className="card" style={{ backgroundColor: "#f0fff4", borderLeft: "4px solid #9b59b6" }}>
+          <h3>⏰ Найпопулярніші години</h3>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {analyticsHours.slice(0, 5).map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: "10px 15px",
+                  backgroundColor: "#e8daef",
+                  borderRadius: 8,
+                  fontWeight: "bold",
+                  color: "#8e44ad"
+                }}
+              >
+                {Math.round(item.hour)}:00 - {item.count} записів
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Popular Days */}
+      {analyticsDays && analyticsDays.length > 0 && (
+        <div className="card" style={{ backgroundColor: "#fff5f5", borderLeft: "4px solid #e74c3c" }}>
+          <h3>📅 Найпопулярніші дні</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {analyticsDays.map((item, idx) => {
+              const dayNames = ["Неділя", "Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота"];
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    backgroundColor: "#fadbd8",
+                    borderRadius: 6,
+                  }}
+                >
+                  <span>{dayNames[item.day_num]}</span>
+                  <span style={{ fontWeight: "bold", color: "#c0392b" }}>{item.count} записів</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* New Clients Graph */}
+      {analyticsNewClients && analyticsNewClients.length > 0 && (
+        <div className="card" style={{ backgroundColor: "#f5f9e9", borderLeft: "4px solid #16a085" }}>
+          <h3>📈 Нові клієнти (останні 30 днів)</h3>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 150, justifyContent: "space-around", paddingTop: 20 }}>
+            {analyticsNewClients.map((item, idx) => {
+              const maxClients = Math.max(...analyticsNewClients.map(x => x.new_clients || 0)) || 1;
+              const height = (item.new_clients / maxClients) * 120;
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 20,
+                      height: height,
+                      backgroundColor: "#16a085",
+                      borderRadius: "4px 4px 0 0",
+                      minHeight: item.new_clients > 0 ? 10 : 2,
+                    }}
+                  />
+                  <span style={{ fontSize: 10, fontWeight: "bold" }}>{item.new_clients}</span>
+                </div>
+              );
+            })}
+          </div>
+          <p style={{ fontSize: 11, opacity: 0.7, marginTop: 10 }}>
+            Графік показує новых клієнтів за день
+          </p>
+        </div>
+      )}
+
+      <button
+        className="primary-btn"
+        style={{ marginTop: 16 }}
+        onClick={() => setMode("adminMenu")}
+      >
+        ← Назад в адмінку
+      </button>
+
+      {modal}
+    </div>
+  );
+}
+
 if (mode === "slots") {
   return (
     <div className="app-container">
@@ -1853,6 +2045,32 @@ if (mode === "addSlot") {
 
   }}/>
 </div>
+      {/* Manual inputs for non-Telegram users */}
+      {!tgUser?.id && (
+        <div style={{ marginBottom: 12 }}>
+          <div className="field">
+            <label>Ваше ім'я (для підтвердження):</label>
+            <input
+              type="text"
+              placeholder="Ім'я"
+              value={manualName}
+              onChange={e => setManualName(e.target.value)}
+              style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #ccc' }}
+            />
+          </div>
+          <div className="field">
+            <label>Telegram ID (числовий):</label>
+            <input
+              type="text"
+              placeholder="Наприклад: 7058392354"
+              value={manualTgId}
+              onChange={e => setManualTgId(e.target.value)}
+              style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #ccc' }}
+            />
+            <small style={{ opacity: 0.7 }}>Якщо ви не в Telegram, введіть свій Telegram ID або відкрийте цей вебзастосунок через Telegram Web App.</small>
+          </div>
+        </div>
+      )}
 {isFirstTime && (
   <div style={{ color: 'green', fontWeight: 'bold', marginBottom: 10 }}>
     Застосовано знижку за перший манікюр 20%
@@ -1867,7 +2085,12 @@ if (mode === "addSlot") {
     if (!selectedSlotId) return alert("❗ Обери дату і час");
 
     const formData = new FormData();
-    formData.append("client", tgUser?.first_name || "Anon");
+    const clientName = tgUser?.first_name || manualName || "Anon";
+    const effectiveTgId = tgUser?.id || manualTgId || '';
+
+    if (!effectiveTgId) return alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
+
+    formData.append("client", clientName);
     formData.append("slot_id", selectedSlotId);
     formData.append("design", design);
     formData.append("length", length);
@@ -1875,8 +2098,8 @@ if (mode === "addSlot") {
     formData.append("service", serviceSub.split(' (')[0]); // Remove price part
     formData.append("price", price);
     formData.append("comment", comment);
-    formData.append("tg_id", tgUser?.id);
-    formData.append("username", tgUser?.username);
+    formData.append("tg_id", effectiveTgId);
+    formData.append("username", tgUser?.username || '');
     if (enteredReferralCode.trim()) {
       formData.append("referral_code", enteredReferralCode.trim());
     }
