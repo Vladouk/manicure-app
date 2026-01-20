@@ -58,6 +58,7 @@ const [reference, setReference] = useState(null);
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
   const [analyticsForecast, setAnalyticsForecast] = useState(null);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
+  const [selectedFromPriceList, setSelectedFromPriceList] = useState(false);
 
   // Function to select service from price list and go to booking form
   const selectServiceFromPriceList = (serviceData) => {
@@ -68,6 +69,7 @@ const [reference, setReference] = useState(null);
     setServiceCategory(serviceData.category || "Покриття");
     setServiceSub(serviceData.serviceName || "");
     setPrice(serviceData.price || 0);
+    setSelectedFromPriceList(true);
     
     // Go to client booking mode
     setMode("client");
@@ -2168,7 +2170,10 @@ if (mode === "addSlot") {
       </div>
       <div className="field">
       <label>Дизайн:</label>
-      <select value={design} onChange={e => setDesign(e.target.value)}>
+      <select value={design} onChange={e => {
+        setDesign(e.target.value);
+        setSelectedFromPriceList(false);
+      }}>
         <option>Класичний френч</option>
         <option>Гліттер</option>
         <option>Мінімалізм</option>
@@ -2177,7 +2182,10 @@ if (mode === "addSlot") {
 
       <div className="field">
       <label>Довжина:</label>
-      <select value={length} onChange={e => setLength(e.target.value)}>
+      <select value={length} onChange={e => {
+        setLength(e.target.value);
+        setSelectedFromPriceList(false);
+      }}>
         <option>Короткі</option>
         <option>Середні</option>
         <option>Довгі</option>
@@ -2185,7 +2193,10 @@ if (mode === "addSlot") {
       </div>
       <div className="field">
       <label>Тип:</label>
-      <select value={type} onChange={e => setType(e.target.value)}>
+      <select value={type} onChange={e => {
+        setType(e.target.value);
+        setSelectedFromPriceList(false);
+      }}>
         <option>Гель-лак</option>
         <option>Гібрид</option>
         <option>Акрил</option>
@@ -2197,6 +2208,7 @@ if (mode === "addSlot") {
         setServiceCategory(e.target.value);
         // Скинути sub при зміні категорії
         setServiceSub("");
+        setSelectedFromPriceList(false);
       }}>
         {dynamicPrices.map(cat => (
           <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -2205,7 +2217,10 @@ if (mode === "addSlot") {
       </div>
       <div className="field">
       <label>Послуга:</label>
-      <select value={serviceSub} onChange={e => setServiceSub(e.target.value)}>
+      <select value={serviceSub} onChange={e => {
+        setServiceSub(e.target.value);
+        setSelectedFromPriceList(false);
+      }}>
         {dynamicPrices.find(cat => cat.name === serviceCategory)?.services.map(service => {
           const displayName = service.is_promotion 
             ? `${service.name} (${service.discount_price} zł 🔥 Акція)`
@@ -2294,6 +2309,35 @@ if (mode === "addSlot") {
     Застосовано знижку за перший манікюр 20%
   </div>
 )}
+{selectedFromPriceList && (
+  <div style={{ backgroundColor: '#e8f5e8', border: '1px solid #27ae60', borderRadius: 8, padding: 12, marginBottom: 15 }}>
+    <div style={{ color: '#27ae60', fontWeight: 'bold', marginBottom: 5 }}>
+      ✅ Послуга вибрана з прайсу
+    </div>
+    <div style={{ fontSize: 14, opacity: 0.8 }}>
+      {serviceSub} - {price} zł
+    </div>
+    <button
+      onClick={() => {
+        setSelectedFromPriceList(false);
+        setServiceSub("");
+        setPrice(0);
+      }}
+      style={{
+        marginTop: 8,
+        padding: '4px 8px',
+        backgroundColor: '#95a5a6',
+        color: 'white',
+        border: 'none',
+        borderRadius: 4,
+        cursor: 'pointer',
+        fontSize: 12
+      }}
+    >
+      Очистити вибір
+    </button>
+  </div>
+)}
 <div style={{ marginBottom: 15, fontWeight: 'bold' }}>
   Загальна ціна: {price} zł
 </div>
@@ -2351,6 +2395,7 @@ if (mode === "addSlot") {
         setEnteredReferralCode("");
         setComment("");
         setReference(null);
+        setSelectedFromPriceList(false);
       })
       .catch((error) => {
         console.error("Booking error:", error);
