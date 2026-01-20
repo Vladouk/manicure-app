@@ -250,8 +250,9 @@ initializeDatabase().then(() => {
 async function populateDatabase() {
   try {
     const result = await pool.query(`SELECT COUNT(*) as count FROM service_categories`);
+    console.log('Service categories count:', result.rows[0].count);
     if (parseInt(result.rows[0].count) === 0) {
-    console.log('Database empty, populating...');
+      console.log('Database empty, populating categories and services...');
       // Insert categories
       const categories = [
         { name: 'Гібридний манікюр (gel polish / hybryda)', description: 'Класичний гібридний манікюр' },
@@ -268,29 +269,31 @@ async function populateDatabase() {
         );
       }
 
-    // Add some services
-    const services = [
-      { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр — один колір', price: 135 },
-      { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр — френч / babyboomer', price: 155 },
-      { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр + вирівнювання базою', price: 155 },
-      { category: 'Нарощування / зміцнення гелем', name: 'Нарощування гелем', price: 200 },
-      { category: 'Зняття, ремонт, окремі нігті', name: 'Зняття гелю', price: 50 },
-      { category: 'Дизайн та декор', name: 'Дизайн нігтів', price: 30 }
-    ];
+      // Add some services
+      const services = [
+        { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр — один колір', price: 135 },
+        { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр — френч / babyboomer', price: 155 },
+        { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр + вирівнювання базою', price: 155 },
+        { category: 'Нарощування / зміцнення гелем', name: 'Нарощування гелем', price: 200 },
+        { category: 'Зняття, ремонт, окремі нігті', name: 'Зняття гелю', price: 50 },
+        { category: 'Дизайн та декор', name: 'Дизайн нігтів', price: 30 }
+      ];
 
-    for (let i = 0; i < services.length; i++) {
-      const service = services[i];
-      const catResult = await pool.query(`SELECT id FROM service_categories WHERE name = $1`, [service.category]);
-      if (catResult.rows.length > 0) {
-        const catId = catResult.rows[0].id;
-        await pool.query(
-          `INSERT INTO services (category_id, name, price, is_active) VALUES ($1, $2, $3, true) ON CONFLICT DO NOTHING`,
-          [catId, service.name, service.price]
-        );
+      for (let i = 0; i < services.length; i++) {
+        const service = services[i];
+        const catResult = await pool.query(`SELECT id FROM service_categories WHERE name = $1`, [service.category]);
+        if (catResult.rows.length > 0) {
+          const catId = catResult.rows[0].id;
+          await pool.query(
+            `INSERT INTO services (category_id, name, price, is_active) VALUES ($1, $2, $3, true) ON CONFLICT DO NOTHING`,
+            [catId, service.name, service.price]
+          );
+        }
       }
     }
 
-    // Add some initial work slots for next few days
+    // Always add some future slots
+    console.log('Adding future work slots...');
     const now = new Date();
     for (let i = 1; i <= 7; i++) {
       const date = new Date(now);
@@ -304,7 +307,6 @@ async function populateDatabase() {
     }
 
     console.log('Database populated.');
-    }
   } catch (error) {
     console.error('Error populating database:', error);
   }
@@ -820,7 +822,7 @@ app.post(
             return res.status(403).json({ error: 'Not admin' });
 
           pool.query(`
-    SELECT 
+    SELECT
   ws.id,
   ws.date,
   ws.time,
@@ -832,14 +834,21 @@ LEFT JOIN appointments a
   ON ws.date = a.date AND ws.time = a.time AND a.status != 'canceled'
 ORDER BY ws.date, ws.time
     `, [])
-            .then(result => res.json(result.rows))
-            .catch(err => res.status(500).json({ error: "DB error" }));
+            .then(result => {
+              console.log('Admin slots query returned:', result.rows.length, 'slots');
+              res.json(result.rows);
+            })
+            .catch(err => {
+              console.error('Error getting admin slots:', err);
+              res.status(500).json({ error: "DB error" });
+            });
         });
 
 
         // ====== ADD WORK SLOT ======
         app.post('/api/admin/add-slot', (req, res) => {
           const { date, time } = req.body;
+          console.log('Adding slot:', { date, time });
           const initData = req.headers['x-init-data'];
 
           if (!initData || !validateInitData(initData))
@@ -849,9 +858,15 @@ ORDER BY ws.date, ws.time
           if (!ADMIN_TG_IDS.includes(user.id))
             return res.status(403).json({ error: 'Not admin' });
 
-          pool.query(`INSERT INTO work_slots (date, time) VALUES ($1, $2)`, [date, time])
-            .then(() => res.json({ ok: true }))
-            .catch(err => res.status(500).json({ error: 'DB error' }));
+          pool.query(`INSERT INTO work_slots (date, time) VALUES ($1, $2) RETURNING id`, [date, time])
+            .then(result => {
+              console.log('Slot added successfully:', result.rows[0]);
+              res.json({ ok: true, id: result.rows[0].id });
+            })
+            .catch(err => {
+              console.error('Error adding slot:', err);
+              res.status(500).json({ error: 'DB error' });
+            });
         });
         // ====== DELETE WORK SLOT ======
         app.post('/api/admin/delete-slot', (req, res) => {
