@@ -764,12 +764,17 @@ if (mode === "menu") {
         <button
           className="primary-btn"
           onClick={() => {
-            fetch(`${API}/api/admin/client-history?tg_id=${tgUser?.id}`, {
+            fetch(`${API}/api/my-appointments`, {
               headers: { "x-init-data": WebApp.initData }
             })
               .then(r => r.json())
               .then(data => {
                 setMyHistory(data);
+                setMode("myAppointments");
+              })
+              .catch(err => {
+                console.error('Error fetching appointments:', err);
+                setMyHistory([]);
                 setMode("myAppointments");
               });
           }}

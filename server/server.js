@@ -825,6 +825,25 @@ app.post(
             .then(result => res.json(result.rows))
             .catch(err => res.status(500).json({ error: "DB error" }));
         });
+        // =============== CLIENT: GET MY APPOINTMENTS ===============
+        app.get('/api/my-appointments', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+
+          pool.query(`
+    SELECT
+      id, date, time, design, length, type, status, comment
+    FROM appointments
+    WHERE tg_id = $1
+    ORDER BY date DESC, time DESC
+    `, [user.id])
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: "DB error" }));
+        });
         // =============== ADMIN: GET ALL WORK SLOTS ===============
         app.get('/api/admin/slots', (req, res) => {
           const initData = req.headers['x-init-data'];
