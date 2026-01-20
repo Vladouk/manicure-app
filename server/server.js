@@ -4,6 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const TelegramBot = require('node-telegram-bot-api');
 const multer = require("multer");
+const cors = require('cors');
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_TG_IDS = [1342762796];
 const ADMIN_TG_ID = ADMIN_TG_IDS[0]; // for messages
@@ -59,6 +60,7 @@ bot.onText(/\/admin/, (msg) => {
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 const path = require("path");
 
 
@@ -753,14 +755,12 @@ app.post(
               const now = new Date();
               console.log('Client slots: total slots in DB:', rows.length, 'current time:', now.toISOString());
 
-              // TEMPORARILY DISABLE TIME FILTERING FOR TESTING
               const filtered = rows.filter(slot => {
-                // const slotDate = new Date(`${slot.date}T${slot.time}:00`);
-                // const diffMs = slotDate - now;
-                // const diffMinutes = diffMs / 1000 / 60;
-                // const isVisible = diffMinutes >= 30 && slot.is_booked === false;
-                const isVisible = slot.is_booked === false; // Only filter by booking status
-                console.log(`Slot ${slot.id}: ${slot.date} ${slot.time}, booked: ${slot.is_booked}, visible: ${isVisible}`);
+                const slotDate = new Date(`${slot.date}T${slot.time}:00`);
+                const diffMs = slotDate - now;
+                const diffMinutes = diffMs / 1000 / 60;
+                const isVisible = diffMinutes >= 30 && slot.is_booked === false;
+                console.log(`Slot ${slot.id}: ${slot.date} ${slot.time}, diff: ${diffMinutes.toFixed(1)}min, booked: ${slot.is_booked}, visible: ${isVisible}`);
                 return isVisible;
               });
 
