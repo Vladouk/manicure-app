@@ -8,6 +8,7 @@ const ADMIN_TG_IDS = [1342762796];
 
 
 const API = process.env.REACT_APP_API_URL || '';
+console.log('Client: API URL:', API);
 const getSlotLabel = (dateStr) => {
   const today = new Date();
   const slotDate = new Date(dateStr);
@@ -166,7 +167,10 @@ const [reference, setReference] = useState(null);
     })
     .then(data => {
       console.log('Client: Received slots data:', data);
-      setSlots(data.filter(s => s.is_booked === 0));
+      const filtered = data.filter(s => s.is_booked === 0);
+      console.log('Client: Filtered slots:', filtered);
+      setSlots(filtered);
+      console.log('Client: Slots state set, length:', filtered.length);
     })
     .catch(err => console.error('Client: Error fetching slots:', err));
 
@@ -293,6 +297,10 @@ fetch(`${API}/api/appointment`, {
     date,
     slots: groupedSlots[date].sort((a, b) => a.time.localeCompare(b.time))
   }));
+
+  console.log('Client: slots length:', slots.length);
+  console.log('Client: groupedSlots:', groupedSlots);
+  console.log('Client: grouped:', grouped);
 
   const selectedSlot = slots.find(s => s.id === selectedSlotId);
 
