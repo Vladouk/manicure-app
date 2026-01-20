@@ -61,6 +61,11 @@ bot.onText(/\/admin/, (msg) => {
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
+});
 const path = require("path");
 
 
