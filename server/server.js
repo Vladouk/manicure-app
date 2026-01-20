@@ -322,10 +322,20 @@ app.post(
     const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code } = req.body;
     const referenceImage = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!client || !slot_id || !tg_id) {
-      console.error("❌ Missing required fields:", { client: !!client, slot_id: !!slot_id, tg_id: !!tg_id });
-      return res.status(400).json({ error: "Missing fields" });
+    console.log('📩 /api/appointment payload', { client, slot_id, tg_id, username, service, price });
+
+    // Basic validation and coercion
+    const slotIdNum = parseInt(slot_id, 10);
+    const tgIdNum = parseInt(tg_id, 10);
+
+    if (!client || isNaN(slotIdNum) || isNaN(tgIdNum)) {
+      console.error("❌ Missing or invalid required fields:", { client: !!client, slot_id, tg_id });
+      return res.status(400).json({ error: "Missing or invalid fields" });
     }
+
+    // Use numeric ids downstream
+    req.body.slot_id = slotIdNum;
+    req.body.tg_id = tgIdNum;
 
     // Check if first-time client for 20% discount
     pool.query(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = $1 AND status != 'canceled'`, [tg_id])
@@ -390,7 +400,10 @@ app.post(
             }
           });
       })
-      .catch(err => res.status(500).json({ error: "DB error" }));
+      .catch(err => {
+        console.error('❌ DB error (appointment flow):', err);
+        return res.status(500).json({ error: "DB error" });
+      });
 
     function createAppointment(finalPrice, discountApplied, referralInfo) {
       console.log("🔍 Checking slot availability for slot_id:", slot_id);
