@@ -753,12 +753,14 @@ app.post(
               const now = new Date();
               console.log('Client slots: total slots in DB:', rows.length, 'current time:', now.toISOString());
 
+              // TEMPORARILY DISABLE TIME FILTERING FOR TESTING
               const filtered = rows.filter(slot => {
-                const slotDate = new Date(`${slot.date}T${slot.time}:00`);
-                const diffMs = slotDate - now;
-                const diffMinutes = diffMs / 1000 / 60;
-                const isVisible = diffMinutes >= 30 && slot.is_booked === false;
-                console.log(`Slot ${slot.id}: ${slot.date} ${slot.time}, diff: ${diffMinutes.toFixed(1)}min, booked: ${slot.is_booked}, visible: ${isVisible}`);
+                // const slotDate = new Date(`${slot.date}T${slot.time}:00`);
+                // const diffMs = slotDate - now;
+                // const diffMinutes = diffMs / 1000 / 60;
+                // const isVisible = diffMinutes >= 30 && slot.is_booked === false;
+                const isVisible = slot.is_booked === false; // Only filter by booking status
+                console.log(`Slot ${slot.id}: ${slot.date} ${slot.time}, booked: ${slot.is_booked}, visible: ${isVisible}`);
                 return isVisible;
               });
 

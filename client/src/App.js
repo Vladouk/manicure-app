@@ -160,8 +160,15 @@ const [reference, setReference] = useState(null);
   WebApp.MainButton.hide();
 
   fetch(`${API}/api/slots`)
-    .then(r => r.json())
-    .then(data => setSlots(data.filter(s => s.is_booked === 0)));
+    .then(r => {
+      console.log('Client: Slots response status:', r.status);
+      return r.json();
+    })
+    .then(data => {
+      console.log('Client: Received slots data:', data);
+      setSlots(data.filter(s => s.is_booked === 0));
+    })
+    .catch(err => console.error('Client: Error fetching slots:', err));
 
   fetch(`${API}/api/prices`)
     .then(r => r.json())
@@ -252,9 +259,17 @@ fetch(`${API}/api/appointment`, {
   // Refresh slots when entering client booking mode
   useEffect(() => {
     if (mode === "client") {
+      console.log('Client: Refreshing slots in client mode');
       fetch(`${API}/api/slots`)
-        .then(r => r.json())
-        .then(data => setSlots(data.filter(s => s.is_booked === 0)));
+        .then(r => {
+          console.log('Client: Refresh slots response status:', r.status);
+          return r.json();
+        })
+        .then(data => {
+          console.log('Client: Refresh received slots data:', data);
+          setSlots(data.filter(s => s.is_booked === 0));
+        })
+        .catch(err => console.error('Client: Error refreshing slots:', err));
     }
   }, [mode]);
 
