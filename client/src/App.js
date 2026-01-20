@@ -249,6 +249,15 @@ fetch(`${API}/api/appointment`, {
     setPrice(calculatePrice(serviceSub));
   }, [serviceSub]);
 
+  // Refresh slots when entering client booking mode
+  useEffect(() => {
+    if (mode === "client") {
+      fetch(`${API}/api/slots`)
+        .then(r => r.json())
+        .then(data => setSlots(data.filter(s => s.is_booked === 0)));
+    }
+  }, [mode]);
+
   useEffect(() => {
     if (tgUser?.id) {
       fetch(`${API}/api/client/first-time?tg_id=${tgUser.id}`)
