@@ -146,7 +146,7 @@ async function initializeDatabase() {
         type TEXT,
         service TEXT,
         price INTEGER,
-        tg_id INTEGER,
+        tg_id BIGINT,
         username TEXT,
         comment TEXT,
         status TEXT DEFAULT 'pending',
@@ -172,7 +172,7 @@ async function initializeDatabase() {
     // Create client_points table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_points (
-        tg_id INTEGER PRIMARY KEY,
+        tg_id BIGINT PRIMARY KEY,
         points INTEGER DEFAULT 0,
         referral_discount_available BOOLEAN DEFAULT false
       )
@@ -225,7 +225,7 @@ async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS referral_codes (
         id SERIAL PRIMARY KEY,
-        tg_id INTEGER NOT NULL,
+        tg_id BIGINT NOT NULL,
         code TEXT UNIQUE NOT NULL,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -238,7 +238,7 @@ async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS referral_uses (
         id SERIAL PRIMARY KEY,
         referral_code_id INTEGER,
-        used_by_tg_id INTEGER,
+        used_by_tg_id BIGINT,
         appointment_id INTEGER,
         discount_applied INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -246,6 +246,12 @@ async function initializeDatabase() {
         FOREIGN KEY (appointment_id) REFERENCES appointments(id)
       )
     `);
+
+    // Migrate tg_id columns to BIGINT for larger Telegram IDs
+    await pool.query(`ALTER TABLE appointments ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Appointments tg_id already BIGINT or error:', err.message));
+    await pool.query(`ALTER TABLE client_points ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Client_points tg_id already BIGINT or error:', err.message));
+    await pool.query(`ALTER TABLE referral_codes ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Referral_codes tg_id already BIGINT or error:', err.message));
+    await pool.query(`ALTER TABLE referral_uses ALTER COLUMN used_by_tg_id TYPE BIGINT`).catch(err => console.log('Referral_uses used_by_tg_id already BIGINT or error:', err.message));
 
     console.log('Database tables initialized successfully');
   } catch (err) {
