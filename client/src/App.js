@@ -60,6 +60,21 @@ const [reference, setReference] = useState(null);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
   const [selectedFromPriceList, setSelectedFromPriceList] = useState(false);
 
+  // BOOKING INTERFACE HOOKS
+  const [bookingStep, setBookingStep] = useState(1);
+  const totalSteps = 4;
+
+  const nextStep = () => setBookingStep(prev => Math.min(prev + 1, totalSteps));
+  const prevStep = () => setBookingStep(prev => Math.max(prev - 1, 1));
+  const resetBooking = () => {
+    setBookingStep(1);
+    setSelectedSlotId("");
+    setEnteredReferralCode("");
+    setComment("");
+    setReference(null);
+    setSelectedFromPriceList(false);
+  };
+
   // Function to select service from price list and go to booking form
   const selectServiceFromPriceList = (serviceData) => {
     // Set the service details
@@ -2129,23 +2144,6 @@ if (mode === "addSlot") {
   );
 }
 
-
-  
-
-  // CLIENT FORM - NEW BEAUTIFUL BOOKING INTERFACE
-  const [bookingStep, setBookingStep] = useState(1);
-  const totalSteps = 4;
-
-  const nextStep = () => setBookingStep(prev => Math.min(prev + 1, totalSteps));
-  const prevStep = () => setBookingStep(prev => Math.max(prev - 1, 1));
-  const resetBooking = () => {
-    setBookingStep(1);
-    setSelectedSlotId("");
-    setEnteredReferralCode("");
-    setComment("");
-    setReference(null);
-    setSelectedFromPriceList(false);
-  };
 
   return (
     <div className="app-container" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', minHeight: '100vh', padding: '20px 0' }}>
