@@ -787,45 +787,6 @@ if (mode === "menu") {
           </button>
         )}
 
-        {isAdmin && (
-          <button
-            className="primary-btn"
-            onClick={() => {
-              Promise.all([
-                fetch(`${API}/api/admin/analytics/hours`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-                fetch(`${API}/api/admin/analytics/days`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-                fetch(`${API}/api/admin/analytics/monthly-revenue`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-                fetch(`${API}/api/admin/analytics/forecast`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-                fetch(`${API}/api/admin/analytics/new-clients`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-              ])
-                .then(([hours, days, revenue, forecast, newClients]) => {
-                  setAnalyticsHours(hours);
-                  setAnalyticsDays(days);
-                  setAnalyticsRevenue(revenue);
-                  setAnalyticsForecast(forecast);
-                  setAnalyticsNewClients(newClients);
-                  setMode("analytics");
-                })
-                .catch(err => {
-                  console.error('Error fetching analytics:', err);
-                  alert('❌ Помилка завантаження аналітики');
-                });
-            }}
-          >
-            💎 Аналітика 🔥
-          </button>
-        )}
-
         <button
           className="primary-btn"
           onClick={() => {
@@ -984,7 +945,42 @@ if (mode === "adminMenu") {
         🎉 Акції
       </button>
 
-      
+      <button
+        className="primary-btn"
+        onClick={() => {
+          Promise.all([
+            fetch(`${API}/api/admin/analytics/hours`, {
+              headers: { "x-init-data": WebApp.initData }
+            }).then(r => r.json()),
+            fetch(`${API}/api/admin/analytics/days`, {
+              headers: { "x-init-data": WebApp.initData }
+            }).then(r => r.json()),
+            fetch(`${API}/api/admin/analytics/monthly-revenue`, {
+              headers: { "x-init-data": WebApp.initData }
+            }).then(r => r.json()),
+            fetch(`${API}/api/admin/analytics/forecast`, {
+              headers: { "x-init-data": WebApp.initData }
+            }).then(r => r.json()),
+            fetch(`${API}/api/admin/analytics/new-clients`, {
+              headers: { "x-init-data": WebApp.initData }
+            }).then(r => r.json()),
+          ])
+            .then(([hours, days, revenue, forecast, newClients]) => {
+              setAnalyticsHours(hours);
+              setAnalyticsDays(days);
+              setAnalyticsRevenue(revenue);
+              setAnalyticsForecast(forecast);
+              setAnalyticsNewClients(newClients);
+              setMode("analytics");
+            })
+            .catch(err => {
+              console.error('Error fetching analytics:', err);
+              alert('❌ Помилка завантаження аналітики');
+            });
+        }}
+      >
+        💎 Аналітика 🔥
+      </button>
 
       <button
         className="primary-btn"
