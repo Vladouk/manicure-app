@@ -140,12 +140,19 @@ async function initializeDatabase() {
         service TEXT,
         price INTEGER,
         tg_id INTEGER,
+        username TEXT,
         comment TEXT,
         status TEXT DEFAULT 'pending',
         reference_image TEXT,
         reminded BOOLEAN DEFAULT false
       )
     `);
+
+    // Add username column if it doesn't exist (for migration)
+    await pool.query(`
+      ALTER TABLE appointments
+      ADD COLUMN IF NOT EXISTS username TEXT
+    `).catch(err => console.log('Username column already exists or error:', err.message));
 
     // Create reminders table
     await pool.query(`
@@ -401,9 +408,9 @@ app.post(
 
           // Insert appointment
           return pool.query(
-            `INSERT INTO appointments 
-            (client, date, time, design, length, type, service, price, comment, reference_image, tg_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            `INSERT INTO appointments
+            (client, date, time, design, length, type, service, price, comment, reference_image, tg_id, username)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING id`,
             [
               client,
@@ -416,7 +423,8 @@ app.post(
               finalPrice,
               comment,
               referenceImage,
-              tg_id
+              tg_id,
+              username
             ]
           )
           .then(result => {
