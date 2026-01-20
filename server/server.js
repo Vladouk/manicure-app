@@ -751,18 +751,18 @@ app.post(
             .then(result => {
               const rows = result.rows;
               const now = new Date();
+              console.log('Client slots: total slots in DB:', rows.length, 'current time:', now.toISOString());
 
               const filtered = rows.filter(slot => {
                 const slotDate = new Date(`${slot.date}T${slot.time}:00`);
                 const diffMs = slotDate - now;
                 const diffMinutes = diffMs / 1000 / 60;
-
-                return (
-                  diffMinutes >= 30 &&   // ❗ показуємо лише якщо до слота ≥ 30 хв
-                  slot.is_booked === false   // ❗ слот не зайнятий
-                );
+                const isVisible = diffMinutes >= 30 && slot.is_booked === false;
+                console.log(`Slot ${slot.id}: ${slot.date} ${slot.time}, diff: ${diffMinutes.toFixed(1)}min, booked: ${slot.is_booked}, visible: ${isVisible}`);
+                return isVisible;
               });
 
+              console.log('Client slots: returning', filtered.length, 'filtered slots');
               res.json(filtered);
             })
             .catch(err => res.status(500).json({ error: "DB error" }));
