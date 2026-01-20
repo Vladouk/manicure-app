@@ -167,7 +167,7 @@ const [reference, setReference] = useState(null);
     })
     .then(data => {
       console.log('Client: Received slots data:', data);
-      const filtered = data.filter(s => s.is_booked === 0);
+      const filtered = data.filter(s => s.is_booked === false);
       console.log('Client: Filtered slots:', filtered);
       setSlots(filtered);
       console.log('Client: Slots state set, length:', filtered.length);
@@ -271,7 +271,7 @@ fetch(`${API}/api/appointment`, {
         })
         .then(data => {
           console.log('Client: Refresh received slots data:', data);
-          setSlots(data.filter(s => s.is_booked === 0));
+          setSlots(data.filter(s => s.is_booked === false));
         })
         .catch(err => console.error('Client: Error refreshing slots:', err));
     }
