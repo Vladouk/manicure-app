@@ -113,143 +113,160 @@ const pool = new Pool({
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads', { recursive: true });
 }
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS work_slots (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT,
-      time TEXT,
-      is_booked INTEGER DEFAULT 0
-    )
-  `);
 
+// Initialize database tables
+async function initializeDatabase() {
+  try {
+    // Create work_slots table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS work_slots (
+        id SERIAL PRIMARY KEY,
+        date TEXT,
+        time TEXT,
+        is_booked BOOLEAN DEFAULT false
+      )
+    `);
 
+    // Create appointments table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS appointments (
+        id SERIAL PRIMARY KEY,
+        client TEXT,
+        date TEXT,
+        time TEXT,
+        design TEXT,
+        length TEXT,
+        type TEXT,
+        service TEXT,
+        price INTEGER,
+        tg_id INTEGER,
+        comment TEXT,
+        status TEXT DEFAULT 'pending',
+        reference_image TEXT,
+        reminded BOOLEAN DEFAULT false
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS appointments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      client TEXT,
-      date TEXT,
-      time TEXT,
-      design TEXT,
-      length TEXT,
-      type TEXT,
-      service TEXT,
-      price INTEGER,
-      tg_id INTEGER,
-      comment TEXT,
-      status TEXT DEFAULT 'pending',
-      reference_image TEXT
-      
-    )
-  `);
+    // Create reminders table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reminders (
+        appointment_id INTEGER UNIQUE,
+        notified BOOLEAN DEFAULT false
+      )
+    `);
 
-  db.run(`ALTER TABLE appointments ADD COLUMN reminded INTEGER DEFAULT 0`, () => { });
-  db.run(`ALTER TABLE appointments ADD COLUMN service TEXT`, () => { });
-  db.run(`ALTER TABLE appointments ADD COLUMN price INTEGER`, () => { });
-  db.run(`
-  CREATE TABLE IF NOT EXISTS reminders (
-    appointment_id INTEGER UNIQUE,
-    notified INTEGER DEFAULT 0
-  )
-    
-`);
+    // Create client_points table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_points (
+        tg_id INTEGER PRIMARY KEY,
+        points INTEGER DEFAULT 0,
+        referral_discount_available BOOLEAN DEFAULT false
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS client_points (
-      tg_id INTEGER PRIMARY KEY,
-      points INTEGER DEFAULT 0
-    )
-  `);
-  db.run(`ALTER TABLE client_points ADD COLUMN referral_discount_available INTEGER DEFAULT 0`, () => {});
+    // Create service_categories table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS service_categories (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        order_index INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT true
+      )
+    `);
 
-  // Price list tables
-  db.run(`
-    CREATE TABLE IF NOT EXISTS service_categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      description TEXT,
-      order_index INTEGER DEFAULT 0,
-      is_active INTEGER DEFAULT 1
-    )
-  `);
+    // Create services table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS services (
+        id SERIAL PRIMARY KEY,
+        category_id INTEGER,
+        name TEXT NOT NULL,
+        description TEXT,
+        price INTEGER NOT NULL,
+        is_promotion BOOLEAN DEFAULT false,
+        discount_price INTEGER,
+        order_index INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        FOREIGN KEY (category_id) REFERENCES service_categories(id)
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS services (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      category_id INTEGER,
-      name TEXT NOT NULL,
-      description TEXT,
-      price INTEGER NOT NULL,
-      is_promotion INTEGER DEFAULT 0,
-      discount_price INTEGER,
-      order_index INTEGER DEFAULT 0,
-      is_active INTEGER DEFAULT 1,
-      FOREIGN KEY (category_id) REFERENCES service_categories(id)
-    )
-  `);
+    // Create promotions table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS promotions (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        discount_type TEXT,
+        discount_value INTEGER,
+        is_active BOOLEAN DEFAULT true,
+        valid_from TIMESTAMP,
+        valid_until TIMESTAMP,
+        conditions TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // Promotions and referrals tables
-  db.run(`
-    CREATE TABLE IF NOT EXISTS promotions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      description TEXT,
-      discount_type TEXT, -- 'percentage' or 'fixed'
-      discount_value INTEGER,
-      is_active INTEGER DEFAULT 1,
-      valid_from TEXT,
-      valid_until TEXT,
-      conditions TEXT, -- JSON string for conditions
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    // Create referral_codes table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS referral_codes (
+        id SERIAL PRIMARY KEY,
+        tg_id INTEGER NOT NULL,
+        code TEXT UNIQUE NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        used_count INTEGER DEFAULT 0
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS referral_codes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      tg_id INTEGER NOT NULL,
-      code TEXT UNIQUE NOT NULL,
-      is_active INTEGER DEFAULT 1,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      used_count INTEGER DEFAULT 0
-    )
-  `);
+    // Create referral_uses table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS referral_uses (
+        id SERIAL PRIMARY KEY,
+        referral_code_id INTEGER,
+        used_by_tg_id INTEGER,
+        appointment_id INTEGER,
+        discount_applied INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (referral_code_id) REFERENCES referral_codes(id),
+        FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS referral_uses (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      referral_code_id INTEGER,
-      used_by_tg_id INTEGER,
-      appointment_id INTEGER,
-      discount_applied INTEGER,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (referral_code_id) REFERENCES referral_codes(id),
-      FOREIGN KEY (appointment_id) REFERENCES appointments(id)
-    )
-  `);
+    console.log('Database tables initialized successfully');
+  } catch (err) {
+    console.error('Error initializing database:', err);
+  }
+}
 
+// Run database initialization
+initializeDatabase().then(() => {
+  populateDatabase();
+}).catch(error => {
+  console.error('Error initializing database:', error);
 });
 
-// Check if database is populated, if not, populate it
-db.get(`SELECT COUNT(*) as count FROM service_categories`, (err, row) => {
-  if (err) console.error('Error checking service_categories:', err);
-  else if (row.count === 0) {
+// Populate database with initial data
+async function populateDatabase() {
+  try {
+    const result = await pool.query(`SELECT COUNT(*) as count FROM service_categories`);
+    if (parseInt(result.rows[0].count) === 0) {
     console.log('Database empty, populating...');
-    // Run populate-db.js logic here
-    const categories = [
-      { name: 'Гібридний манікюр (gel polish / hybryda)', description: 'Класичний гібридний манікюр' },
-      { name: 'Нарощування / зміцнення гелем', description: 'Нарощування та зміцнення нігтів' },
-      { name: 'Зняття, ремонт, окремі нігті', description: 'Зняття покриття та ремонт' },
-      { name: 'Дизайн та декор', description: 'Декоративні послуги' }
-    ];
+      // Insert categories
+      const categories = [
+        { name: 'Гібридний манікюр (gel polish / hybryda)', description: 'Класичний гібридний манікюр' },
+        { name: 'Нарощування / зміцнення гелем', description: 'Нарощування та зміцнення нігтів' },
+        { name: 'Зняття, ремонт, окремі нігті', description: 'Зняття покриття та ремонт' },
+        { name: 'Дизайн та декор', description: 'Декоративні послуги' }
+      ];
 
-    categories.forEach((cat, i) => {
-      db.run(
-        `INSERT OR IGNORE INTO service_categories (name, description, order_index, is_active) VALUES (?, ?, ?, 1)`,
-        [cat.name, cat.description, i]
-      );
-    });
+      for (let i = 0; i < categories.length; i++) {
+        const cat = categories[i];
+        await pool.query(
+          `INSERT INTO service_categories (name, description, order_index, is_active) VALUES ($1, $2, $3, true) ON CONFLICT DO NOTHING`,
+          [cat.name, cat.description, i]
+        );
+      }
 
     // Add some services
     const services = [
@@ -261,16 +278,17 @@ db.get(`SELECT COUNT(*) as count FROM service_categories`, (err, row) => {
       { category: 'Дизайн та декор', name: 'Дизайн нігтів', price: 30 }
     ];
 
-    services.forEach(service => {
-      db.get(`SELECT id FROM service_categories WHERE name = ?`, [service.category], (err, catRow) => {
-        if (catRow) {
-          db.run(
-            `INSERT OR IGNORE INTO services (category_id, name, price, is_active) VALUES (?, ?, ?, 1)`,
-            [catRow.id, service.name, service.price]
-          );
-        }
-      });
-    });
+    for (let i = 0; i < services.length; i++) {
+      const service = services[i];
+      const catResult = await pool.query(`SELECT id FROM service_categories WHERE name = $1`, [service.category]);
+      if (catResult.rows.length > 0) {
+        const catId = catResult.rows[0].id;
+        await pool.query(
+          `INSERT INTO services (category_id, name, price, is_active) VALUES ($1, $2, $3, true) ON CONFLICT DO NOTHING`,
+          [catId, service.name, service.price]
+        );
+      }
+    }
 
     // Add some initial work slots for next few days
     const now = new Date();
@@ -279,14 +297,18 @@ db.get(`SELECT COUNT(*) as count FROM service_categories`, (err, row) => {
       date.setDate(now.getDate() + i);
       const dateStr = date.toISOString().split('T')[0];
       const times = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
-      times.forEach(time => {
-        db.run(`INSERT OR IGNORE INTO work_slots (date, time) VALUES (?, ?)`, [dateStr, time]);
-      });
+      for (let j = 0; j < times.length; j++) {
+        const time = times[j];
+        await pool.query(`INSERT INTO work_slots (date, time) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [dateStr, time]);
+      }
     }
 
     console.log('Database populated.');
+    }
+  } catch (error) {
+    console.error('Error populating database:', error);
   }
-});
+}
 
 // ============== CLIENT: CREATE APPOINTMENT ===============
 app.post(
