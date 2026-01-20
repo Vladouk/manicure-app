@@ -2132,286 +2132,807 @@ if (mode === "addSlot") {
 
   
 
-  // CLIENT FORM
+  // CLIENT FORM - NEW BEAUTIFUL BOOKING INTERFACE
+  const [bookingStep, setBookingStep] = useState(1);
+  const totalSteps = 4;
+
+  const nextStep = () => setBookingStep(prev => Math.min(prev + 1, totalSteps));
+  const prevStep = () => setBookingStep(prev => Math.max(prev - 1, 1));
+  const resetBooking = () => {
+    setBookingStep(1);
+    setSelectedSlotId("");
+    setEnteredReferralCode("");
+    setComment("");
+    setReference(null);
+    setSelectedFromPriceList(false);
+  };
+
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', minHeight: '100vh', padding: '20px 0' }}>
 
       {isAdmin && (
-  <button className="primary-btn" onClick={() => setMode("adminMenu")}>
-    🔒 Адмінка
-  </button>
-)}
-
-      
-      <div className="card">
-  <h2>Запис 💅</h2>
-</div>
-
-      <p>Привіт, {tgUser?.first_name}!</p>
-     
-      <div className="field">
-      <label>Оберіть дату і час:</label>
-      <button
-        className="field"
-        style={{
-          width: "100%",
-          padding: 12,
-          borderRadius: 14,
-          border: "none",
-          background: "rgba(255,255,255,0.9)",
-          fontSize: 15,
-          textAlign: "left",
-          cursor: "pointer",
-        }}
-        onClick={() => setIsSlotModalOpen(true)}
-      >
-        {selectedSlot ? `${selectedSlot.date} — ${selectedSlot.time}` : "📅 Обрати дату"}
-      </button>
-      </div>
-      <div className="field">
-      <label>Дизайн:</label>
-      <select value={design} onChange={e => {
-        setDesign(e.target.value);
-        setSelectedFromPriceList(false);
-      }}>
-        <option>Класичний френч</option>
-        <option>Гліттер</option>
-        <option>Мінімалізм</option>
-      </select>
-      </div>
-
-      <div className="field">
-      <label>Довжина:</label>
-      <select value={length} onChange={e => {
-        setLength(e.target.value);
-        setSelectedFromPriceList(false);
-      }}>
-        <option>Короткі</option>
-        <option>Середні</option>
-        <option>Довгі</option>
-      </select>
-      </div>
-      <div className="field">
-      <label>Тип:</label>
-      <select value={type} onChange={e => {
-        setType(e.target.value);
-        setSelectedFromPriceList(false);
-      }}>
-        <option>Гель-лак</option>
-        <option>Гібрид</option>
-        <option>Акрил</option>
-      </select>
-      </div>
-      <div className="field">
-      <label>Категорія послуги:</label>
-      <select value={serviceCategory} onChange={e => {
-        setServiceCategory(e.target.value);
-        // Скинути sub при зміні категорії
-        setServiceSub("");
-        setSelectedFromPriceList(false);
-      }}>
-        {dynamicPrices.map(cat => (
-          <option key={cat.id} value={cat.name}>{cat.name}</option>
-        ))}
-      </select>
-      </div>
-      <div className="field">
-      <label>Послуга:</label>
-      <select value={serviceSub} onChange={e => {
-        setServiceSub(e.target.value);
-        setSelectedFromPriceList(false);
-      }}>
-        {dynamicPrices.find(cat => cat.name === serviceCategory)?.services.map(service => {
-          const displayName = service.is_promotion 
-            ? `${service.name} (${service.discount_price} zł 🔥 Акція)`
-            : `${service.name} (${service.price} zł)`;
-          return (
-            <option key={service.id} value={displayName}>{displayName}</option>
-          );
-        })}
-      </select>
-      </div>
-      <div className="field">
-      <label>Реферальний код (якщо є):</label>
-      <input
-        type="text"
-        placeholder="Введіть код подруги"
-        value={enteredReferralCode}
-        onChange={e => setEnteredReferralCode(e.target.value.toUpperCase())}
-        style={{
-          width: "100%",
-          padding: 10,
-          background: "#eef5ff",
-          borderRadius: 6,
-          marginBottom: 10,
-          border: "1px solid #ccc"
-        }}
-      />
-      <small style={{ opacity: 0.7 }}>Якщо у вас є реферальний код від подруги, введіть його тут для отримання знижки</small>
-      </div>
-      <div className="field">
-      <label>Коментар від клієнта:</label>
-<textarea
-  placeholder="Наприклад: буду з дизайном з Pinterest"
-  value={comment}
-  onChange={e => setComment(e.target.value)}
-  style={{
-    width: "100%",
-    minHeight: 60,
-    marginBottom: 10
-  }}
-  />
-</div>
-<div className="field">
-<label>Референс (фото манікюру):</label>
-<input
-  type="file"
-  accept="image/*"
-  onChange={e => setReference(e.target.files[0])}
-  style={{
-    width: "100%",
-    padding: 10,
-    background: "#eef5ff",
-    borderRadius: 6,
-    marginBottom: 15,
-    border: "1px solid #ccc"
-
-  }}/>
-</div>
-      {/* Manual inputs for non-Telegram users */}
-      {!tgUser?.id && (
-        <div style={{ marginBottom: 12 }}>
-          <div className="field">
-            <label>Ваше ім'я (для підтвердження):</label>
-            <input
-              type="text"
-              placeholder="Ім'я"
-              value={manualName}
-              onChange={e => setManualName(e.target.value)}
-              style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #ccc' }}
-            />
-          </div>
-          <div className="field">
-            <label>Telegram ID (числовий):</label>
-            <input
-              type="text"
-              placeholder="Наприклад: 7058392354"
-              value={manualTgId}
-              onChange={e => setManualTgId(e.target.value)}
-              style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #ccc' }}
-            />
-            <small style={{ opacity: 0.7 }}>Якщо ви не в Telegram, введіть свій Telegram ID або відкрийте цей вебзастосунок через Telegram Web App.</small>
-          </div>
+        <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
+          <button
+            className="primary-btn"
+            onClick={() => setMode("adminMenu")}
+            style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}
+          >
+            🔒 Адмінка
+          </button>
         </div>
       )}
-{isFirstTime && (
-  <div style={{ color: 'green', fontWeight: 'bold', marginBottom: 10 }}>
-    Застосовано знижку за перший манікюр 20%
-  </div>
-)}
-{selectedFromPriceList && (
-  <div style={{ backgroundColor: '#e8f5e8', border: '1px solid #27ae60', borderRadius: 8, padding: 12, marginBottom: 15 }}>
-    <div style={{ color: '#27ae60', fontWeight: 'bold', marginBottom: 5 }}>
-      ✅ Послуга вибрана з прайсу
-    </div>
-    <div style={{ fontSize: 14, opacity: 0.8 }}>
-      {serviceSub} - {price} zł
-    </div>
-    <button
-      onClick={() => {
-        setSelectedFromPriceList(false);
-        setServiceSub("");
-        setPrice(0);
-      }}
-      style={{
-        marginTop: 8,
-        padding: '4px 8px',
-        backgroundColor: '#95a5a6',
-        color: 'white',
-        border: 'none',
-        borderRadius: 4,
-        cursor: 'pointer',
-        fontSize: 12
-      }}
-    >
-      Очистити вибір
-    </button>
-  </div>
-)}
-<div style={{ marginBottom: 15, fontWeight: 'bold' }}>
-  Загальна ціна: {price} zł
-</div>
-<button
-  className="primary-btn"
-  onClick={() => {
-    if (!selectedSlotId) return alert("❗ Обери дату і час");
 
-    const formData = new FormData();
-    const clientName = tgUser?.first_name || manualName || "Anon";
-    const effectiveTgId = tgUser?.id || manualTgId || '';
+      {/* Progress Indicator */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 30,
+        padding: '0 20px'
+      }}>
+        {Array.from({ length: totalSteps }, (_, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: bookingStep > i + 1 ? '#4CAF50' : bookingStep === i + 1 ? '#FF6B9D' : 'rgba(255,255,255,0.3)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold',
+              fontSize: 16,
+              transition: 'all 0.3s ease'
+            }}>
+              {i + 1}
+            </div>
+            {i < totalSteps - 1 && (
+              <div style={{
+                width: 60,
+                height: 2,
+                background: bookingStep > i + 1 ? '#4CAF50' : 'rgba(255,255,255,0.3)',
+                margin: '0 10px',
+                transition: 'background 0.3s ease'
+              }} />
+            )}
+          </div>
+        ))}
+      </div>
 
-    if (!effectiveTgId) return alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
+      {/* Step Content */}
+      <div style={{
+        maxWidth: 800,
+        margin: '0 auto',
+        padding: '0 20px'
+      }}>
 
-    formData.append("client", clientName);
-    formData.append("slot_id", selectedSlotId);
-    formData.append("design", design);
-    formData.append("length", length);
-    formData.append("type", type);
-    formData.append("service", serviceSub.split(' (')[0]); // Remove price part
-    formData.append("price", price);
-    formData.append("comment", comment);
-    formData.append("tg_id", effectiveTgId);
-    formData.append("username", tgUser?.username || '');
-    if (enteredReferralCode.trim()) {
-      formData.append("referral_code", enteredReferralCode.trim());
-    }
+        {/* Step 1: Welcome & Service Selection */}
+        {bookingStep === 1 && (
+          <div style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 30,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>💅</div>
+              <h1 style={{ color: '#333', marginBottom: 10, fontSize: 28 }}>Запис на манікюр</h1>
+              <p style={{ color: '#666', fontSize: 16 }}>
+                Привіт{tgUser?.first_name ? `, ${tgUser.first_name}` : ''}! Давайте створимо ваш ідеальний манікюр
+              </p>
+            </div>
 
+            <div style={{ marginBottom: 30 }}>
+              <h3 style={{ color: '#333', marginBottom: 20, textAlign: 'center' }}>Оберіть послугу</h3>
 
-    if (reference) {
-      formData.append("reference", reference);
-    }
+              {/* Service Category Selection */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Категорія послуги:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                  {dynamicPrices.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setServiceCategory(cat.name);
+                        setServiceSub("");
+                        setSelectedFromPriceList(false);
+                      }}
+                      style={{
+                        padding: 15,
+                        borderRadius: 12,
+                        border: serviceCategory === cat.name ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                        background: serviceCategory === cat.name ? 'rgba(255,107,157,0.1)' : 'white',
+                        cursor: 'pointer',
+                        fontSize: 16,
+                        fontWeight: serviceCategory === cat.name ? 'bold' : 'normal',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-    fetch(`${API}/api/appointment`, {
-      method: "POST",
-      body: formData
-    })
-      .then(r => {
-        if (!r.ok) {
-          throw new Error(`HTTP error! status: ${r.status}`);
-        }
-        return r.json();
-      })
-      .then(data => {
-        let message = "✅ Запис створено!";
-        if (data.discount > 0) {
-          message += `\n💸 Застосовано знижку: ${data.discount} zł`;
-        }
-        if (data.final_price) {
-          message += `\n💰 Остаточна ціна: ${data.final_price} zł`;
-        }
-        alert(message);
-        // Reset form
-        setSelectedSlotId("");
-        setEnteredReferralCode("");
-        setComment("");
-        setReference(null);
-        setSelectedFromPriceList(false);
-      })
-      .catch((error) => {
-        console.error("Booking error:", error);
-        alert("❌ Помилка при створенні запису. Спробуйте ще раз.");
-      });
-  }}
->
-  Записатися 💅
-</button>
-<button
-  className="primary-btn"
-  onClick={() => setMode("menu")}
-  style={{ marginTop: 16 }}
->
-  ← Назад
-</button>
+              {/* Service Selection */}
+              {serviceCategory && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                    Конкретна послуга:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+                    {dynamicPrices.find(cat => cat.name === serviceCategory)?.services.map(service => {
+                      const displayName = service.is_promotion
+                        ? `${service.name} (${service.discount_price} zł 🔥 Акція)`
+                        : `${service.name} (${service.price} zł)`;
+                      const isSelected = serviceSub === displayName;
+
+                      return (
+                        <div
+                          key={service.id}
+                          onClick={() => {
+                            setServiceSub(displayName);
+                            setPrice(service.is_promotion ? service.discount_price : service.price);
+                            setSelectedFromPriceList(true);
+                          }}
+                          style={{
+                            padding: 15,
+                            borderRadius: 12,
+                            border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                            background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            position: 'relative'
+                          }}
+                        >
+                          {service.is_promotion && (
+                            <div style={{
+                              position: 'absolute',
+                              top: -8,
+                              right: -8,
+                              background: '#FF6B9D',
+                              color: 'white',
+                              borderRadius: '50%',
+                              width: 24,
+                              height: 24,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 12,
+                              fontWeight: 'bold'
+                            }}>
+                              🔥
+                            </div>
+                          )}
+                          <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333' }}>
+                            {service.name}
+                          </div>
+                          <div style={{
+                            color: service.is_promotion ? '#FF6B9D' : '#666',
+                            fontWeight: service.is_promotion ? 'bold' : 'normal'
+                          }}>
+                            {service.is_promotion ? `${service.discount_price} zł` : `${service.price} zł`}
+                            {service.is_promotion && <span style={{ marginLeft: 5 }}>🔥 Акція</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={() => setMode("menu")}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: '#f0f0f0',
+                  color: '#666',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold'
+                }}
+              >
+                ← Назад до меню
+              </button>
+
+              <button
+                onClick={nextStep}
+                disabled={!serviceSub}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: serviceSub ? 'linear-gradient(45deg, #FF6B9D, #C44569)' : '#ccc',
+                  color: 'white',
+                  cursor: serviceSub ? 'pointer' : 'not-allowed',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Далі →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Date & Time Selection */}
+        {bookingStep === 2 && (
+          <div style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 30,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>📅</div>
+              <h2 style={{ color: '#333', marginBottom: 10 }}>Оберіть дату та час</h2>
+              <p style={{ color: '#666' }}>Виберіть зручний для вас час візиту</p>
+            </div>
+
+            <div style={{ marginBottom: 30 }}>
+              <button
+                onClick={() => setIsSlotModalOpen(true)}
+                style={{
+                  width: '100%',
+                  padding: 20,
+                  borderRadius: 15,
+                  border: selectedSlot ? '2px solid #4CAF50' : '2px solid #e0e0e0',
+                  background: selectedSlot ? 'rgba(76, 175, 80, 0.1)' : 'white',
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10
+                }}
+              >
+                <span>📅</span>
+                {selectedSlot ? (
+                  <div>
+                    <div>{selectedSlot.date}</div>
+                    <div style={{ fontSize: 14, fontWeight: 'normal', color: '#666' }}>
+                      {selectedSlot.time}
+                    </div>
+                  </div>
+                ) : (
+                  <span>Обрати дату та час</span>
+                )}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={prevStep}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: '#f0f0f0',
+                  color: '#666',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold'
+                }}
+              >
+                ← Назад
+              </button>
+
+              <button
+                onClick={nextStep}
+                disabled={!selectedSlot}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: selectedSlot ? 'linear-gradient(45deg, #FF6B9D, #C44569)' : '#ccc',
+                  color: 'white',
+                  cursor: selectedSlot ? 'pointer' : 'not-allowed',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Далі →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Preferences & Details */}
+        {bookingStep === 3 && (
+          <div style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 30,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>✨</div>
+              <h2 style={{ color: '#333', marginBottom: 10 }}>Деталі та побажання</h2>
+              <p style={{ color: '#666' }}>Розкажіть про ваші вподобання</p>
+            </div>
+
+            <div style={{ display: 'grid', gap: 20 }}>
+
+              {/* Design Selection */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Дизайн манікюру:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+                  {[
+                    { value: 'Класичний френч', emoji: '💅', desc: 'Елегантний класик' },
+                    { value: 'Гліттер', emoji: '✨', desc: 'Блискучий дизайн' },
+                    { value: 'Мінімалізм', emoji: '⚪', desc: 'Стильний мінімум' }
+                  ].map(item => (
+                    <button
+                      key={item.value}
+                      onClick={() => {
+                        setDesign(item.value);
+                        setSelectedFromPriceList(false);
+                      }}
+                      style={{
+                        padding: 15,
+                        borderRadius: 12,
+                        border: design === item.value ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                        background: design === item.value ? 'rgba(255,107,157,0.1)' : 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: 24, marginBottom: 5 }}>{item.emoji}</div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 3 }}>{item.value}</div>
+                      <div style={{ fontSize: 12, color: '#666' }}>{item.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Length Selection */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Довжина нігтів:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+                  {[
+                    { value: 'Короткі', emoji: '✂️', desc: 'Практично' },
+                    { value: 'Середні', emoji: '💅', desc: 'Класика' },
+                    { value: 'Довгі', emoji: '👑', desc: 'Ефектно' }
+                  ].map(item => (
+                    <button
+                      key={item.value}
+                      onClick={() => {
+                        setLength(item.value);
+                        setSelectedFromPriceList(false);
+                      }}
+                      style={{
+                        padding: 12,
+                        borderRadius: 12,
+                        border: length === item.value ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                        background: length === item.value ? 'rgba(255,107,157,0.1)' : 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: 20, marginBottom: 3 }}>{item.emoji}</div>
+                      <div style={{ fontWeight: 'bold' }}>{item.value}</div>
+                      <div style={{ fontSize: 11, color: '#666' }}>{item.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Type Selection */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Тип покриття:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+                  {[
+                    { value: 'Гель-лак', desc: 'Стійке покриття' },
+                    { value: 'Гібрид', desc: 'Міцне та натуральне' },
+                    { value: 'Акрил', desc: 'Для нарощення' }
+                  ].map(item => (
+                    <button
+                      key={item.value}
+                      onClick={() => {
+                        setType(item.value);
+                        setSelectedFromPriceList(false);
+                      }}
+                      style={{
+                        padding: 12,
+                        borderRadius: 12,
+                        border: type === item.value ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                        background: type === item.value ? 'rgba(255,107,157,0.1)' : 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontWeight: 'bold', marginBottom: 3 }}>{item.value}</div>
+                      <div style={{ fontSize: 12, color: '#666' }}>{item.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Referral Code */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Реферальний код (якщо є):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Введіть код подруги для знижки"
+                  value={enteredReferralCode}
+                  onChange={e => setEnteredReferralCode(e.target.value.toUpperCase())}
+                  style={{
+                    width: '100%',
+                    padding: 15,
+                    borderRadius: 12,
+                    border: '2px solid #e0e0e0',
+                    fontSize: 16,
+                    transition: 'border-color 0.3s ease'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#FF6B9D'}
+                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                />
+                <small style={{ color: '#666', fontSize: 12, marginTop: 5, display: 'block' }}>
+                  Якщо у вас є реферальний код від подруги, введіть його тут для отримання знижки
+                </small>
+              </div>
+
+              {/* Comment */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Ваші побажання:
+                </label>
+                <textarea
+                  placeholder="Опишіть бажаний дизайн, кольори, особливі побажання..."
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: 15,
+                    borderRadius: 12,
+                    border: '2px solid #e0e0e0',
+                    fontSize: 16,
+                    minHeight: 80,
+                    resize: 'vertical',
+                    transition: 'border-color 0.3s ease'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#FF6B9D'}
+                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                />
+              </div>
+
+              {/* Reference Image */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Фото-референс (необов'язково):
+                </label>
+                <div style={{
+                  border: '2px dashed #e0e0e0',
+                  borderRadius: 12,
+                  padding: 20,
+                  textAlign: 'center',
+                  transition: 'border-color 0.3s ease',
+                  cursor: 'pointer'
+                }}
+                onClick={() => document.getElementById('reference-input').click()}>
+                  <div style={{ fontSize: 24, marginBottom: 10 }}>📸</div>
+                  <div style={{ color: '#666' }}>
+                    {reference ? `Вибрано: ${reference.name}` : 'Натисніть щоб додати фото манікюру'}
+                  </div>
+                </div>
+                <input
+                  id="reference-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setReference(e.target.files[0])}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              {/* Manual inputs for non-Telegram users */}
+              {!tgUser?.id && (
+                <div style={{ background: '#fff3cd', borderRadius: 12, padding: 15, marginTop: 20 }}>
+                  <h4 style={{ marginBottom: 10, color: '#856404' }}>Інформація для підтвердження</h4>
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>Ваше ім'я:</label>
+                    <input
+                      type="text"
+                      placeholder="Ім'я"
+                      value={manualName}
+                      onChange={e => setManualName(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: 10,
+                        borderRadius: 8,
+                        border: '1px solid #ccc'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>Telegram ID:</label>
+                    <input
+                      type="text"
+                      placeholder="Наприклад: 7058392354"
+                      value={manualTgId}
+                      onChange={e => setManualTgId(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: 10,
+                        borderRadius: 8,
+                        border: '1px solid #ccc'
+                      }}
+                    />
+                    <small style={{ color: '#856404', fontSize: 12, marginTop: 5, display: 'block' }}>
+                      Якщо ви не в Telegram, введіть свій Telegram ID або відкрийте цей вебзастосунок через Telegram Web App.
+                    </small>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 30 }}>
+              <button
+                onClick={prevStep}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: '#f0f0f0',
+                  color: '#666',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold'
+                }}
+              >
+                ← Назад
+              </button>
+
+              <button
+                onClick={nextStep}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: 'linear-gradient(45deg, #FF6B9D, #C44569)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Далі →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Confirmation */}
+        {bookingStep === 4 && (
+          <div style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 30,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>✅</div>
+              <h2 style={{ color: '#333', marginBottom: 10 }}>Підтвердження запису</h2>
+              <p style={{ color: '#666' }}>Перевірте ваші дані перед підтвердженням</p>
+            </div>
+
+            {/* Summary Card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+              borderRadius: 15,
+              padding: 25,
+              marginBottom: 30,
+              border: '1px solid #e0e0e0'
+            }}>
+              <h3 style={{ marginBottom: 20, color: '#333', textAlign: 'center' }}>📋 Деталі вашого запису</h3>
+
+              <div style={{ display: 'grid', gap: 15 }}>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 'bold', color: '#555' }}>Послуга:</span>
+                  <span style={{ color: '#333' }}>{serviceSub.split(' (')[0]}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 'bold', color: '#555' }}>Дата та час:</span>
+                  <span style={{ color: '#333' }}>{selectedSlot?.date} о {selectedSlot?.time}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 'bold', color: '#555' }}>Дизайн:</span>
+                  <span style={{ color: '#333' }}>{design}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 'bold', color: '#555' }}>Довжина:</span>
+                  <span style={{ color: '#333' }}>{length}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 'bold', color: '#555' }}>Тип покриття:</span>
+                  <span style={{ color: '#333' }}>{type}</span>
+                </div>
+
+                {comment && (
+                  <div>
+                    <span style={{ fontWeight: 'bold', color: '#555' }}>Побажання:</span>
+                    <div style={{ marginTop: 5, color: '#333', fontStyle: 'italic' }}>{comment}</div>
+                  </div>
+                )}
+
+                {reference && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', color: '#555' }}>Референс:</span>
+                    <span style={{ color: '#333' }}>📸 {reference.name}</span>
+                  </div>
+                )}
+
+                <div style={{
+                  borderTop: '2px solid #e0e0e0',
+                  paddingTop: 15,
+                  marginTop: 15,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontWeight: 'bold', fontSize: 18, color: '#333' }}>Загальна ціна:</span>
+                  <span style={{ fontWeight: 'bold', fontSize: 20, color: '#FF6B9D' }}>{price} zł</span>
+                </div>
+
+                {isFirstTime && (
+                  <div style={{
+                    background: '#d4edda',
+                    border: '1px solid #c3e6cb',
+                    borderRadius: 8,
+                    padding: 10,
+                    marginTop: 10,
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ color: '#155724', fontWeight: 'bold' }}>
+                      🎉 Застосовано знижку за перший манікюр 20%
+                    </span>
+                  </div>
+                )}
+
+                {enteredReferralCode && (
+                  <div style={{
+                    background: '#d1ecf1',
+                    border: '1px solid #bee5eb',
+                    borderRadius: 8,
+                    padding: 10,
+                    marginTop: 10,
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ color: '#0c5460', fontWeight: 'bold' }}>
+                      🎁 Використано реферальний код: {enteredReferralCode}
+                    </span>
+                  </div>
+                )}
+
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={prevStep}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: '#f0f0f0',
+                  color: '#666',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold'
+                }}
+              >
+                ← Назад
+              </button>
+
+              <button
+                onClick={() => {
+                  if (!selectedSlotId) return alert("❗ Обери дату і час");
+
+                  const formData = new FormData();
+                  const clientName = tgUser?.first_name || manualName || "Anon";
+                  const effectiveTgId = tgUser?.id || manualTgId || '';
+
+                  if (!effectiveTgId) return alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
+
+                  formData.append("client", clientName);
+                  formData.append("slot_id", selectedSlotId);
+                  formData.append("design", design);
+                  formData.append("length", length);
+                  formData.append("type", type);
+                  formData.append("service", serviceSub.split(' (')[0]);
+                  formData.append("price", price);
+                  formData.append("comment", comment);
+                  formData.append("tg_id", effectiveTgId);
+                  formData.append("username", tgUser?.username || '');
+                  if (enteredReferralCode.trim()) {
+                    formData.append("referral_code", enteredReferralCode.trim());
+                  }
+
+                  if (reference) {
+                    formData.append("reference", reference);
+                  }
+
+                  fetch(`${API}/api/appointment`, {
+                    method: "POST",
+                    body: formData
+                  })
+                    .then(r => {
+                      if (!r.ok) {
+                        throw new Error(`HTTP error! status: ${r.status}`);
+                      }
+                      return r.json();
+                    })
+                    .then(data => {
+                      let message = "✅ Запис створено успішно!";
+                      if (data.discount > 0) {
+                        message += `\n💸 Застосовано знижку: ${data.discount} zł`;
+                      }
+                      if (data.final_price) {
+                        message += `\n💰 Остаточна ціна: ${data.final_price} zł`;
+                      }
+                      alert(message);
+                      resetBooking();
+                      setMode("menu");
+                    })
+                    .catch((error) => {
+                      console.error("Booking error:", error);
+                      alert("❌ Помилка при створенні запису. Спробуйте ще раз.");
+                    });
+                }}
+                style={{
+                  padding: '15px 30px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: 'linear-gradient(45deg, #4CAF50, #45a049)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 15px rgba(76, 175, 80, 0.3)'
+                }}
+              >
+                ✅ Підтвердити запис
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+
       {/* SLOT MODAL */}
       {isSlotModalOpen && (
         <div
@@ -2421,60 +2942,85 @@ if (mode === "addSlot") {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
+            backgroundColor: "rgba(0,0,0,0.7)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 1000,
+            backdropFilter: 'blur(5px)'
           }}
           onClick={() => setIsSlotModalOpen(false)}
         >
           <div
             style={{
               background: "white",
-              padding: 20,
+              padding: 30,
               borderRadius: 20,
-              maxWidth: 400,
+              maxWidth: 500,
               width: "90%",
               maxHeight: "80vh",
               overflowY: "auto",
-              boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ fontSize: 20, fontWeight: "bold", marginBottom: 20, textAlign: "center" }}>
-              Оберіть дату і час
-            </h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10, color: '#333' }}>
+                📅 Оберіть дату і час
+              </h2>
+              <p style={{ color: '#666' }}>Доступні слоти для запису</p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 25 }}>
               {grouped.map((group) => {
                 const dateObj = new Date(group.date);
+                const isToday = getSlotLabel(group.date) === 'today';
+                const isTomorrow = getSlotLabel(group.date) === 'tomorrow';
+
                 return (
-                  <div key={group.date} style={{ borderBottom: "1px solid #eee", paddingBottom: 10 }}>
-                    <div
-                      style={{
-                        marginBottom: 10,
-                        textAlign: "center",
-                      }}
-                    >
-                      <div style={{ fontSize: 24, fontWeight: "bold" }}>
+                  <div key={group.date} style={{
+                    border: `2px solid ${isToday ? '#4CAF50' : isTomorrow ? '#2196F3' : '#e0e0e0'}`,
+                    borderRadius: 15,
+                    padding: 20,
+                    background: isToday ? 'rgba(76, 175, 80, 0.05)' : isTomorrow ? 'rgba(33, 150, 243, 0.05)' : 'white'
+                  }}>
+                    <div style={{ textAlign: "center", marginBottom: 15 }}>
+                      <div style={{ fontSize: 20, fontWeight: "bold", color: '#333' }}>
                         {dateObj.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}
                       </div>
-                      <div style={{ fontSize: 16, marginTop: 4 }}>
-                        {dateObj.toLocaleDateString('uk-UA', { weekday: 'long' })}
+                      <div style={{
+                        fontSize: 14,
+                        color: isToday ? '#4CAF50' : isTomorrow ? '#2196F3' : '#666',
+                        fontWeight: 'bold'
+                      }}>
+                        {isToday ? '• Сьогодні' : isTomorrow ? '• Завтра' : dateObj.toLocaleDateString('uk-UA', { weekday: 'long' })}
                       </div>
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: 'center' }}>
                       {group.slots.map((slot) => (
                         <button
                           key={slot.id}
                           style={{
-                            padding: 10,
-                            borderRadius: 8,
-                            background: "#f7f1f4",
-                            border: "1px solid #e0d3d7",
+                            padding: "12px 16px",
+                            borderRadius: 12,
+                            background: "#f8f9fa",
+                            border: "2px solid #e9ecef",
                             cursor: "pointer",
                             fontSize: 16,
-                            minWidth: 60,
+                            fontWeight: 'bold',
+                            color: '#495057',
+                            transition: 'all 0.3s ease',
+                            minWidth: 70
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#FF6B9D';
+                            e.target.style.color = 'white';
+                            e.target.style.borderColor = '#FF6B9D';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = '#f8f9fa';
+                            e.target.style.color = '#495057';
+                            e.target.style.borderColor = '#e9ecef';
                           }}
                           onClick={() => {
                             setSelectedSlotId(slot.id);
@@ -2488,6 +3034,24 @@ if (mode === "addSlot") {
                   </div>
                 );
               })}
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: 20 }}>
+              <button
+                onClick={() => setIsSlotModalOpen(false)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: '#6c757d',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold'
+                }}
+              >
+                Закрити
+              </button>
             </div>
           </div>
         </div>
