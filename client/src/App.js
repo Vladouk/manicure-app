@@ -53,7 +53,6 @@ const [reference, setReference] = useState(null);
   const [enteredReferralCode, setEnteredReferralCode] = useState("");
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
-  const [analytics, setAnalytics] = useState(null);
   const [analyticsHours, setAnalyticsHours] = useState([]);
   const [analyticsDays, setAnalyticsDays] = useState([]);
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
@@ -245,7 +244,7 @@ fetch(`${API}/api/appointment`, {
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, design, length, type, comment, reference, tgUser?.first_name, tgUser?.id]);
+  }, [effectiveMode, selectedSlotId, design, length, type, comment, reference, tgUser?.first_name, tgUser?.id, manualName, manualTgId]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
