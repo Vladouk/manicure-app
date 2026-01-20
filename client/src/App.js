@@ -1890,7 +1890,12 @@ if (mode === "addSlot") {
       method: "POST",
       body: formData
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
       .then(data => {
         let message = "✅ Запис створено!";
         if (data.discount > 0) {
@@ -1906,7 +1911,10 @@ if (mode === "addSlot") {
         setComment("");
         setReference(null);
       })
-      .catch(() => alert("❌ Помилка при відправці"));
+      .catch((error) => {
+        console.error("Booking error:", error);
+        alert("❌ Помилка при створенні запису. Спробуйте ще раз.");
+      });
   }}
 >
   Записатися 💅

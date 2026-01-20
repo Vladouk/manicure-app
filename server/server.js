@@ -306,19 +306,6 @@ async function populateDatabase() {
       }
     }
 
-    // Always add some future slots
-    const now = new Date();
-    for (let i = 1; i <= 7; i++) {
-      const date = new Date(now);
-      date.setDate(now.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
-      const times = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
-      for (let j = 0; j < times.length; j++) {
-        const time = times[j];
-        await pool.query(`INSERT INTO work_slots (date, time) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [dateStr, time]);
-      }
-    }
-
     console.log('Database populated.');
   } catch (error) {
     console.error('Error populating database:', error);
@@ -330,11 +317,13 @@ app.post(
   "/api/appointment",
   upload.single("reference"),
   (req, res) => {
-    console.log("Received appointment data:", req.body);
+    console.log("📝 Received appointment data:", req.body);
+    console.log("📎 File received:", req.file ? req.file.filename : "none");
     const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code } = req.body;
     const referenceImage = req.file ? `/uploads/${req.file.filename}` : null;
 
     if (!client || !slot_id || !tg_id) {
+      console.error("❌ Missing required fields:", { client: !!client, slot_id: !!slot_id, tg_id: !!tg_id });
       return res.status(400).json({ error: "Missing fields" });
     }
 
@@ -404,13 +393,16 @@ app.post(
       .catch(err => res.status(500).json({ error: "DB error" }));
 
     function createAppointment(finalPrice, discountApplied, referralInfo) {
+      console.log("🔍 Checking slot availability for slot_id:", slot_id);
       // Check slot availability
       pool.query(`SELECT date, time FROM work_slots WHERE id = $1 AND is_booked = false`, [slot_id])
         .then(result => {
           const slot = result.rows[0];
           if (!slot) {
+            console.error("❌ Slot not available or not found:", slot_id);
             return res.status(400).json({ error: "Slot not available" });
           }
+          console.log("✅ Slot available:", slot);
 
           // Insert appointment
           return pool.query(
@@ -435,7 +427,7 @@ app.post(
           )
           .then(result => {
             const appointmentId = result.rows[0].id;
-            console.log("Appointment inserted with id", appointmentId);
+            console.log("✅ Appointment inserted with id", appointmentId);
 
             // Insert reminder
             pool.query(`INSERT INTO reminders (appointment_id) VALUES ($1)`, [appointmentId])
@@ -463,7 +455,8 @@ app.post(
 
             // Update slot as booked
             pool.query(`UPDATE work_slots SET is_booked = true WHERE id = $1`, [slot_id])
-              .catch(err => console.error("Slot update error:", err));
+              .then(() => console.log("✅ Slot marked as booked"))
+              .catch(err => console.error("❌ Slot update error:", err));
 
             // 🔔 Сповіщення клієнту
             let clientMessage = `💅 *Запис створено!*  
@@ -492,7 +485,8 @@ app.post(
               tg_id,
               clientMessage,
               { parse_mode: "Markdown" }
-            );
+            ).then(() => console.log("✅ Client notification sent"))
+             .catch(err => console.error("❌ Client notification error:", err));
 
             // 🔥 Сповіщення адміну — РОЗШИРЕНА ВЕРСІЯ
             let adminMessage = `🔔 *Новий запис!*
@@ -524,13 +518,15 @@ app.post(
               ADMIN_TG_ID,
               adminMessage,
               { parse_mode: "Markdown" }
-            );
+            ).then(() => console.log("✅ Admin notification sent"))
+             .catch(err => console.error("❌ Admin notification error:", err));
 
+            console.log("✅ Appointment creation completed successfully");
             res.json({ ok: true, appointment_id: appointmentId, final_price: finalPrice, discount: discountApplied });
           });
         })
         .catch(err => {
-          console.error("DB error in createAppointment:", err);
+          console.error("❌ DB error in createAppointment:", err);
           res.status(500).json({ error: "DB error" });
         });
     }
