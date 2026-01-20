@@ -757,7 +757,7 @@ app.post(
                 const slotDate = new Date(`${slot.date}T${slot.time}:00`);
                 const diffMs = slotDate - now;
                 const diffMinutes = diffMs / 1000 / 60;
-                const isVisible = diffMinutes >= 5 && slot.is_booked === false; // ❗ тимчасово зменшив до 5 хвилин для тестування
+                const isVisible = diffMinutes >= 30 && slot.is_booked === false;
                 console.log(`Slot ${slot.id}: ${slot.date} ${slot.time}, diff: ${diffMinutes.toFixed(1)}min, booked: ${slot.is_booked}, visible: ${isVisible}`);
                 return isVisible;
               });
