@@ -59,6 +59,20 @@ const [reference, setReference] = useState(null);
   const [analyticsForecast, setAnalyticsForecast] = useState(null);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
 
+  // Function to select service from price list and go to booking form
+  const selectServiceFromPriceList = (serviceData) => {
+    // Set the service details
+    setType(serviceData.type || "Гель-лак");
+    setLength(serviceData.length || "Середні");
+    setDesign(serviceData.design || "Класичний френч");
+    setServiceCategory(serviceData.category || "Покриття");
+    setServiceSub(serviceData.serviceName || "");
+    setPrice(serviceData.price || 0);
+    
+    // Go to client booking mode
+    setMode("client");
+  };
+
   const spendPoints = async (points) => {
     if (bonusPoints < points) return;
     try {
@@ -522,7 +536,19 @@ if (mode === "priceList") {
         <h3 style={{ color: "#ff6b6b", marginBottom: 16 }}>💅 ПОКРИТТЯ</h3>
 
         <div style={{ marginBottom: 20 }}>
-          <h4 style={{ color: "#2c3e50", marginBottom: 8 }}>1. Покриття «гель-лак» — 100 zł</h4>
+          <h4 
+            style={{ color: "#2c3e50", marginBottom: 8, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Гель-лак",
+              length: "Середні", 
+              design: "Класичний френч",
+              category: "Покриття",
+              serviceName: "Покриття «гель-лак» (100 zł)",
+              price: 100
+            })}
+          >
+            1. Покриття «гель-лак» — 100 zł
+          </h4>
           <div style={{ backgroundColor: "#f8f9fa", padding: 12, borderRadius: 8, marginBottom: 8 }}>
             <strong>У вартість входить:</strong>
             <ul style={{ margin: "8px 0", paddingLeft: 20 }}>
@@ -538,7 +564,19 @@ if (mode === "priceList") {
         </div>
 
         <div>
-          <h4 style={{ color: "#2c3e50", marginBottom: 8 }}>2. Покриття з укріпленням — 120 zł</h4>
+          <h4 
+            style={{ color: "#2c3e50", marginBottom: 8, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Гель-лак",
+              length: "Середні",
+              design: "Класичний френч", 
+              category: "Покриття",
+              serviceName: "Покриття з укріпленням (120 zł)",
+              price: 120
+            })}
+          >
+            2. Покриття з укріпленням — 120 zł
+          </h4>
           <div style={{ backgroundColor: "#f8f9fa", padding: 12, borderRadius: 8, marginBottom: 8 }}>
             <strong>У вартість входить:</strong>
             <ul style={{ margin: "8px 0", paddingLeft: 20 }}>
@@ -563,7 +601,17 @@ if (mode === "priceList") {
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8 }}>
+          <div 
+            style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Акрил",
+              length: "Короткі",
+              design: "Класичний френч",
+              category: "Нарощення",
+              serviceName: "Нарощення нігтів S (130 zł)",
+              price: 130
+            })}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <strong style={{ fontSize: 16 }}>S — 130 zł</strong>
@@ -572,7 +620,17 @@ if (mode === "priceList") {
             </div>
           </div>
 
-          <div style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8 }}>
+          <div 
+            style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Акрил",
+              length: "Середні",
+              design: "Класичний френч",
+              category: "Нарощення", 
+              serviceName: "Нарощення нігтів M (150 zł)",
+              price: 150
+            })}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <strong style={{ fontSize: 16 }}>M — 150 zł</strong>
@@ -581,7 +639,17 @@ if (mode === "priceList") {
             </div>
           </div>
 
-          <div style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8 }}>
+          <div 
+            style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Акрил",
+              length: "Довгі",
+              design: "Класичний френч",
+              category: "Нарощення",
+              serviceName: "Нарощення нігтів L (170 zł)",
+              price: 170
+            })}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <strong style={{ fontSize: 16 }}>L — 170 zł</strong>
@@ -598,7 +666,17 @@ if (mode === "priceList") {
         <h4 style={{ color: "#2c3e50", marginBottom: 12 }}>Дизайн</h4>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-          <div style={{ backgroundColor: "#f0f9f0", padding: 10, borderRadius: 6 }}>
+          <div 
+            style={{ backgroundColor: "#f0f9f0", padding: 10, borderRadius: 6, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Гель-лак",
+              length: "Середні",
+              design: "Мінімалізм",
+              category: "Дизайн",
+              serviceName: "Дизайн 1–5 нігтів (20 zł)",
+              price: 20
+            })}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span><strong>1–5 нігтів — 20 zł</strong></span>
             </div>
@@ -607,7 +685,17 @@ if (mode === "priceList") {
             </p>
           </div>
 
-          <div style={{ backgroundColor: "#f0f9f0", padding: 10, borderRadius: 6 }}>
+          <div 
+            style={{ backgroundColor: "#f0f9f0", padding: 10, borderRadius: 6, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Гель-лак",
+              length: "Середні", 
+              design: "Гліттер",
+              category: "Дизайн",
+              serviceName: "Дизайн на всі нігті (35 zł)",
+              price: 35
+            })}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span><strong>Дизайн на всі нігті — 35 zł</strong></span>
             </div>
@@ -641,7 +729,17 @@ if (mode === "priceList") {
         <h3 style={{ color: "#e67e22", marginBottom: 16 }}>💼 ІНШІ ПОСЛУГИ</h3>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ backgroundColor: "#fef5e7", padding: 10, borderRadius: 6 }}>
+          <div 
+            style={{ backgroundColor: "#fef5e7", padding: 10, borderRadius: 6, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Гель-лак",
+              length: "Середні",
+              design: "Класичний френч",
+              category: "Чоловічий манікюр",
+              serviceName: "Чоловічий манікюр (50 zł)",
+              price: 50
+            })}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span><strong>Чоловічий манікюр — 50 zł</strong></span>
             </div>
@@ -650,7 +748,17 @@ if (mode === "priceList") {
             </p>
           </div>
 
-          <div style={{ backgroundColor: "#fef5e7", padding: 10, borderRadius: 6 }}>
+          <div 
+            style={{ backgroundColor: "#fef5e7", padding: 10, borderRadius: 6, cursor: "pointer" }}
+            onClick={() => selectServiceFromPriceList({
+              type: "Гель-лак",
+              length: "Середні",
+              design: "Класичний френч",
+              category: "Покриття",
+              serviceName: "Прозоре матове покриття (30 zł)",
+              price: 30
+            })}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span><strong>Прозоре матове покриття — 30 zł</strong></span>
             </div>
