@@ -8,7 +8,6 @@ const ADMIN_TG_IDS = [1342762796];
 
 
 const API = process.env.REACT_APP_API_URL || '';
-console.log('Client: API URL:', API);
 const getSlotLabel = (dateStr) => {
   const today = new Date();
   const slotDate = new Date(dateStr);
@@ -161,17 +160,8 @@ const [reference, setReference] = useState(null);
   WebApp.MainButton.hide();
 
   fetch(`${API}/api/slots`)
-    .then(r => {
-      console.log('Client: Slots response status:', r.status);
-      return r.json();
-    })
-    .then(data => {
-      console.log('Client: Received slots data:', data);
-      const filtered = data.filter(s => s.is_booked === false);
-      console.log('Client: Filtered slots:', filtered);
-      setSlots(filtered);
-      console.log('Client: Slots state set, length:', filtered.length);
-    })
+    .then(r => r.json())
+    .then(data => setSlots(data.filter(s => s.is_booked === false)))
     .catch(err => console.error('Client: Error fetching slots:', err));
 
   fetch(`${API}/api/prices`)
@@ -263,16 +253,9 @@ fetch(`${API}/api/appointment`, {
   // Refresh slots when entering client booking mode
   useEffect(() => {
     if (mode === "client") {
-      console.log('Client: Refreshing slots in client mode');
       fetch(`${API}/api/slots`)
-        .then(r => {
-          console.log('Client: Refresh slots response status:', r.status);
-          return r.json();
-        })
-        .then(data => {
-          console.log('Client: Refresh received slots data:', data);
-          setSlots(data.filter(s => s.is_booked === false));
-        })
+        .then(r => r.json())
+        .then(data => setSlots(data.filter(s => s.is_booked === false)))
         .catch(err => console.error('Client: Error refreshing slots:', err));
     }
   }, [mode]);
@@ -297,10 +280,6 @@ fetch(`${API}/api/appointment`, {
     date,
     slots: groupedSlots[date].sort((a, b) => a.time.localeCompare(b.time))
   }));
-
-  console.log('Client: slots length:', slots.length);
-  console.log('Client: groupedSlots:', groupedSlots);
-  console.log('Client: grouped:', grouped);
 
   const selectedSlot = slots.find(s => s.id === selectedSlotId);
 

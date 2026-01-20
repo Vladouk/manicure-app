@@ -307,7 +307,6 @@ async function populateDatabase() {
     }
 
     // Always add some future slots
-    console.log('Adding future work slots...');
     const now = new Date();
     for (let i = 1; i <= 7; i++) {
       const date = new Date(now);
@@ -752,24 +751,20 @@ app.post(
             })
             .catch(err => res.status(500).json({ error: "DB error" }));
         });
-        // =============== CLIENT: GET AVAILABLE SLOTS ===============
         app.get('/api/slots', (req, res) => {
           pool.query(`SELECT id, date, time, is_booked FROM work_slots ORDER BY date, time`, [])
             .then(result => {
               const rows = result.rows;
               const now = new Date();
-              console.log('Client slots: total slots in DB:', rows.length, 'current time:', now.toISOString());
 
               const filtered = rows.filter(slot => {
                 const slotDate = new Date(`${slot.date}T${slot.time}:00`);
                 const diffMs = slotDate - now;
                 const diffMinutes = diffMs / 1000 / 60;
                 const isVisible = diffMinutes >= 30 && slot.is_booked === false;
-                console.log(`Slot ${slot.id}: ${slot.date} ${slot.time}, diff: ${diffMinutes.toFixed(1)}min, booked: ${slot.is_booked}, visible: ${isVisible}`);
                 return isVisible;
               });
 
-              console.log('Client slots: returning', filtered.length, 'filtered slots');
               res.json(filtered);
             })
             .catch(err => res.status(500).json({ error: "DB error" }));
@@ -869,7 +864,6 @@ LEFT JOIN appointments a
 ORDER BY ws.date, ws.time
     `, [])
             .then(result => {
-              console.log('Admin slots query returned:', result.rows.length, 'slots');
               res.json(result.rows);
             })
             .catch(err => {
@@ -882,7 +876,6 @@ ORDER BY ws.date, ws.time
         // ====== ADD WORK SLOT ======
         app.post('/api/admin/add-slot', (req, res) => {
           const { date, time } = req.body;
-          console.log('Adding slot:', { date, time });
           const initData = req.headers['x-init-data'];
 
           if (!initData || !validateInitData(initData))
@@ -894,7 +887,6 @@ ORDER BY ws.date, ws.time
 
           pool.query(`INSERT INTO work_slots (date, time) VALUES ($1, $2) RETURNING id`, [date, time])
             .then(result => {
-              console.log('Slot added successfully:', result.rows[0]);
               res.json({ ok: true, id: result.rows[0].id });
             })
             .catch(err => {
