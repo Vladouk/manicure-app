@@ -513,47 +513,162 @@ if (mode === "priceList") {
     <div className="app-container">
 
       <div className="card">
-        <h2>💰 Прайс</h2>
-        <p style={{ opacity: 0.7 }}>Наші послуги та ціни</p>
+        <h2>� ПРАЙС НА ПОСЛУГИ МАНІКЮРУ</h2>
+        <p style={{ opacity: 0.7 }}>Професійний догляд за вашими нігтями</p>
       </div>
 
-      {dynamicPrices.map(category => (
-        <div key={category.id} className="card" style={{ marginBottom: 16 }}>
-          <h3>{category.name}</h3>
-          {category.description && (
-            <p style={{ opacity: 0.7, margin: '8px 0' }}>{category.description}</p>
-          )}
+      {/* ПОКРИТТЯ */}
+      <div className="card" style={{ backgroundColor: "#fff8f4", borderLeft: "4px solid #ff6b6b" }}>
+        <h3 style={{ color: "#ff6b6b", marginBottom: 16 }}>💅 ПОКРИТТЯ</h3>
 
-          <div style={{ marginTop: 12 }}>
-            {category.services.map(service => (
-              <div key={service.id} style={{ 
-                padding: '8px', 
-                margin: '4px 0', 
-                background: service.is_promotion ? '#fff3cd' : '#f8f9fa',
-                borderRadius: '4px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <strong>{service.name}</strong>
-                  {service.description && <div style={{ fontSize: '14px', opacity: 0.7 }}>{service.description}</div>}
-                </div>
-                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                  {service.is_promotion ? (
-                    <>
-                      <span style={{ textDecoration: 'line-through', color: '#dc3545', marginRight: '8px' }}>{service.price} zł</span>
-                      <span style={{ color: '#28a745' }}>{service.discount_price} zł 🔥</span>
-                    </>
-                  ) : (
-                    <span>{service.price} zł</span>
-                  )}
-                </div>
+        <div style={{ marginBottom: 20 }}>
+          <h4 style={{ color: "#2c3e50", marginBottom: 8 }}>1. Покриття «гель-лак» — 100 zł</h4>
+          <div style={{ backgroundColor: "#f8f9fa", padding: 12, borderRadius: 8, marginBottom: 8 }}>
+            <strong>У вартість входить:</strong>
+            <ul style={{ margin: "8px 0", paddingLeft: 20 }}>
+              <li>Гігієнічний манікюр</li>
+              <li>База</li>
+              <li>Колір (однотонне покриття)</li>
+              <li>Топ</li>
+            </ul>
+          </div>
+          <p style={{ fontSize: 14, color: "#e74c3c", fontStyle: "italic" }}>
+            ⭐ Підходить тим, хто хоче акуратні та міцні нігті на 3–4 тижні.
+          </p>
+        </div>
+
+        <div>
+          <h4 style={{ color: "#2c3e50", marginBottom: 8 }}>2. Покриття з укріпленням — 120 zł</h4>
+          <div style={{ backgroundColor: "#f8f9fa", padding: 12, borderRadius: 8, marginBottom: 8 }}>
+            <strong>У вартість входить:</strong>
+            <ul style={{ margin: "8px 0", paddingLeft: 20 }}>
+              <li>Гігієнічний манікюр</li>
+              <li>База</li>
+              <li>Гель для зміцнення нігтів</li>
+              <li>Колір</li>
+              <li>Топ</li>
+            </ul>
+          </div>
+          <p style={{ fontSize: 14, color: "#e74c3c", fontStyle: "italic" }}>
+            ⭐ Рекомендую для слабких, ламких або м'яких нігтів — укріплення додає міцності та зносостійкості.
+          </p>
+        </div>
+      </div>
+
+      {/* НАРОЩЕННЯ НІГТІВ */}
+      <div className="card" style={{ backgroundColor: "#f0f8ff", borderLeft: "4px solid #3498db" }}>
+        <h3 style={{ color: "#3498db", marginBottom: 16 }}>✨ НАРОЩЕННЯ НІГТІВ</h3>
+        <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 16 }}>
+          (Включає форму, довжину, моделювання матеріалом, опил, базове вирівнювання)
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <strong style={{ fontSize: 16 }}>S — 130 zł</strong>
+                <p style={{ fontSize: 14, margin: "4px 0", opacity: 0.8 }}>Коротка довжина, класична та найзручніша.</p>
               </div>
-            ))}
+            </div>
+          </div>
+
+          <div style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <strong style={{ fontSize: 16 }}>M — 150 zł</strong>
+                <p style={{ fontSize: 14, margin: "4px 0", opacity: 0.8 }}>Середня довжина — оптимальний варіант для дизайнів.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ backgroundColor: "#e8f4fd", padding: 12, borderRadius: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <strong style={{ fontSize: 16 }}>L — 170 zł</strong>
+                <p style={{ fontSize: 14, margin: "4px 0", opacity: 0.8 }}>Довгі нігті — для виразних форм і складних дизайнів.</p>
+              </div>
+            </div>
           </div>
         </div>
-      ))}
+      </div>
+
+      {/* ДОДАТКОВІ ПОСЛУГИ */}
+      <div className="card" style={{ backgroundColor: "#f8fff8", borderLeft: "4px solid #27ae60" }}>
+        <h3 style={{ color: "#27ae60", marginBottom: 16 }}>🎨 ДОДАТКОВІ ПОСЛУГИ</h3>
+        <h4 style={{ color: "#2c3e50", marginBottom: 12 }}>Дизайн</h4>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          <div style={{ backgroundColor: "#f0f9f0", padding: 10, borderRadius: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span><strong>1–5 нігтів — 20 zł</strong></span>
+            </div>
+            <p style={{ fontSize: 13, margin: "4px 0", opacity: 0.8 }}>
+              (Малюнки, стемпінг, наклейки, френч, втирки тощо)
+            </p>
+          </div>
+
+          <div style={{ backgroundColor: "#f0f9f0", padding: 10, borderRadius: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span><strong>Дизайн на всі нігті — 35 zł</strong></span>
+            </div>
+            <p style={{ fontSize: 13, margin: "4px 0", opacity: 0.8 }}>
+              Повністю оформлені руки у будь-якому стилі.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: "#e8f8e8", padding: 12, borderRadius: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span><strong>Фігурки — 3 zł / шт</strong></span>
+          </div>
+          <p style={{ fontSize: 13, margin: "4px 0", opacity: 0.8 }}>
+            Об'ємні декори, камінці, 3D-елементи.
+          </p>
+        </div>
+
+        <div style={{ backgroundColor: "#fff3cd", padding: 12, borderRadius: 8, marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span><strong>Зняття + гігієнічний манікюр — 40 zł</strong></span>
+          </div>
+          <p style={{ fontSize: 13, margin: "4px 0", opacity: 0.8 }}>
+            Повне акуратне зняття старого покриття + чистка нігтів і кутикули.
+          </p>
+        </div>
+      </div>
+
+      {/* ІНШІ ПОСЛУГИ */}
+      <div className="card" style={{ backgroundColor: "#fff8f0", borderLeft: "4px solid #e67e22" }}>
+        <h3 style={{ color: "#e67e22", marginBottom: 16 }}>💼 ІНШІ ПОСЛУГИ</h3>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ backgroundColor: "#fef5e7", padding: 10, borderRadius: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span><strong>Чоловічий манікюр — 50 zł</strong></span>
+            </div>
+            <p style={{ fontSize: 13, margin: "4px 0", opacity: 0.8 }}>
+              Обрізний чи комбінований, з вирівнюванням і наданням форми.
+            </p>
+          </div>
+
+          <div style={{ backgroundColor: "#fef5e7", padding: 10, borderRadius: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span><strong>Прозоре матове покриття — 30 zł</strong></span>
+            </div>
+            <p style={{ fontSize: 13, margin: "4px 0", opacity: 0.8 }}>
+              Ідеально для природного, «чистого» ефекту нігтів.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: "#f9f9f9", padding: 12, borderRadius: 8, marginTop: 12, border: "1px solid #ddd" }}>
+          <p style={{ fontSize: 14, margin: 0, fontStyle: "italic" }}>
+            💅 <strong>Покриття «гель-лак» / дизайн за стандартним прайсом</strong>
+          </p>
+          <p style={{ fontSize: 13, margin: "8px 0 0 0", opacity: 0.8 }}>
+            Тобто дизайн та декор розраховується відповідно до вказаних вище цін.
+          </p>
+        </div>
+      </div>
 
       <button
         className="primary-btn"
