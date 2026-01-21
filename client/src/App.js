@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
 import "./styles/theme.css";
 
 
@@ -3895,62 +3894,6 @@ if (mode === "calendarAdmin") {
         boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
         overflow: 'auto'
       }}>
-        <style>{`
-          .react-calendar {
-            width: 100%;
-            border: none;
-            background: white;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-              "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-              sans-serif;
-          }
-          .react-calendar__month-view__weekdays {
-            text-decoration: none;
-            font-weight: 600;
-            color: #667eea;
-          }
-          .react-calendar__tile {
-            max-width: 100%;
-            padding: 12px 8px;
-            background: transparent;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            color: #333;
-            cursor: pointer;
-            transition: all 0.3s ease;
-          }
-          .react-calendar__tile:enabled:hover,
-          .react-calendar__tile:enabled:focus {
-            background: #f0f0f0;
-            transform: scale(1.05);
-          }
-          .react-calendar__tile--now {
-            background: rgba(102, 126, 234, 0.2);
-            font-weight: 600;
-            color: #667eea;
-          }
-          .react-calendar__tile--active {
-            background: #667eea;
-            color: white;
-            font-weight: 600;
-          }
-          .calendar-date-with-appointments {
-            background: rgba(76, 175, 80, 0.3) !important;
-            color: #2d5016 !important;
-            font-weight: 600 !important;
-          }
-          .react-calendar__navigation button {
-            color: #667eea;
-            font-weight: 600;
-            min-width: 50px;
-            border-radius: 8px;
-            padding: 8px;
-          }
-          .react-calendar__navigation button:enabled:hover,
-          .react-calendar__navigation button:enabled:focus {
-            background: rgba(102, 126, 234, 0.1);
-          }
-        `}</style>
         <Calendar
           value={calendarDate}
           onChange={setCalendarDate}
