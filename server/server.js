@@ -161,6 +161,12 @@ async function initializeDatabase() {
       ADD COLUMN IF NOT EXISTS username TEXT
     `).catch(err => console.log('Username column already exists or error:', err.message));
 
+    // Add current_hands_images column if it doesn't exist (for migration)
+    await pool.query(`
+      ALTER TABLE appointments
+      ADD COLUMN IF NOT EXISTS current_hands_images TEXT
+    `).catch(err => console.log('Current hands images column already exists or error:', err.message));
+
     // Create reminders table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reminders (
@@ -321,14 +327,42 @@ async function populateDatabase() {
 // ============== CLIENT: CREATE APPOINTMENT ===============
 app.post(
   "/api/appointment",
-  upload.single("reference"),
+  upload.fields([
+    { name: 'current_hands_0', maxCount: 1 },
+    { name: 'current_hands_1', maxCount: 1 },
+    { name: 'current_hands_2', maxCount: 1 },
+    { name: 'current_hands_3', maxCount: 1 },
+    { name: 'current_hands_4', maxCount: 1 },
+    { name: 'reference_0', maxCount: 1 },
+    { name: 'reference_1', maxCount: 1 },
+    { name: 'reference_2', maxCount: 1 },
+    { name: 'reference_3', maxCount: 1 },
+    { name: 'reference_4', maxCount: 1 }
+  ]),
   (req, res) => {
     console.log("📝 Received appointment data:", req.body);
-    console.log("📎 File received:", req.file ? req.file.filename : "none");
+    console.log("📎 Files received:", req.files);
     const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code } = req.body;
-    const referenceImage = req.file ? `/uploads/${req.file.filename}` : null;
+    
+    // Handle multiple current hands photos
+    const currentHandsImages = [];
+    for (let i = 0; i < 5; i++) {
+      const fieldName = `current_hands_${i}`;
+      if (req.files[fieldName] && req.files[fieldName][0]) {
+        currentHandsImages.push(`/uploads/${req.files[fieldName][0].filename}`);
+      }
+    }
+    
+    // Handle multiple reference photos
+    const referenceImages = [];
+    for (let i = 0; i < 5; i++) {
+      const fieldName = `reference_${i}`;
+      if (req.files[fieldName] && req.files[fieldName][0]) {
+        referenceImages.push(`/uploads/${req.files[fieldName][0].filename}`);
+      }
+    }
 
-    console.log('📩 /api/appointment payload', { client, slot_id, tg_id, username, service, price });
+    console.log('📩 /api/appointment payload', { client, slot_id, tg_id, username, service, price, currentHandsImages: currentHandsImages.length, referenceImages: referenceImages.length });
 
     // Basic validation and coercion
     const slotIdNum = parseInt(slot_id, 10);
@@ -426,8 +460,8 @@ app.post(
           // Insert appointment
           return pool.query(
             `INSERT INTO appointments
-            (client, date, time, design, length, type, service, price, comment, reference_image, tg_id, username)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            (client, date, time, design, length, type, service, price, comment, reference_image, current_hands_images, tg_id, username)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING id`,
             [
               client,
@@ -439,7 +473,8 @@ app.post(
               service,
               finalPrice,
               comment,
-              referenceImage,
+              JSON.stringify(referenceImages),
+              JSON.stringify(currentHandsImages),
               tg_id,
               username
             ]
