@@ -58,6 +58,9 @@ const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [analyticsDays, setAnalyticsDays] = useState([]);
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
   const [analyticsForecast, setAnalyticsForecast] = useState(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState('list');
+  const [selectedDate, setSelectedDate] = useState(null);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
 
   // BOOKING INTERFACE HOOKS
@@ -5294,11 +5297,6 @@ if (mode === "admin") {
     return dateA - dateB;
   });
 
-  // 📅 Стан календаря
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState('list'); // 'list' або 'calendar'
-  const [selectedDate, setSelectedDate] = useState(null);
-
   // 📅 Функції календаря
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -5385,49 +5383,6 @@ if (mode === "admin") {
         }}>
           Переглядайте та керуйте всіма бронюваннями
         </p>
-      </div>
-
-      {/* View Toggle */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: '30px',
-        gap: '10px'
-      }}>
-        <button
-          onClick={() => setViewMode('list')}
-          style={{
-            background: viewMode === 'list' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255,255,255,0.9)',
-            color: viewMode === 'list' ? 'white' : '#667eea',
-            border: 'none',
-            borderRadius: '25px',
-            padding: '12px 25px',
-            fontSize: '1rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: viewMode === 'list' ? '0 4px 15px rgba(102, 126, 234, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          📋 Список
-        </button>
-        <button
-          onClick={() => setViewMode('calendar')}
-          style={{
-            background: viewMode === 'calendar' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255,255,255,0.9)',
-            color: viewMode === 'calendar' ? 'white' : '#667eea',
-            border: 'none',
-            borderRadius: '25px',
-            padding: '12px 25px',
-            fontSize: '1rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: viewMode === 'calendar' ? '0 4px 15px rgba(102, 126, 234, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          📅 Календар
-        </button>
       </div>
 
       {/* Filter Buttons */}
@@ -5580,6 +5535,74 @@ if (mode === "admin") {
         </div>
       </div>
 
+      {/* View Toggle */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '15px',
+        marginBottom: '30px'
+      }}>
+        <button
+          onClick={() => setViewMode('list')}
+          style={{
+            background: viewMode === 'list' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255,255,255,0.1)',
+            border: viewMode === 'list' ? 'none' : '2px solid rgba(255,255,255,0.3)',
+            borderRadius: '25px',
+            padding: '12px 25px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: viewMode === 'list' ? '0 4px 15px rgba(102, 126, 234, 0.3)' : 'none',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (viewMode !== 'list') {
+              e.target.style.background = 'rgba(255,255,255,0.2)';
+              e.target.style.borderColor = 'rgba(255,255,255,0.5)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (viewMode !== 'list') {
+              e.target.style.background = 'rgba(255,255,255,0.1)';
+              e.target.style.borderColor = 'rgba(255,255,255,0.3)';
+            }
+          }}
+        >
+          📋 Список
+        </button>
+        <button
+          onClick={() => setViewMode('calendar')}
+          style={{
+            background: viewMode === 'calendar' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255,255,255,0.1)',
+            border: viewMode === 'calendar' ? 'none' : '2px solid rgba(255,255,255,0.3)',
+            borderRadius: '25px',
+            padding: '12px 25px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: viewMode === 'calendar' ? '0 4px 15px rgba(102, 126, 234, 0.3)' : 'none',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (viewMode !== 'calendar') {
+              e.target.style.background = 'rgba(255,255,255,0.2)';
+              e.target.style.borderColor = 'rgba(255,255,255,0.5)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (viewMode !== 'calendar') {
+              e.target.style.background = 'rgba(255,255,255,0.1)';
+              e.target.style.borderColor = 'rgba(255,255,255,0.3)';
+            }
+          }}
+        >
+          📅 Календар
+        </button>
+      </div>
+
+      {/* Appointments Display */}
       {viewMode === 'calendar' ? (
         <>
           {/* Calendar Header */}
@@ -5812,7 +5835,7 @@ if (mode === "admin") {
                         marginBottom: '15px'
                       }}>
                         <div style={{ fontWeight: '600', marginBottom: '5px' }}>
-                          👤 {a.clientName}
+                          👤 {a.client}
                         </div>
                         <div style={{ fontSize: '0.9rem', color: '#666' }}>
                           📞 {a.phone}
@@ -5934,11 +5957,11 @@ if (mode === "admin") {
                             }}
                             onMouseEnter={(e) => {
                               e.target.style.transform = 'translateY(-2px)';
-                              e.target.style.boxShadow = '0 4px 12px rgba(39, 174, 96, 0.4)';
+                              e.target.style.boxShadow = '0 6px 20px rgba(39, 174, 96, 0.4)';
                             }}
                             onMouseLeave={(e) => {
                               e.target.style.transform = 'translateY(0)';
-                              e.target.style.boxShadow = '0 2px 8px rgba(39, 174, 96, 0.3)';
+                              e.target.style.boxShadow = '0 4px 15px rgba(39, 174, 96, 0.3)';
                             }}
                           >
                             ✅ Відновити
@@ -5952,8 +5975,8 @@ if (mode === "admin") {
             </div>
           )}
 
-          {/* Empty State for Calendar */}
-          {(!selectedDate || getAppointmentsForDate(selectedDate).length === 0) && (
+          {/* Calendar Empty State */}
+          {(!selectedDate || getAppointmentsForDate(selectedDate).length === 0) && !getDaysInMonth(currentDate).some(date => date && getAppointmentsForDate(date).length > 0) && (
             <div
               className="menu-card"
               style={{
@@ -5980,14 +6003,14 @@ if (mode === "admin") {
                 marginBottom: '10px',
                 textShadow: '0 2px 4px rgba(0,0,0,0.3)'
               }}>
-                Оберіть дату
+                Немає записів у цьому місяці
               </div>
               <div style={{
                 fontSize: '0.9rem',
                 color: 'white',
                 opacity: 0.8
               }}>
-                Натисніть на день у календарі, щоб переглянути записи
+                Нові бронювання з'являться тут
               </div>
             </div>
           )}
@@ -5998,9 +6021,8 @@ if (mode === "admin") {
           <div style={{
             display: 'grid',
             gap: '20px',
-            padding: '0 10px'
           }}>
-            {sortedAppointments.map(a => (
+          {sortedAppointments.map(a => (
           <div
             className="menu-card"
             key={a.id}
@@ -6323,6 +6345,8 @@ if (mode === "admin") {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Back Button */}
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
@@ -6357,6 +6381,7 @@ if (mode === "admin") {
       {modal}
     </div>
   );
+}
 }
 
 export default App;
