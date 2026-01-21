@@ -463,23 +463,43 @@ if (effectiveMode === "clientHistory") {
               {h.comment && <div>💬 {h.comment}</div>}
               
               {/* Reference Image */}
-              {h.reference_image && (
-                <div style={{ marginTop: '10px' }}>
-                  <div><b>🖼️ Фото-приклад:</b></div>
-                  <img
-                    src={`${API}${h.reference_image}`}
-                    alt="ref"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '200px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      marginTop: '5px'
-                    }}
-                    onClick={() => setModalImage(`${API}${h.reference_image}`)}
-                  />
-                </div>
-              )}
+              {h.reference_image && (() => {
+                try {
+                  const images = JSON.parse(h.reference_image);
+                  if (Array.isArray(images) && images.length > 0) {
+                    return (
+                      <div style={{ marginTop: '10px' }}>
+                        <div><b>🖼️ Фото-приклад:</b></div>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                          gap: '8px',
+                          marginTop: '5px'
+                        }}>
+                          {images.map((imgPath, idx) => (
+                            <img
+                              key={idx}
+                              src={`${API}${imgPath}`}
+                              alt={`Reference ${idx + 1}`}
+                              style={{
+                                width: '100%',
+                                maxHeight: '120px',
+                                objectFit: 'cover',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => setModalImage(`${API}${imgPath}`)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                } catch (e) {
+                  console.error('Error parsing reference_image:', e);
+                }
+                return null;
+              })()}
               
               {/* Current Hands Images */}
               {h.current_hands_images && (() => {
@@ -718,36 +738,55 @@ if (mode === "myAppointments") {
                 </div>
                 
                 {/* Reference Image */}
-                {h.reference_image && (
-                  <div style={{
-                    background: (label === "today" || label === "tomorrow")
-                      ? 'rgba(255,255,255,0.1)'
-                      : 'rgba(0,0,0,0.05)',
-                    borderRadius: '12px',
-                    padding: '15px',
-                    marginBottom: '15px'
-                  }}>
-                    <div style={{
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      marginBottom: '10px'
-                    }}>
-                      🖼️ Фото-приклад:
-                    </div>
-                    <img
-                      src={`${API}${h.reference_image}`}
-                      alt="ref"
-                      style={{
-                        width: '100%',
-                        maxHeight: '200px',
-                        objectFit: 'cover',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => setModalImage(`${API}${h.reference_image}`)}
-                    />
-                  </div>
-                )}
+                {h.reference_image && (() => {
+                  try {
+                    const images = JSON.parse(h.reference_image);
+                    if (Array.isArray(images) && images.length > 0) {
+                      return (
+                        <div style={{
+                          background: (label === "today" || label === "tomorrow")
+                            ? 'rgba(255,255,255,0.1)'
+                            : 'rgba(0,0,0,0.05)',
+                          borderRadius: '12px',
+                          padding: '15px',
+                          marginBottom: '15px'
+                        }}>
+                          <div style={{
+                            fontSize: '0.9rem',
+                            fontWeight: '600',
+                            marginBottom: '10px'
+                          }}>
+                            🖼️ Фото-приклад:
+                          </div>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                            gap: '10px'
+                          }}>
+                            {images.map((imgPath, idx) => (
+                              <img
+                                key={idx}
+                                src={`${API}${imgPath}`}
+                                alt={`Reference ${idx + 1}`}
+                                style={{
+                                  width: '100%',
+                                  maxHeight: '120px',
+                                  objectFit: 'cover',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => setModalImage(`${API}${imgPath}`)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                  } catch (e) {
+                    console.error('Error parsing reference_image:', e);
+                  }
+                  return null;
+                })()}
                 
                 {/* Current Hands Images */}
                 {h.current_hands_images && (() => {
@@ -5770,45 +5809,65 @@ if (mode === "admin") {
               )}
 
               {/* Reference Image */}
-              {a.reference_image && (
-                <div style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '15px',
-                  marginBottom: '15px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    color: '#2c3e50',
-                    marginBottom: '10px'
-                  }}>
-                    🖼️ Фото-приклад:
-                  </div>
-                  <img
-                    src={`${API}${a.reference_image}`}
-                    alt="ref"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '200px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    }}
-                    onClick={() => setModalImage(`${API}${a.reference_image}`)}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'scale(1.05)';
-                      e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'scale(1)';
-                      e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                    }}
-                  />
-                </div>
-              )}
+              {a.reference_image && (() => {
+                try {
+                  const images = JSON.parse(a.reference_image);
+                  if (Array.isArray(images) && images.length > 0) {
+                    return (
+                      <div style={{
+                        background: 'rgba(255,255,255,0.9)',
+                        borderRadius: '12px',
+                        padding: '15px',
+                        marginBottom: '15px'
+                      }}>
+                        <div style={{
+                          fontSize: '0.9rem',
+                          fontWeight: '600',
+                          color: '#2c3e50',
+                          marginBottom: '10px',
+                          textAlign: 'center'
+                        }}>
+                          🖼️ Фото-приклад:
+                        </div>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                          gap: '10px'
+                        }}>
+                          {images.map((imgPath, idx) => (
+                            <img
+                              key={idx}
+                              src={`${API}${imgPath}`}
+                              alt={`Reference ${idx + 1}`}
+                              style={{
+                                width: '100%',
+                                maxHeight: '150px',
+                                objectFit: 'cover',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                              }}
+                              onClick={() => setModalImage(`${API}${imgPath}`)}
+                              onMouseEnter={(e) => {
+                                e.target.style.transform = 'scale(1.05)';
+                                e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.transform = 'scale(1)';
+                                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                } catch (e) {
+                  console.error('Error parsing reference_image:', e);
+                }
+                return null;
+              })()}
 
               {/* Current Hands Images */}
               {a.current_hands_images && (() => {
