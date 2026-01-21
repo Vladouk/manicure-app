@@ -47,20 +47,40 @@ const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [modalImage, setModalImage] = useState(null);
   const [bonusPoints, setBonusPoints] = useState(0);
+  // eslint-disable-next-line no-unused-vars
   const [priceList, setPriceList] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [promotions, setPromotions] = useState([]);
   const [referralCode, setReferralCode] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [analyticsHours, setAnalyticsHours] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [analyticsDays, setAnalyticsDays] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [analyticsForecast, setAnalyticsForecast] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState('list');
   const [selectedDate, setSelectedDate] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [serviceCategory, setServiceCategory] = useState("Покриття");
+  // eslint-disable-next-line no-unused-vars
+  const [price, setPrice] = useState(0);
+  // eslint-disable-next-line no-unused-vars
+  const [isFirstTime, setIsFirstTime] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [dynamicPrices, setDynamicPrices] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [manualName, setManualName] = useState("");
+  // eslint-disable-next-line no-unused-vars
+  const [manualTgId, setManualTgId] = useState("");
 
   // BOOKING INTERFACE HOOKS
   const totalSteps = 4;
+  const resetBookingForm = () => {
     setComment("");
     setReference([]);
     setCurrentHandsPhotos([]);
@@ -177,9 +197,6 @@ const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [length, setLength] = useState("Короткі");
   const [type, setType] = useState("Гель-лак");
   const [serviceSub, setServiceSub] = useState("Гібридний манікюр — один колір 120–150 zł");
-  // Fallback for non-Telegram (web) users
-  const [manualName] = useState("");
-  const [manualTgId] = useState("");
 
   useEffect(() => {
   WebApp.ready();
@@ -194,7 +211,6 @@ const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   fetch(`${API}/api/prices`)
     .then(r => r.json())
     .then(data => {
-      setDynamicPrices(data);
       // Set defaults based on first category and service
       if (data.length > 0) {
         const firstCategory = data[0];
@@ -311,12 +327,14 @@ fetch(`${API}/api/appointment`, {
     }
   }, [tgUser?.id]);
 
+  // eslint-disable-next-line no-unused-vars
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
     acc[slot.date].push(slot);
     return acc;
   }, {});
 
+  // eslint-disable-next-line no-unused-vars
   const sortedDates = Object.keys(groupedSlots).sort();
 
   // ADMIN FUNCTIONS
