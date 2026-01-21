@@ -268,9 +268,33 @@ async function initializeDatabase() {
 // Run database initialization
 initializeDatabase().then(() => {
   populateDatabase();
+  deleteOldSlots(); // Delete old slots on startup
+  // Schedule daily cleanup at midnight
+  setInterval(deleteOldSlots, 24 * 60 * 60 * 1000);
 }).catch(error => {
   console.error('Error initializing database:', error);
 });
+
+// Function to delete old slots
+async function deleteOldSlots() {
+  try {
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('uk-UA');
+    
+    const result = await pool.query(`
+      DELETE FROM work_slots 
+      WHERE is_booked = false 
+      AND TO_DATE(date, 'DD.MM.YYYY') < TO_DATE($1, 'DD.MM.YYYY')
+      RETURNING id
+    `, [todayStr]);
+    
+    if (result.rowCount > 0) {
+      console.log(`✅ Deleted ${result.rowCount} old slots`);
+    }
+  } catch (err) {
+    console.error('❌ Error deleting old slots:', err);
+  }
+}
 
 // Populate database with initial data
 async function populateDatabase() {

@@ -3454,6 +3454,54 @@ if (mode === "slots") {
         </p>
       </div>
 
+      {/* View Toggle Buttons */}
+      <div style={{
+        display: 'flex',
+        gap: '10px',
+        marginBottom: '20px',
+        padding: '0 10px'
+      }}>
+        <button
+          onClick={() => setMode("slots")}
+          style={{
+            flex: 1,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          📋 Список
+        </button>
+        <button
+          onClick={() => {
+            setCalendarDate(new Date());
+            setMode("slotsCalendar");
+          }}
+          style={{
+            flex: 1,
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(79, 172, 254, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          📅 Календар
+        </button>
+      </div>
+
       {/* Add Slot Card */}
       <div
         className="menu-card"
@@ -4009,6 +4057,272 @@ if (mode === "calendarAdmin") {
               )}
             </div>
           ))
+        )}
+      </div>
+
+      {/* Back Button */}
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <button
+          onClick={() => setMode("adminMenu")}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px 30px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease',
+            width: '100%'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          ← Назад до адмінки
+        </button>
+      </div>
+
+      {modal}
+    </div>
+  );
+}
+
+// =============== CALENDAR VIEW FOR SLOTS ===============
+if (mode === "slotsCalendar") {
+  const formatDateForComparison = (dateStr) => dateStr.replace(/\//g, '-');
+  
+  const slotsOnSelectedDate = slotsAdmin.filter(slot => 
+    formatDateForComparison(slot.date) === formatDateForComparison(calendarDate.toLocaleDateString('uk-UA'))
+  );
+
+  const datesWithSlots = new Set(
+    slotsAdmin.map(slot => formatDateForComparison(slot.date))
+  );
+
+  const tileClassName = ({ date, view }) => {
+    if (view === 'month') {
+      const dateStr = formatDateForComparison(date.toLocaleDateString('uk-UA'));
+      if (datesWithSlots.has(dateStr)) {
+        return 'calendar-date-with-appointments';
+      }
+    }
+    return null;
+  };
+
+  return (
+    <div className="app-container">
+      {/* Modern Header */}
+      <div className="card" style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '30px 20px',
+        marginBottom: '30px',
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <h2 style={{
+          fontSize: '2.5rem',
+          margin: '0 0 10px 0',
+          fontWeight: '700',
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          📅 Календар слотів
+        </h2>
+        <p style={{
+          fontSize: '1.1rem',
+          margin: '0',
+          opacity: 0.9,
+          fontWeight: '300',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          Перегляд робочих слотів за датами
+        </p>
+      </div>
+
+      {/* View Toggle Buttons */}
+      <div style={{
+        display: 'flex',
+        gap: '10px',
+        marginBottom: '20px',
+        padding: '0 10px'
+      }}>
+        <button
+          onClick={() => setMode("slots")}
+          style={{
+            flex: 1,
+            background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+            color: '#333',
+            border: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(168, 237, 234, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          📋 Список
+        </button>
+        <button
+          style={{
+            flex: 1,
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            boxShadow: '0 4px 15px rgba(79, 172, 254, 0.5)',
+            cursor: 'default'
+          }}
+        >
+          📅 Календар
+        </button>
+      </div>
+
+      {/* Calendar */}
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        padding: '20px',
+        marginBottom: '30px',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+        overflow: 'auto'
+      }}>
+        <Calendar
+          value={calendarDate}
+          onChange={setCalendarDate}
+          tileClassName={tileClassName}
+          locale="uk-UA"
+        />
+      </div>
+
+      {/* Selected Date Info */}
+      <div style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '16px',
+        padding: '20px',
+        marginBottom: '20px',
+        color: 'white',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '10px' }}>
+          📆 {calendarDate.toLocaleDateString('uk-UA', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
+        </div>
+        <div style={{ fontSize: '1rem', opacity: 0.9 }}>
+          {slotsOnSelectedDate.length} слотів в цей день
+        </div>
+      </div>
+
+      {/* Slots for Selected Date */}
+      <div style={{
+        display: 'grid',
+        gap: '15px',
+        padding: '0 10px',
+        marginBottom: '20px'
+      }}>
+        {slotsOnSelectedDate.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+            background: 'rgba(0,0,0,0.05)',
+            borderRadius: '12px',
+            color: '#666'
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🗓</div>
+            <div>В цей день немає слотів</div>
+          </div>
+        ) : (
+          slotsOnSelectedDate.sort((a, b) => a.time.localeCompare(b.time)).map((s) => {
+            const label = getSlotLabel(s.date);
+            return (
+              <div
+                key={s.id}
+                className="menu-card"
+                style={{
+                  background: label === "today"
+                    ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                    : label === "tomorrow"
+                    ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+                    : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  borderRadius: '12px',
+                  padding: '15px',
+                  boxShadow: label === "today"
+                    ? '0 4px 15px rgba(79, 172, 254, 0.3)'
+                    : label === "tomorrow"
+                    ? '0 4px 15px rgba(67, 233, 123, 0.3)'
+                    : '0 4px 15px rgba(240, 147, 251, 0.3)',
+                  border: 'none'
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '600', color: 'white' }}>
+                    ⏰ {s.time}
+                  </div>
+                  <div style={{
+                    background: s.is_booked ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)',
+                    color: 'white',
+                    padding: '5px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.8rem',
+                    fontWeight: '600'
+                  }}>
+                    {s.is_booked ? '🔴 Зайнято' : '🟢 Вільно'}
+                  </div>
+                </div>
+                
+                {s.is_booked ? (
+                  <div style={{ color: 'white', marginBottom: '10px', fontSize: '0.9rem', fontWeight: '500' }}>
+                    👤 {s.client_name}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => deleteSlot(s.id)}
+                    style={{
+                      background: 'rgba(255,255,255,0.9)',
+                      color: '#e74c3c',
+                      border: 'none',
+                      padding: '10px 15px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      width: '100%',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    ✖ Видалити
+                  </button>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 
