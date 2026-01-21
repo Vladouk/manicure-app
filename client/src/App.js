@@ -341,7 +341,7 @@ fetch(`${API}/api/appointment`, {
         })
         .catch(err => console.error('Error loading slots:', err));
     }
-  }, [mode]);
+  }, [mode, slotsAdmin]);
 
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
