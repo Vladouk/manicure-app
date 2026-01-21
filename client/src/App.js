@@ -369,6 +369,18 @@ fetch(`${API}/api/appointment`, {
     }
   }, [mode]);
 
+  // Auto-refresh appointments every 10 seconds when in calendar mode
+  useEffect(() => {
+    if (mode === "calendarAdmin") {
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing appointments...');
+        loadAppointments();
+      }, 10000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [mode]);
+
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
     acc[slot.date].push(slot);
@@ -3938,11 +3950,30 @@ if (mode === "slots") {
 
 // =============== CALENDAR VIEW FOR ADMIN APPOINTMENTS ===============
 if (mode === "calendarAdmin") {
-  const formatDateForComparison = (dateStr) => dateStr.replace(/\//g, '-');
+  // Convert YYYY-MM-DD to DD.MM.YYYY for comparison
+  const formatDateForComparison = (dateStr) => {
+    if (!dateStr) return '';
+    // If format is YYYY-MM-DD, convert to DD.MM.YYYY
+    if (dateStr.includes('-') && dateStr.length === 10) {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}.${month}.${year}`;
+    }
+    // If already DD.MM.YYYY or DD/MM/YYYY, normalize slashes to dots
+    return dateStr.replace(/\//g, '.');
+  };
   
-  const slotsOnSelectedDate = appointments.filter(slot => 
-    formatDateForComparison(slot.date) === formatDateForComparison(calendarDate.toLocaleDateString('uk-UA'))
+  const selectedDateStr = formatDateForComparison(
+    calendarDate.toLocaleDateString('uk-UA', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
   );
+  
+  const slotsOnSelectedDate = appointments.filter(apt => {
+    const aptDate = formatDateForComparison(apt.date);
+    return aptDate === selectedDateStr;
+  });
 
   const datesWithAppointments = new Set(
     appointments.map(apt => formatDateForComparison(apt.date))
@@ -3950,7 +3981,13 @@ if (mode === "calendarAdmin") {
 
   const tileClassName = ({ date, view }) => {
     if (view === 'month') {
-      const dateStr = formatDateForComparison(date.toLocaleDateString('uk-UA'));
+      const dateStr = formatDateForComparison(
+        date.toLocaleDateString('uk-UA', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        })
+      );
       if (datesWithAppointments.has(dateStr)) {
         return 'calendar-date-with-appointments';
       }
@@ -3992,6 +4029,75 @@ if (mode === "calendarAdmin") {
         }}>
           Перегляд записів за датами
         </p>
+      </div>
+
+      {/* View Toggle Buttons */}
+      <div style={{
+        display: 'flex',
+        gap: '10px',
+        marginBottom: '20px',
+        padding: '0 10px'
+      }}>
+        <button
+          onClick={() => setMode("admin")}
+          style={{
+            flex: 1,
+            background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+            color: '#333',
+            border: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(168, 237, 234, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          📋 Список
+        </button>
+        <button
+          style={{
+            flex: 1,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            cursor: 'default'
+          }}
+        >
+          📅 Календар
+        </button>
+        <button
+          onClick={() => {
+            loadAppointments();
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            boxShadow: '0 4px 15px rgba(245, 87, 108, 0.3)',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            minWidth: '50px'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'scale(1)';
+          }}
+        >
+          🔄 Оновити
+        </button>
       </div>
 
       {/* Calendar */}
