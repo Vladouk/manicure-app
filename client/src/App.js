@@ -3481,8 +3481,25 @@ if (mode === "slots") {
         </button>
         <button
           onClick={() => {
-            setCalendarDate(new Date());
-            setMode("slotsCalendar");
+            // Reload slots data before switching to calendar
+            fetch(`${API}/api/admin/slots`, {
+              headers: { "x-init-data": WebApp.initData }
+            })
+              .then(r => r.json())
+              .then(data => {
+                setSlotsAdmin(
+                  data.sort((a, b) =>
+                    new Date(`${a.date} ${a.time}`) -
+                    new Date(`${b.date} ${b.time}`)
+                  )
+                );
+                setCalendarDate(new Date());
+                setMode("slotsCalendar");
+              })
+              .catch(err => {
+                console.error('Error loading slots:', err);
+                alert('❌ Помилка завантаження слотів');
+              });
           }}
           style={{
             flex: 1,
@@ -4097,11 +4114,28 @@ if (mode === "calendarAdmin") {
 
 // =============== CALENDAR VIEW FOR SLOTS ===============
 if (mode === "slotsCalendar") {
-  const formatDateForComparison = (dateStr) => dateStr.replace(/\//g, '-');
+  // Normalize date format for comparison (DD.MM.YYYY or DD/MM/YYYY)
+  const formatDateForComparison = (dateStr) => {
+    if (!dateStr) return '';
+    // Convert to DD.MM.YYYY format
+    return dateStr.replace(/\//g, '.');
+  };
   
-  const slotsOnSelectedDate = slotsAdmin.filter(slot => 
-    formatDateForComparison(slot.date) === formatDateForComparison(calendarDate.toLocaleDateString('uk-UA'))
+  const selectedDateStr = formatDateForComparison(
+    calendarDate.toLocaleDateString('uk-UA', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
   );
+  
+  console.log('Selected date:', selectedDateStr);
+  console.log('Available slots:', slotsAdmin.map(s => ({ date: s.date, formatted: formatDateForComparison(s.date) })));
+  
+  const slotsOnSelectedDate = slotsAdmin.filter(slot => {
+    const slotDate = formatDateForComparison(slot.date);
+    return slotDate === selectedDateStr;
+  });
 
   const datesWithSlots = new Set(
     slotsAdmin.map(slot => formatDateForComparison(slot.date))
@@ -4109,7 +4143,13 @@ if (mode === "slotsCalendar") {
 
   const tileClassName = ({ date, view }) => {
     if (view === 'month') {
-      const dateStr = formatDateForComparison(date.toLocaleDateString('uk-UA'));
+      const dateStr = formatDateForComparison(
+        date.toLocaleDateString('uk-UA', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        })
+      );
       if (datesWithSlots.has(dateStr)) {
         return 'calendar-date-with-appointments';
       }
