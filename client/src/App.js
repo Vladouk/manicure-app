@@ -280,7 +280,7 @@ fetch(`${API}/api/appointment`, {
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, design, length, type, comment, reference, tgUser?.first_name, tgUser?.id, manualName, manualTgId]);
+  }, [effectiveMode, selectedSlotId, design, length, type, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, manualName, manualTgId]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
