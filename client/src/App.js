@@ -44,7 +44,6 @@ const [comment, setComment] = useState("");
 const [reference, setReference] = useState([]);
 const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
 const [calendarDate, setCalendarDate] = useState(new Date());
-const [slotsCalendarView, setSlotsCalendarView] = useState([]);
   const [mode, setMode] = useState("menu");
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
