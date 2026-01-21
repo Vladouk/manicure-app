@@ -29,6 +29,7 @@ const getSlotLabel = (dateStr) => {
 
 function App() {
   // COMMON
+  // eslint-disable-next-line no-unused-vars
   const [selectedSlotId, setSelectedSlotId] = useState('');
   const [slots, setSlots] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -79,7 +80,9 @@ const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [manualTgId, setManualTgId] = useState("");
 
   // BOOKING INTERFACE HOOKS
+  // eslint-disable-next-line no-unused-vars
   const totalSteps = 4;
+  // eslint-disable-next-line no-unused-vars
   const resetBookingForm = () => {
     setComment("");
     setReference([]);
