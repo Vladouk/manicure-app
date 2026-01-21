@@ -4219,7 +4219,10 @@ if (mode === "calendarAdmin") {
 }
 
 // =============== CALENDAR VIEW FOR SLOTS - REMOVED, USE CALENDAR FOR APPOINTMENTS INSTEAD ===============
-    <div className="app-container">
+
+
+if (mode === "prices") {
+  return (
       {/* Modern Header */}
       <div className="card" style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
