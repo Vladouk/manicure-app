@@ -284,10 +284,12 @@ async function deleteOldSlots() {
     const year = today.getFullYear();
     const todayStr = `${day}.${month}.${year}`;
     
+    console.log(`🔍 Deleting slots older than: ${todayStr}`);
+    
     const result = await pool.query(`
       DELETE FROM work_slots 
       WHERE is_booked = false 
-      AND TO_DATE(date, 'DD.MM.YYYY') < TO_DATE($1, 'DD.MM.YYYY')
+      AND date < $1
       RETURNING id
     `, [todayStr]);
     
