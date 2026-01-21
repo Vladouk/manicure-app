@@ -1724,272 +1724,317 @@ if (mode === "addSlot") {
   return (
     <div className="app-container">
 
-      {isAdmin && (
-  <button className="primary-btn" onClick={() => setMode("adminMenu")}>
-    🔒 Адмінка
-  </button>
-)}
-
-      
-      <div className="card">
-  <h2>Запис 💅</h2>
-</div>
-
-      <p>Привіт, {tgUser?.first_name}!</p>
-     
-      <div className="field">
-      <label>Оберіть дату і час:</label>
-      <button
-        className="field"
-        style={{
-          width: "100%",
-          padding: 12,
-          borderRadius: 14,
-          border: "none",
-          background: "rgba(255,255,255,0.9)",
-          fontSize: 15,
-          textAlign: "left",
-          cursor: "pointer",
-        }}
-        onClick={() => setIsSlotModalOpen(true)}
-      >
-        {selectedSlot ? `${selectedSlot.date} — ${selectedSlot.time}` : "📅 Обрати дату"}
-      </button>
-      </div>
-      <div className="field">
-      <label>Дизайн:</label>
-      <select value={design} onChange={e => setDesign(e.target.value)}>
-        <option>Класичний френч</option>
-        <option>Гліттер</option>
-        <option>Мінімалізм</option>
-      </select>
+      {/* Header */}
+      <div className="booking-header">
+        <div className="booking-header-content">
+          <h1 className="booking-title">Запис на манікюр</h1>
+          <p className="booking-subtitle">Привіт, {tgUser?.first_name}! 💅✨</p>
+        </div>
       </div>
 
-      <div className="field">
-      <label>Довжина:</label>
-      <select value={length} onChange={e => setLength(e.target.value)}>
-        <option>Короткі</option>
-        <option>Середні</option>
-        <option>Довгі</option>
-      </select>
+      {/* Progress indicator */}
+      <div className="booking-progress">
+        <div className={`progress-step ${selectedSlotId ? 'completed' : 'active'}`}>
+          <div className="progress-circle">1</div>
+          <span>Дата</span>
+        </div>
+        <div className="progress-line"></div>
+        <div className={`progress-step ${selectedSlotId ? 'active' : ''}`}>
+          <div className="progress-circle">2</div>
+          <span>Послуга</span>
+        </div>
+        <div className="progress-line"></div>
+        <div className={`progress-step ${selectedSlotId && serviceSub ? 'active' : ''}`}>
+          <div className="progress-circle">3</div>
+          <span>Деталі</span>
+        </div>
       </div>
-      <div className="field">
-      <label>Тип:</label>
-      <select value={type} onChange={e => setType(e.target.value)}>
-        <option>Гель-лак</option>
-        <option>Гібрид</option>
-        <option>Акрил</option>
-      </select>
+
+      {/* Date and Time Selection - Primary */}
+      <div className="booking-section">
+        <h3 className="section-title">📅 Оберіть дату і час</h3>
+        <button
+          className={`time-slot-button ${selectedSlot ? 'selected' : ''}`}
+          onClick={() => setIsSlotModalOpen(true)}
+        >
+          <div className="time-slot-icon">🗓️</div>
+          <div className="time-slot-content">
+            {selectedSlot ? (
+              <>
+                <div className="time-slot-date">{new Date(selectedSlot.date).toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                <div className="time-slot-time">{selectedSlot.time}</div>
+              </>
+            ) : (
+              <div className="time-slot-placeholder">Натисніть, щоб обрати зручний час</div>
+            )}
+          </div>
+          <div className="time-slot-arrow">›</div>
+        </button>
       </div>
-      <div className="field">
-      <label>Категорія послуги:</label>
-      <select value={serviceCategory} onChange={e => {
-        setServiceCategory(e.target.value);
-        // Скинути sub при зміні категорії
-        setServiceSub("");
-      }}>
-        {dynamicPrices.map(cat => (
-          <option key={cat.id} value={cat.name}>{cat.name}</option>
-        ))}
-      </select>
+
+      {/* Service Selection */}
+      <div className="booking-section">
+        <h3 className="section-title">💅 Оберіть послугу</h3>
+        
+        <div className="form-group">
+          <label className="form-label">Категорія послуги</label>
+          <div className="select-wrapper">
+            <select 
+              className="form-select" 
+              value={serviceCategory} 
+              onChange={e => {
+                setServiceCategory(e.target.value);
+                const cat = dynamicPrices.find(c => c.name === e.target.value);
+                if (cat && cat.services.length > 0) {
+                  const firstService = cat.services[0];
+                  const displayName = firstService.is_promotion 
+                    ? `${firstService.name} (${firstService.discount_price} zł 🔥 Акція)`
+                    : `${firstService.name} (${firstService.price} zł)`;
+                  setServiceSub(displayName);
+                }
+              }}
+            >
+              {dynamicPrices.map(cat => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Послуга</label>
+          <div className="select-wrapper">
+            <select className="form-select" value={serviceSub} onChange={e => setServiceSub(e.target.value)}>
+              {dynamicPrices.find(cat => cat.name === serviceCategory)?.services.map(service => {
+                const displayName = service.is_promotion 
+                  ? `${service.name} — ${service.discount_price} zł 🔥`
+                  : `${service.name} — ${service.price} zł`;
+                const fullValue = service.is_promotion 
+                  ? `${service.name} (${service.discount_price} zł 🔥 Акція)`
+                  : `${service.name} (${service.price} zł)`;
+                return (
+                  <option key={service.id} value={fullValue}>{displayName}</option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
       </div>
-      <div className="field">
-      <label>Послуга:</label>
-      <select value={serviceSub} onChange={e => setServiceSub(e.target.value)}>
-        {dynamicPrices.find(cat => cat.name === serviceCategory)?.services.map(service => {
-          const displayName = service.is_promotion 
-            ? `${service.name} (${service.discount_price} zł 🔥 Акція)`
-            : `${service.name} (${service.price} zł)`;
-          return (
-            <option key={service.id} value={displayName}>{displayName}</option>
-          );
-        })}
-      </select>
+
+      {/* Details Section */}
+      <div className="booking-section">
+        <h3 className="section-title">✨ Додайте деталі</h3>
+        
+        <div className="details-grid">
+          <div className="form-group">
+            <label className="form-label">Дизайн</label>
+            <div className="select-wrapper">
+              <select className="form-select" value={design} onChange={e => setDesign(e.target.value)}>
+                <option>Класичний френч</option>
+                <option>Гліттер</option>
+                <option>Мінімалізм</option>
+                <option>Омбре</option>
+                <option>Геометрія</option>
+                <option>Квіти</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Довжина</label>
+            <div className="select-wrapper">
+              <select className="form-select" value={length} onChange={e => setLength(e.target.value)}>
+                <option>Короткі</option>
+                <option>Середні</option>
+                <option>Довгі</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Тип покриття</label>
+            <div className="select-wrapper">
+              <select className="form-select" value={type} onChange={e => setType(e.target.value)}>
+                <option>Гель-лак</option>
+                <option>Гібрид</option>
+                <option>Акрил</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Ваші побажання</label>
+          <textarea
+            className="form-textarea"
+            placeholder="Розкажіть, що б ви хотіли бачити на своїх нігтях... ✨"
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            rows="3"
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Фото-референс</label>
+          <div className="file-upload-wrapper">
+            <input
+              type="file"
+              id="reference-upload"
+              accept="image/*"
+              onChange={e => setReference(e.target.files[0])}
+              className="file-input"
+            />
+            <label htmlFor="reference-upload" className="file-label">
+              <span className="file-icon">📷</span>
+              <span className="file-text">
+                {reference ? reference.name : 'Додати фото дизайну'}
+              </span>
+            </label>
+          </div>
+          <p className="form-hint">Покажіть нам бажаний дизайн</p>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Реферальний код 🎁</label>
+          <input
+            type="text"
+            className="form-input referral-input"
+            placeholder="Введіть код від подруги"
+            value={enteredReferralCode}
+            onChange={e => setEnteredReferralCode(e.target.value.toUpperCase())}
+          />
+          <p className="form-hint">Отримайте знижку за кодом від подруги</p>
+        </div>
       </div>
-      <div className="field">
-      <label>Реферальний код (якщо є):</label>
-      <input
-        type="text"
-        placeholder="Введіть код подруги"
-        value={enteredReferralCode}
-        onChange={e => setEnteredReferralCode(e.target.value.toUpperCase())}
-        style={{
-          width: "100%",
-          padding: 10,
-          background: "#eef5ff",
-          borderRadius: 6,
-          marginBottom: 10,
-          border: "1px solid #ccc"
-        }}
-      />
-      <small style={{ opacity: 0.7 }}>Якщо у вас є реферальний код від подруги, введіть його тут для отримання знижки</small>
+
+      {/* Price Summary */}
+      <div className="price-summary">
+        {isFirstTime && (
+          <div className="first-time-badge">
+            🎉 Знижка 20% за перший візит!
+          </div>
+        )}
+        <div className="price-row">
+          <span className="price-label">Загальна вартість:</span>
+          <span className="price-value">{price} zł</span>
+        </div>
       </div>
-      <div className="field">
-      <label>Коментар від клієнта:</label>
-<textarea
-  placeholder="Наприклад: буду з дизайном з Pinterest"
-  value={comment}
-  onChange={e => setComment(e.target.value)}
-  style={{
-    width: "100%",
-    minHeight: 60,
-    marginBottom: 10
-  }}
-  />
-</div>
-<div className="field">
-<label>Референс (фото манікюру):</label>
-<input
-  type="file"
-  accept="image/*"
-  onChange={e => setReference(e.target.files[0])}
-  style={{
-    width: "100%",
-    padding: 10,
-    background: "#eef5ff",
-    borderRadius: 6,
-    marginBottom: 15,
-    border: "1px solid #ccc"
 
-  }}/>
-</div>
-{isFirstTime && (
-  <div style={{ color: 'green', fontWeight: 'bold', marginBottom: 10 }}>
-    Застосовано знижку за перший манікюр 20%
-  </div>
-)}
-<div style={{ marginBottom: 15, fontWeight: 'bold' }}>
-  Загальна ціна: {price} zł
-</div>
-<button
-  className="primary-btn"
-  onClick={() => {
-    if (!selectedSlotId) return alert("❗ Обери дату і час");
+      {/* Action Buttons */}
+      <div className="action-buttons">
+        <button
+          className="book-button"
+          onClick={() => {
+            if (!selectedSlotId) return alert("❗ Будь ласка, оберіть дату і час");
 
-    const formData = new FormData();
-    formData.append("client", tgUser?.first_name || "Anon");
-    formData.append("slot_id", selectedSlotId);
-    formData.append("design", design);
-    formData.append("length", length);
-    formData.append("type", type);
-    formData.append("service", serviceSub.split(' (')[0]); // Remove price part
-    formData.append("price", price);
-    formData.append("comment", comment);
-    formData.append("tg_id", tgUser?.id);
-    formData.append("username", tgUser?.username);
-    if (enteredReferralCode.trim()) {
-      formData.append("referral_code", enteredReferralCode.trim());
-    }
+            const formData = new FormData();
+            formData.append("client", tgUser?.first_name || "Anon");
+            formData.append("slot_id", selectedSlotId);
+            formData.append("design", design);
+            formData.append("length", length);
+            formData.append("type", type);
+            formData.append("service", serviceSub.split(' (')[0]);
+            formData.append("price", price);
+            formData.append("comment", comment);
+            formData.append("tg_id", tgUser?.id);
+            formData.append("username", tgUser?.username);
+            if (enteredReferralCode.trim()) {
+              formData.append("referral_code", enteredReferralCode.trim());
+            }
 
+            if (reference) {
+              formData.append("reference", reference);
+            }
 
-    if (reference) {
-      formData.append("reference", reference);
-    }
+            fetch(`${API}/api/appointment`, {
+              method: "POST",
+              body: formData
+            })
+              .then(r => {
+                if (!r.ok) {
+                  throw new Error(`HTTP error! status: ${r.status}`);
+                }
+                return r.json();
+              })
+              .then(data => {
+                let message = "✅ Ваш запис успішно створено!";
+                if (data.discount > 0) {
+                  message += `\n💸 Застосовано знижку: ${data.discount} zł`;
+                }
+                if (data.final_price) {
+                  message += `\n💰 Остаточна ціна: ${data.final_price} zł`;
+                }
+                alert(message);
+                setSelectedSlotId("");
+                setEnteredReferralCode("");
+                setComment("");
+                setReference(null);
+                setMode("menu");
+              })
+              .catch((error) => {
+                console.error("Booking error:", error);
+                alert("❌ Помилка при створенні запису. Спробуйте ще раз.");
+              });
+          }}
+        >
+          <span className="book-button-icon">💅</span>
+          <span>Підтвердити запис</span>
+        </button>
 
-    fetch(`${API}/api/appointment`, {
-      method: "POST",
-      body: formData
-    })
-      .then(r => {
-        if (!r.ok) {
-          throw new Error(`HTTP error! status: ${r.status}`);
-        }
-        return r.json();
-      })
-      .then(data => {
-        let message = "✅ Запис створено!";
-        if (data.discount > 0) {
-          message += `\n💸 Застосовано знижку: ${data.discount} zł`;
-        }
-        if (data.final_price) {
-          message += `\n💰 Остаточна ціна: ${data.final_price} zł`;
-        }
-        alert(message);
-        // Reset form
-        setSelectedSlotId("");
-        setEnteredReferralCode("");
-        setComment("");
-        setReference(null);
-      })
-      .catch((error) => {
-        console.error("Booking error:", error);
-        alert("❌ Помилка при створенні запису. Спробуйте ще раз.");
-      });
-  }}
->
-  Записатися 💅
-</button>
-<button
-  className="primary-btn"
-  onClick={() => setMode("menu")}
-  style={{ marginTop: 16 }}
->
-  ← Назад
-</button>
+        <button
+          className="back-button"
+          onClick={() => setMode("menu")}
+        >
+          ← Повернутися в меню
+        </button>
+      </div>
       {/* SLOT MODAL */}
       {isSlotModalOpen && (
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
+          className="modal-overlay"
           onClick={() => setIsSlotModalOpen(false)}
         >
           <div
-            style={{
-              background: "white",
-              padding: 20,
-              borderRadius: 20,
-              maxWidth: 400,
-              width: "90%",
-              maxHeight: "80vh",
-              overflowY: "auto",
-              boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
-            }}
+            className="modal-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ fontSize: 20, fontWeight: "bold", marginBottom: 20, textAlign: "center" }}>
-              Оберіть дату і час
-            </h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Оберіть дату і час</h2>
+              <button 
+                className="modal-close"
+                onClick={() => setIsSlotModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="slots-container">
               {grouped.map((group) => {
                 const dateObj = new Date(group.date);
+                const isToday = getSlotLabel(group.date) === "today";
+                const isTomorrow = getSlotLabel(group.date) === "tomorrow";
+                
                 return (
-                  <div key={group.date} style={{ borderBottom: "1px solid #eee", paddingBottom: 10 }}>
-                    <div
-                      style={{
-                        marginBottom: 10,
-                        textAlign: "center",
-                      }}
-                    >
-                      <div style={{ fontSize: 24, fontWeight: "bold" }}>
-                        {dateObj.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}
+                  <div key={group.date} className="date-group">
+                    <div className="date-header">
+                      <div className="date-main">
+                        <span className="date-number">
+                          {dateObj.toLocaleDateString('uk-UA', { day: 'numeric' })}
+                        </span>
+                        <span className="date-month">
+                          {dateObj.toLocaleDateString('uk-UA', { month: 'long' })}
+                        </span>
                       </div>
-                      <div style={{ fontSize: 16, marginTop: 4 }}>
+                      <div className="date-weekday">
                         {dateObj.toLocaleDateString('uk-UA', { weekday: 'long' })}
+                        {isToday && <span className="date-badge today">Сьогодні</span>}
+                        {isTomorrow && <span className="date-badge tomorrow">Завтра</span>}
                       </div>
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                    <div className="slots-grid">
                       {group.slots.map((slot) => (
                         <button
                           key={slot.id}
-                          style={{
-                            padding: 10,
-                            borderRadius: 8,
-                            background: "#f7f1f4",
-                            border: "1px solid #e0d3d7",
-                            cursor: "pointer",
-                            fontSize: 16,
-                            minWidth: 60,
-                          }}
+                          className={`slot-time ${selectedSlotId === slot.id ? 'selected' : ''}`}
                           onClick={() => {
                             setSelectedSlotId(slot.id);
                             setIsSlotModalOpen(false);
