@@ -369,18 +369,6 @@ fetch(`${API}/api/appointment`, {
     }
   }, [mode]);
 
-  // Auto-refresh appointments every 10 seconds when in calendar mode
-  useEffect(() => {
-    if (mode === "calendarAdmin") {
-      const interval = setInterval(() => {
-        console.log('Auto-refreshing appointments...');
-        loadAppointments();
-      }, 10000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [mode, loadAppointments]);
-
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
     acc[slot.date].push(slot);
@@ -419,6 +407,18 @@ fetch(`${API}/api/appointment`, {
       .then(setAppointments)
       .catch(() => alert("❌ Помилка завантаження"));
   };
+
+  // Auto-refresh appointments every 10 seconds when in calendar mode
+  useEffect(() => {
+    if (mode === "calendarAdmin") {
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing appointments...');
+        loadAppointments();
+      }, 10000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [mode, filter]);
 
   const changeStatus = (id, status) => {
     fetch(`${API}/api/admin/status`, {
