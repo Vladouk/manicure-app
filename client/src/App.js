@@ -345,6 +345,30 @@ fetch(`${API}/api/appointment`, {
     }
   }, [mode, slotsAdmin]);
 
+  // Auto-refresh slots every 10 seconds when in calendar mode
+  useEffect(() => {
+    if (mode === "slotsCalendar") {
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing slots...');
+        fetch(`${API}/api/admin/slots`, {
+          headers: { "x-init-data": WebApp.initData }
+        })
+          .then(r => r.json())
+          .then(data => {
+            setSlotsAdmin(
+              data.sort((a, b) =>
+                new Date(`${a.date} ${a.time}`) -
+                new Date(`${b.date} ${b.time}`)
+              )
+            );
+          })
+          .catch(err => console.error('Error auto-refreshing slots:', err));
+      }, 10000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [mode]);
+
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
     acc[slot.date].push(slot);
@@ -4259,6 +4283,44 @@ if (mode === "slotsCalendar") {
           }}
         >
           📅 Календар
+        </button>
+        <button
+          onClick={() => {
+            fetch(`${API}/api/admin/slots`, {
+              headers: { "x-init-data": WebApp.initData }
+            })
+              .then(r => r.json())
+              .then(data => {
+                console.log('Slots refreshed:', data);
+                setSlotsAdmin(
+                  data.sort((a, b) =>
+                    new Date(`${a.date} ${a.time}`) -
+                    new Date(`${b.date} ${b.time}`)
+                  )
+                );
+              })
+              .catch(err => console.error('Error refreshing slots:', err));
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            boxShadow: '0 4px 15px rgba(245, 87, 108, 0.3)',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'scale(1)';
+          }}
+        >
+          🔄 Оновити
         </button>
       </div>
 
