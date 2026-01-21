@@ -4223,6 +4223,7 @@ if (mode === "calendarAdmin") {
 
 if (mode === "prices") {
   return (
+    <div className="app-container">
       {/* Modern Header */}
       <div className="card" style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
