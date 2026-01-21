@@ -279,10 +279,10 @@ initializeDatabase().then(() => {
 async function deleteOldSlots() {
   try {
     const today = new Date();
-    const day = String(today.getDate()).padStart(2, '0');
-    const month = String(today.getMonth() + 1).padStart(2, '0');
     const year = today.getFullYear();
-    const todayStr = `${day}.${month}.${year}`;
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`; // YYYY-MM-DD format to match database
     
     console.log(`🔍 Deleting slots older than: ${todayStr}`);
     
@@ -295,6 +295,8 @@ async function deleteOldSlots() {
     
     if (result.rowCount > 0) {
       console.log(`✅ Deleted ${result.rowCount} old slots`);
+    } else {
+      console.log(`ℹ️ No old slots to delete`);
     }
   } catch (err) {
     console.error('❌ Error deleting old slots:', err);

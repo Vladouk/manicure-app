@@ -4135,10 +4135,15 @@ if (mode === "calendarAdmin") {
 
 // =============== CALENDAR VIEW FOR SLOTS ===============
 if (mode === "slotsCalendar") {
-  // Normalize date format for comparison (DD.MM.YYYY or DD/MM/YYYY)
+  // Convert YYYY-MM-DD to DD.MM.YYYY or handle DD.MM.YYYY format
   const formatDateForComparison = (dateStr) => {
     if (!dateStr) return '';
-    // Convert to DD.MM.YYYY format
+    // If format is YYYY-MM-DD, convert to DD.MM.YYYY
+    if (dateStr.includes('-') && dateStr.length === 10) {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}.${month}.${year}`;
+    }
+    // If already DD.MM.YYYY or DD/MM/YYYY, normalize slashes to dots
     return dateStr.replace(/\//g, '.');
   };
   
