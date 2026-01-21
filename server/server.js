@@ -146,7 +146,7 @@ async function initializeDatabase() {
         type TEXT,
         service TEXT,
         price INTEGER,
-        tg_id INTEGER,
+        tg_id BIGINT,
         username TEXT,
         comment TEXT,
         status TEXT DEFAULT 'pending',
@@ -161,6 +161,12 @@ async function initializeDatabase() {
       ADD COLUMN IF NOT EXISTS username TEXT
     `).catch(err => console.log('Username column already exists or error:', err.message));
 
+    // Add current_hands_images column if it doesn't exist (for migration)
+    await pool.query(`
+      ALTER TABLE appointments
+      ADD COLUMN IF NOT EXISTS current_hands_images TEXT
+    `).catch(err => console.log('Current hands images column already exists or error:', err.message));
+
     // Create reminders table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reminders (
@@ -172,7 +178,7 @@ async function initializeDatabase() {
     // Create client_points table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_points (
-        tg_id INTEGER PRIMARY KEY,
+        tg_id BIGINT PRIMARY KEY,
         points INTEGER DEFAULT 0,
         referral_discount_available BOOLEAN DEFAULT false
       )
@@ -225,7 +231,7 @@ async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS referral_codes (
         id SERIAL PRIMARY KEY,
-        tg_id INTEGER NOT NULL,
+        tg_id BIGINT NOT NULL,
         code TEXT UNIQUE NOT NULL,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -238,7 +244,7 @@ async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS referral_uses (
         id SERIAL PRIMARY KEY,
         referral_code_id INTEGER,
-        used_by_tg_id INTEGER,
+        used_by_tg_id BIGINT,
         appointment_id INTEGER,
         discount_applied INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -246,6 +252,12 @@ async function initializeDatabase() {
         FOREIGN KEY (appointment_id) REFERENCES appointments(id)
       )
     `);
+
+    // Migrate tg_id columns to BIGINT for larger Telegram IDs
+    await pool.query(`ALTER TABLE appointments ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Appointments tg_id already BIGINT or error:', err.message));
+    await pool.query(`ALTER TABLE client_points ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Client_points tg_id already BIGINT or error:', err.message));
+    await pool.query(`ALTER TABLE referral_codes ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Referral_codes tg_id already BIGINT or error:', err.message));
+    await pool.query(`ALTER TABLE referral_uses ALTER COLUMN used_by_tg_id TYPE BIGINT`).catch(err => console.log('Referral_uses used_by_tg_id already BIGINT or error:', err.message));
 
     console.log('Database tables initialized successfully');
   } catch (err) {
@@ -315,17 +327,55 @@ async function populateDatabase() {
 // ============== CLIENT: CREATE APPOINTMENT ===============
 app.post(
   "/api/appointment",
-  upload.single("reference"),
+  upload.fields([
+    { name: 'current_hands_0', maxCount: 1 },
+    { name: 'current_hands_1', maxCount: 1 },
+    { name: 'current_hands_2', maxCount: 1 },
+    { name: 'current_hands_3', maxCount: 1 },
+    { name: 'current_hands_4', maxCount: 1 },
+    { name: 'reference_0', maxCount: 1 },
+    { name: 'reference_1', maxCount: 1 },
+    { name: 'reference_2', maxCount: 1 },
+    { name: 'reference_3', maxCount: 1 },
+    { name: 'reference_4', maxCount: 1 }
+  ]),
   (req, res) => {
     console.log("📝 Received appointment data:", req.body);
-    console.log("📎 File received:", req.file ? req.file.filename : "none");
+    console.log("📎 Files received:", req.files);
     const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code } = req.body;
-    const referenceImage = req.file ? `/uploads/${req.file.filename}` : null;
-
-    if (!client || !slot_id || !tg_id) {
-      console.error("❌ Missing required fields:", { client: !!client, slot_id: !!slot_id, tg_id: !!tg_id });
-      return res.status(400).json({ error: "Missing fields" });
+    
+    // Handle multiple current hands photos
+    const currentHandsImages = [];
+    for (let i = 0; i < 5; i++) {
+      const fieldName = `current_hands_${i}`;
+      if (req.files[fieldName] && req.files[fieldName][0]) {
+        currentHandsImages.push(`/uploads/${req.files[fieldName][0].filename}`);
+      }
     }
+    
+    // Handle multiple reference photos
+    const referenceImages = [];
+    for (let i = 0; i < 5; i++) {
+      const fieldName = `reference_${i}`;
+      if (req.files[fieldName] && req.files[fieldName][0]) {
+        referenceImages.push(`/uploads/${req.files[fieldName][0].filename}`);
+      }
+    }
+
+    console.log('📩 /api/appointment payload', { client, slot_id, tg_id, username, service, price, currentHandsImages: currentHandsImages.length, referenceImages: referenceImages.length });
+
+    // Basic validation and coercion
+    const slotIdNum = parseInt(slot_id, 10);
+    const tgIdNum = parseInt(tg_id, 10);
+
+    if (!client || isNaN(slotIdNum) || isNaN(tgIdNum)) {
+      console.error("❌ Missing or invalid required fields:", { client: !!client, slot_id, tg_id });
+      return res.status(400).json({ error: "Missing or invalid fields" });
+    }
+
+    // Use numeric ids downstream
+    req.body.slot_id = slotIdNum;
+    req.body.tg_id = tgIdNum;
 
     // Check if first-time client for 20% discount
     pool.query(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = $1 AND status != 'canceled'`, [tg_id])
@@ -390,7 +440,10 @@ app.post(
             }
           });
       })
-      .catch(err => res.status(500).json({ error: "DB error" }));
+      .catch(err => {
+        console.error('❌ DB error (appointment flow):', err);
+        return res.status(500).json({ error: "DB error" });
+      });
 
     function createAppointment(finalPrice, discountApplied, referralInfo) {
       console.log("🔍 Checking slot availability for slot_id:", slot_id);
@@ -407,8 +460,8 @@ app.post(
           // Insert appointment
           return pool.query(
             `INSERT INTO appointments
-            (client, date, time, design, length, type, service, price, comment, reference_image, tg_id, username)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            (client, date, time, design, length, type, service, price, comment, reference_image, current_hands_images, tg_id, username)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING id`,
             [
               client,
@@ -420,7 +473,8 @@ app.post(
               service,
               finalPrice,
               comment,
-              referenceImage,
+              JSON.stringify(referenceImages),
+              JSON.stringify(currentHandsImages),
               tg_id,
               username
             ]
@@ -1321,6 +1375,188 @@ ORDER BY ws.date, ws.time
             .then(result => {
               const row = result.rows[0];
               res.json({ is_first_time: row.count === 0 });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // =============== ANALYTICS ENDPOINTS ===============
+        // 1. Most popular hours (найпопулярніші години)
+        app.get('/api/admin/analytics/hours', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          pool.query(`
+            SELECT 
+              EXTRACT(HOUR FROM time::time) as hour,
+              COUNT(*) as count
+            FROM appointments
+            WHERE status != 'canceled'
+            GROUP BY EXTRACT(HOUR FROM time::time)
+            ORDER BY count DESC
+          `)
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // 2. Most popular days (найпопулярніші дні)
+        app.get('/api/admin/analytics/days', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          pool.query(`
+            SELECT 
+              TO_CHAR(date::date, 'Day') as day_name,
+              EXTRACT(DOW FROM date::date)::int as day_num,
+              COUNT(*) as count
+            FROM appointments
+            WHERE status != 'canceled'
+            GROUP BY EXTRACT(DOW FROM date::date), TO_CHAR(date::date, 'Day')
+            ORDER BY day_num ASC
+          `)
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // 3. Monthly revenue (грошей за місяць)
+        app.get('/api/admin/analytics/monthly-revenue', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+
+          pool.query(`
+            SELECT 
+              SUM(price) as total_revenue,
+              COUNT(*) as total_appointments,
+              COUNT(DISTINCT tg_id) as unique_clients
+            FROM appointments
+            WHERE status = 'approved'
+            AND date LIKE $1
+          `, [`${year}-${month}%`])
+            .then(result => {
+              const row = result.rows[0];
+              res.json({
+                year,
+                month,
+                total_revenue: row.total_revenue || 0,
+                total_appointments: row.total_appointments || 0,
+                unique_clients: row.unique_clients || 0
+              });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // 4. Forecast for next month (прогноз на наступний місяць)
+        app.get('/api/admin/analytics/forecast', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const currentMonth = now.getMonth() + 1;
+          
+          // Get last 3 months average
+          pool.query(`
+            SELECT 
+              TO_CHAR(date::date, 'YYYY-MM') as month,
+              SUM(price) as revenue,
+              COUNT(*) as appointments
+            FROM appointments
+            WHERE status = 'approved'
+            AND date::date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '3 months')
+            GROUP BY TO_CHAR(date::date, 'YYYY-MM')
+            ORDER BY month DESC
+          `)
+            .then(result => {
+              const rows = result.rows;
+              const avgRevenue = rows.reduce((sum, row) => sum + (row.revenue || 0), 0) / Math.max(rows.length, 1);
+              const avgAppointments = rows.reduce((sum, row) => sum + (row.appointments || 0), 0) / Math.max(rows.length, 1);
+              
+              res.json({
+                forecast_revenue: Math.round(avgRevenue),
+                forecast_appointments: Math.round(avgAppointments),
+                based_on_months: rows.length
+              });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // 5. New clients graph (графік нових клієнтів)
+        app.get('/api/admin/analytics/new-clients', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          // Get new clients per day for last 30 days
+          pool.query(`
+            SELECT 
+              date::date as day,
+              COUNT(DISTINCT tg_id) as new_clients
+            FROM appointments
+            WHERE status != 'canceled'
+            AND date::date >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY date::date
+            ORDER BY date::date ASC
+          `)
+            .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // Combined analytics endpoint
+        app.get('/api/admin/analytics', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          Promise.all([
+            pool.query(`SELECT EXTRACT(HOUR FROM time::time) as hour, COUNT(*) as count FROM appointments WHERE status != 'canceled' GROUP BY EXTRACT(HOUR FROM time::time) ORDER BY count DESC LIMIT 5`),
+            pool.query(`SELECT COUNT(DISTINCT tg_id) as total_clients FROM appointments WHERE status != 'canceled'`),
+            pool.query(`SELECT SUM(price) as total_revenue FROM appointments WHERE status = 'approved'`),
+            pool.query(`SELECT COUNT(*) as total_appointments FROM appointments WHERE status = 'approved'`),
+          ])
+            .then(results => {
+              res.json({
+                top_hours: results[0].rows,
+                total_clients: results[1].rows[0].total_clients || 0,
+                total_revenue: results[2].rows[0].total_revenue || 0,
+                total_appointments: results[3].rows[0].total_appointments || 0
+              });
             })
             .catch(err => res.status(500).json({ error: 'DB error' }));
         });
