@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 import "./styles/theme.css";
 
 
@@ -42,6 +44,8 @@ const [selectedClient, setSelectedClient] = useState(null);
 const [comment, setComment] = useState("");
 const [reference, setReference] = useState([]);
 const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
+const [calendarDate, setCalendarDate] = useState(new Date());
+const [slotsCalendarView, setSlotsCalendarView] = useState([]);
   const [mode, setMode] = useState("menu");
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
@@ -2852,6 +2856,54 @@ if (mode === "adminMenu") {
             fontWeight: 'bold'
           }}>🔥 HOT</div>
         </div>
+
+        {/* Calendar View Card */}
+        <div
+          className="menu-card"
+          onClick={() => {
+            loadAppointments();
+            setCalendarDate(new Date());
+            setMode("calendarAdmin");
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 25px rgba(79, 172, 254, 0.3)',
+            border: 'none',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-5px)';
+            e.target.style.boxShadow = '0 15px 35px rgba(79, 172, 254, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 8px 25px rgba(79, 172, 254, 0.3)';
+          }}
+        >
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '15px',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+          }}>📅</div>
+          <h3 style={{
+            margin: '0 0 8px 0',
+            fontSize: '1.3rem',
+            fontWeight: '600',
+            color: 'white'
+          }}>Календар</h3>
+          <p style={{
+            margin: '0',
+            fontSize: '0.9rem',
+            opacity: '0.9',
+            color: 'white'
+          }}>Записи по датам</p>
+        </div>
       </div>
 
       {/* Back Button */}
@@ -3768,6 +3820,283 @@ if (mode === "slots") {
           }}
         >
           ← Назад в адмінку
+        </button>
+      </div>
+
+      {modal}
+    </div>
+  );
+}
+
+// =============== CALENDAR VIEW FOR ADMIN APPOINTMENTS ===============
+if (mode === "calendarAdmin") {
+  const formatDateForComparison = (dateStr) => dateStr.replace(/\//g, '-');
+  
+  const slotsOnSelectedDate = appointments.filter(slot => 
+    formatDateForComparison(slot.date) === formatDateForComparison(calendarDate.toLocaleDateString('uk-UA'))
+  );
+
+  const datesWithAppointments = new Set(
+    appointments.map(apt => formatDateForComparison(apt.date))
+  );
+
+  const tileClassName = ({ date, view }) => {
+    if (view === 'month') {
+      const dateStr = formatDateForComparison(date.toLocaleDateString('uk-UA'));
+      if (datesWithAppointments.has(dateStr)) {
+        return 'calendar-date-with-appointments';
+      }
+    }
+    return null;
+  };
+
+  return (
+    <div className="app-container">
+      {/* Modern Header */}
+      <div className="card" style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '30px 20px',
+        marginBottom: '30px',
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <h2 style={{
+          fontSize: '2.5rem',
+          margin: '0 0 10px 0',
+          fontWeight: '700',
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          📅 Календар записів
+        </h2>
+        <p style={{
+          fontSize: '1.1rem',
+          margin: '0',
+          opacity: 0.9,
+          fontWeight: '300',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          Перегляд записів за датами
+        </p>
+      </div>
+
+      {/* Calendar */}
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        padding: '20px',
+        marginBottom: '30px',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+        overflow: 'auto'
+      }}>
+        <style>{`
+          .react-calendar {
+            width: 100%;
+            border: none;
+            background: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+              "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+              sans-serif;
+          }
+          .react-calendar__month-view__weekdays {
+            text-decoration: none;
+            font-weight: 600;
+            color: #667eea;
+          }
+          .react-calendar__tile {
+            max-width: 100%;
+            padding: 12px 8px;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          }
+          .react-calendar__tile:enabled:hover,
+          .react-calendar__tile:enabled:focus {
+            background: #f0f0f0;
+            transform: scale(1.05);
+          }
+          .react-calendar__tile--now {
+            background: rgba(102, 126, 234, 0.2);
+            font-weight: 600;
+            color: #667eea;
+          }
+          .react-calendar__tile--active {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+          }
+          .calendar-date-with-appointments {
+            background: rgba(76, 175, 80, 0.3) !important;
+            color: #2d5016 !important;
+            font-weight: 600 !important;
+          }
+          .react-calendar__navigation button {
+            color: #667eea;
+            font-weight: 600;
+            min-width: 50px;
+            border-radius: 8px;
+            padding: 8px;
+          }
+          .react-calendar__navigation button:enabled:hover,
+          .react-calendar__navigation button:enabled:focus {
+            background: rgba(102, 126, 234, 0.1);
+          }
+        `}</style>
+        <Calendar
+          value={calendarDate}
+          onChange={setCalendarDate}
+          tileClassName={tileClassName}
+          locale="uk-UA"
+        />
+      </div>
+
+      {/* Selected Date Info */}
+      <div style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '16px',
+        padding: '20px',
+        marginBottom: '20px',
+        color: 'white',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '10px' }}>
+          📆 {calendarDate.toLocaleDateString('uk-UA', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
+        </div>
+        <div style={{ fontSize: '1rem', opacity: 0.9 }}>
+          {slotsOnSelectedDate.length} записи в цей день
+        </div>
+      </div>
+
+      {/* Appointments for Selected Date */}
+      <div style={{
+        display: 'grid',
+        gap: '15px',
+        padding: '0 10px',
+        marginBottom: '20px'
+      }}>
+        {slotsOnSelectedDate.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+            background: 'rgba(0,0,0,0.05)',
+            borderRadius: '12px',
+            color: '#666'
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📋</div>
+            <div>В цей день немає записів</div>
+          </div>
+        ) : (
+          slotsOnSelectedDate.sort((a, b) => a.time.localeCompare(b.time)).map((apt) => (
+            <div
+              key={apt.id}
+              className="menu-card"
+              style={{
+                background: apt.is_booked
+                  ? 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)'
+                  : 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                borderRadius: '12px',
+                padding: '15px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                border: 'none'
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '10px'
+              }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: '600' }}>
+                  ⏰ {apt.time}
+                </div>
+                <div style={{
+                  background: apt.is_booked ? '#e74c3c' : '#27ae60',
+                  color: 'white',
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600'
+                }}>
+                  {apt.is_booked ? '🔴 Зайнято' : '🟢 Вільно'}
+                </div>
+              </div>
+              
+              {apt.is_booked && (
+                <>
+                  <div style={{ marginBottom: '8px', color: '#2c3e50', fontWeight: '500' }}>
+                    👤 {apt.client_name}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>
+                    🎨 {apt.design}, {apt.length}, {apt.type}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedClient({ client: apt.client_name, tg_id: apt.tg_id });
+                      setMode("clientHistory");
+                    }}
+                    style={{
+                      background: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      width: '100%',
+                      marginTop: '10px'
+                    }}
+                  >
+                    Переглянути деталі
+                  </button>
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Back Button */}
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <button
+          onClick={() => setMode("adminMenu")}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px 30px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease',
+            width: '100%'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          ← Назад до адмінки
         </button>
       </div>
 
