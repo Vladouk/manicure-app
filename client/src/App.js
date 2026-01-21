@@ -397,7 +397,7 @@ fetch(`${API}/api/appointment`, {
       .catch(() => alert("❌ Помилка завантаження"));
   };
 
-  const loadAppointments = () => {
+  const loadAppointments = useCallback(() => {
     fetch(`${API}/api/admin/appointments?status=${filter}`, {
       headers: {
         "x-init-data": WebApp.initData
@@ -406,7 +406,7 @@ fetch(`${API}/api/appointment`, {
       .then(r => r.json())
       .then(setAppointments)
       .catch(() => alert("❌ Помилка завантаження"));
-  };
+  }, [filter]);
 
   // Auto-refresh appointments every 10 seconds when in calendar mode
   useEffect(() => {
@@ -418,7 +418,7 @@ fetch(`${API}/api/appointment`, {
       
       return () => clearInterval(interval);
     }
-  }, [mode, filter]);
+  }, [mode, loadAppointments]);
 
   const changeStatus = (id, status) => {
     fetch(`${API}/api/admin/status`, {
