@@ -5383,6 +5383,520 @@ if (mode === "admin") {
                 padding: '15px 20px',
                 fontSize: '0.9rem',
                 fontWeight: '600',
+                color: '#3498db',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(52, 152, 219, 0.3)';
+                e.target.style.background = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                e.target.style.background = 'rgba(255,255,255,0.9)';
+              }}
+            >
+              📋 Усі записи
+            </button>
+
+            <button
+              onClick={() => applyFilter("pending")}
+              style={{
+                background: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '15px 20px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                color: '#f39c12',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(243, 156, 18, 0.3)';
+                e.target.style.background = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                e.target.style.background = 'rgba(255,255,255,0.9)';
+              }}
+            >
+              ⏳ Очікують
+            </button>
+
+            <button
+              onClick={() => applyFilter("approved")}
+              style={{
+                background: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '15px 20px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                color: '#27ae60',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(39, 174, 96, 0.3)';
+                e.target.style.background = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                e.target.style.background = 'rgba(255,255,255,0.9)';
+              }}
+            >
+              ✅ Підтверджені
+            </button>
+
+            <button
+              onClick={() => applyFilter("canceled")}
+              style={{
+                background: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '15px 20px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                color: '#e74c3c',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(231, 76, 60, 0.3)';
+                e.target.style.background = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                e.target.style.background = 'rgba(255,255,255,0.9)';
+              }}
+            >
+              ❌ Скасовані
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Appointments List */}
+      <div style={{
+        display: 'grid',
+        gap: '20px',
+        padding: '0 10px'
+      }}>
+        {sortedAppointments.map(a => (
+          <div
+            className="menu-card"
+            key={a.id}
+            style={{
+              background: getSlotLabel(a.date) === "today"
+                ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                : getSlotLabel(a.date) === "tomorrow"
+                ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+                : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              borderRadius: '16px',
+              padding: '25px',
+              boxShadow: getSlotLabel(a.date) === "today"
+                ? '0 8px 25px rgba(79, 172, 254, 0.3)'
+                : getSlotLabel(a.date) === "tomorrow"
+                ? '0 8px 25px rgba(67, 233, 123, 0.3)'
+                : '0 8px 25px rgba(240, 147, 251, 0.3)',
+              border: 'none',
+              position: 'relative',
+              overflow: 'hidden',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-3px)';
+              e.target.style.boxShadow = getSlotLabel(a.date) === "today"
+                ? '0 12px 35px rgba(79, 172, 254, 0.4)'
+                : getSlotLabel(a.date) === "tomorrow"
+                ? '0 12px 35px rgba(67, 233, 123, 0.4)'
+                : '0 12px 35px rgba(240, 147, 251, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = getSlotLabel(a.date) === "today"
+                ? '0 8px 25px rgba(79, 172, 254, 0.3)'
+                : getSlotLabel(a.date) === "tomorrow"
+                ? '0 8px 25px rgba(67, 233, 123, 0.3)'
+                : '0 8px 25px rgba(240, 147, 251, 0.3)';
+            }}
+          >
+            {/* Date Badge */}
+            <div style={{
+              position: 'absolute',
+              top: '15px',
+              left: '15px',
+              background: 'rgba(255,255,255,0.9)',
+              color: getSlotLabel(a.date) === "today" ? '#3498db' : getSlotLabel(a.date) === "tomorrow" ? '#16a085' : '#e74c3c',
+              padding: '5px 12px',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              textTransform: 'uppercase'
+            }}>
+              {getSlotLabel(a.date) === "today" ? "📅 Сьогодні" : getSlotLabel(a.date) === "tomorrow" ? "📅 Завтра" : "📅 Майбутнє"}
+            </div>
+
+            {/* Status Badge */}
+            <div style={{
+              position: 'absolute',
+              top: '15px',
+              right: '15px',
+              background: a.status === "approved" ? 'rgba(46, 204, 113, 0.9)' : a.status === "canceled" ? 'rgba(231, 76, 60, 0.9)' : 'rgba(243, 156, 18, 0.9)',
+              color: 'white',
+              padding: '5px 12px',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              textTransform: 'uppercase'
+            }}>
+              {a.status === "approved" ? "✅ Підтверджено" : a.status === "canceled" ? "❌ Скасовано" : "⏳ Очікує"}
+            </div>
+
+            <div style={{ paddingTop: '50px' }}>
+              {/* Date and Time */}
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: 'white',
+                marginBottom: '15px',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+              }}>
+                📅 {a.date} {a.time}
+              </div>
+
+              {/* Client Info */}
+              <div style={{
+                background: 'rgba(255,255,255,0.9)',
+                padding: '15px',
+                borderRadius: '12px',
+                marginBottom: '15px'
+              }}>
+                <div style={{ fontWeight: '600', marginBottom: '8px', color: '#2c3e50' }}>
+                  👤 {a.clientName}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#7f8c8d', marginBottom: '5px' }}>
+                  📞 {a.phone}
+                </div>
+                {a.service && (
+                  <div style={{ fontSize: '0.9rem', color: '#7f8c8d' }}>
+                    💅 {a.service}
+                  </div>
+                )}
+              </div>
+
+              {/* Reference Image */}
+              {a.reference_image && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.9)',
+                  borderRadius: '12px',
+                  padding: '15px',
+                  marginBottom: '15px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    color: '#2c3e50',
+                    marginBottom: '10px'
+                  }}>
+                    🖼️ Фото-приклад:
+                  </div>
+                  <img
+                    src={`${API}${a.reference_image}`}
+                    alt="ref"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '200px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}
+                    onClick={() => setModalImage(`${API}${a.reference_image}`)}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'scale(1.05)';
+                      e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'scale(1)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap'
+              }}>
+                {a.status === "approved" && (
+                  <button
+                    className="btn-approved-static"
+                    onClick={() => {
+                      if (!window.confirm("Ви хочете змінити статус запису?")) return;
+
+                      const newStatus = window.prompt(
+                        "Виберіть новий статус:\n- canceled\n- pending",
+                        a.status
+                      );
+
+                      if (!newStatus || !["canceled", "pending"].includes(newStatus)) {
+                        alert("❌ Невірний статус");
+                        return;
+                      }
+
+                      changeStatus(a.id, newStatus);
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '12px 20px',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 15px rgba(231, 76, 60, 0.3)',
+                      transition: 'all 0.3s ease',
+                      flex: 1
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 6px 20px rgba(231, 76, 60, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.3)';
+                    }}
+                  >
+                    ❌ Скасовано
+                  </button>
+                )}
+
+                {a.status === "pending" && (
+                  <>
+                    <button
+                      className="btn-approve"
+                      onClick={() => changeStatus(a.id, "approved")}
+                      style={{
+                        background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px 20px',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(39, 174, 96, 0.3)',
+                        transition: 'all 0.3s ease',
+                        flex: 1
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(39, 174, 96, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(39, 174, 96, 0.3)';
+                      }}
+                    >
+                      ✅ Підтвердити
+                    </button>
+                    <button
+                      onClick={() => changeStatus(a.id, "canceled")}
+                      style={{
+                        background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px 20px',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(231, 76, 60, 0.3)',
+                        transition: 'all 0.3s ease',
+                        flex: 1
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(231, 76, 60, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.3)';
+                      }}
+                    >
+                      ❌ Скасувати
+                    </button>
+                  </>
+                )}
+
+                {a.status === "canceled" && (
+                  <button
+                    onClick={() => changeStatus(a.id, "approved")}
+                    style={{
+                      background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '12px 20px',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 15px rgba(39, 174, 96, 0.3)',
+                      transition: 'all 0.3s ease',
+                      width: '100%'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 6px 20px rgba(39, 174, 96, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 4px 15px rgba(39, 174, 96, 0.3)';
+                    }}
+                  >
+                    ✅ Відновити
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {sortedAppointments.length === 0 && (
+          <div
+            className="menu-card"
+            style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              borderRadius: '16px',
+              padding: '40px 25px',
+              boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
+              border: 'none',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{
+              fontSize: '4rem',
+              marginBottom: '20px',
+              opacity: 0.7
+            }}>
+              📭
+            </div>
+            <div style={{
+              fontSize: '1.2rem',
+              fontWeight: 'bold',
+              color: 'white',
+              marginBottom: '10px',
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+            }}>
+              Записів поки що немає
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              color: 'white',
+              opacity: 0.8
+            }}>
+              Нові бронювання з'являться тут
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Back Button */}
+      <div style={{ textAlign: 'center', marginTop: '30px' }}>
+        <button
+          className="primary-btn"
+          onClick={() => setMode("adminMenu")}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px 30px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          ← Назад в адмінку
+        </button>
+      </div>
+
+      {modal}
+    </div>
+  );
+}
+          {/* Filter Buttons */}
+          <div
+            className="menu-card"
+            style={{
+              background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+              borderRadius: '16px',
+              padding: '25px',
+              marginBottom: '30px',
+              boxShadow: '0 8px 25px rgba(168, 237, 234, 0.3)',
+          border: 'none',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          top: '15px',
+          left: '15px',
+          background: 'rgba(255,255,255,0.9)',
+          color: '#16a085',
+          padding: '5px 12px',
+          borderRadius: '20px',
+          fontSize: '0.8rem',
+          fontWeight: '600',
+          textTransform: 'uppercase'
+        }}>
+          🔍 Фільтри
+        </div>
+
+        <div style={{ paddingTop: '20px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '15px'
+          }}>
+            <button
+              onClick={() => applyFilter("all")}
+              style={{
+                background: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '15px 20px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
                 color: '#2c3e50',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
@@ -5865,6 +6379,7 @@ if (mode === "admin") {
         </div>
       )}
 
+      
       {/* Back Button */}
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
         <button
@@ -5899,7 +6414,6 @@ if (mode === "admin") {
     </div>
   );
 }
-
 
   return (
     <div className="app-container" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', minHeight: '100vh', padding: '20px 0' }}>
