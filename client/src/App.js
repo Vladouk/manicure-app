@@ -476,6 +476,454 @@ if (effectiveMode === "clientHistory") {
     </div>
   );
 }
+
+if (mode === "client") {
+  return (
+    <div className="app-container">
+      {/* Modern Header */}
+      <div className="card" style={{
+        background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '30px 20px',
+        marginBottom: '30px',
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(255, 154, 158, 0.3)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '-50%',
+          left: '-50%',
+          width: '200%',
+          height: '200%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+          animation: 'pulse 3s ease-in-out infinite'
+        }}></div>
+        <h2 style={{
+          fontSize: '2.5rem',
+          margin: '0 0 10px 0',
+          fontWeight: '700',
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          💅 Запис на манікюр
+        </h2>
+        <p style={{
+          fontSize: '1.1rem',
+          margin: '0',
+          opacity: 0.9,
+          fontWeight: '300',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          Оберіть дату, час та послугу
+        </p>
+      </div>
+
+      {/* Bonus Points Display */}
+      {bonusPoints > 0 && (
+        <div className="card" style={{
+          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          color: 'white',
+          padding: '20px',
+          marginBottom: '20px',
+          borderRadius: '16px',
+          textAlign: 'center',
+          boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)'
+        }}>
+          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎁</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+            {bonusPoints} бонусних балів
+          </div>
+          <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '5px' }}>
+            Доступно для знижки
+          </div>
+        </div>
+      )}
+
+      {/* Service Selection */}
+      {serviceSub && (
+        <div className="card" style={{
+          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+          padding: '20px',
+          marginBottom: '20px',
+          borderRadius: '16px',
+          boxShadow: '0 8px 25px rgba(252, 182, 159, 0.3)'
+        }}>
+          <div style={{
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            color: '#2c3e50',
+            marginBottom: '10px'
+          }}>
+            ✨ Обрана послуга
+          </div>
+          <div style={{
+            fontSize: '1rem',
+            color: '#34495e',
+            padding: '15px',
+            background: 'rgba(255,255,255,0.5)',
+            borderRadius: '12px',
+            fontWeight: '500'
+          }}>
+            {serviceSub}
+          </div>
+        </div>
+      )}
+
+      {/* Available Slots */}
+      <div className="card" style={{
+        padding: '25px',
+        marginBottom: '20px',
+        borderRadius: '16px',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
+      }}>
+        <h3 style={{
+          margin: '0 0 20px 0',
+          fontSize: '1.3rem',
+          fontWeight: '600',
+          color: '#2c3e50',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>📅</span>
+          Доступні дати та час
+        </h3>
+
+        {slots.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+            color: '#999'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '15px', opacity: 0.5 }}>📭</div>
+            <div style={{ fontSize: '1.1rem', color: '#666' }}>
+              Наразі немає вільних слотів
+            </div>
+            <div style={{ fontSize: '0.9rem', color: '#999', marginTop: '8px' }}>
+              Зверніться до адміністратора
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gap: '15px'
+          }}>
+            {slots.map(slot => (
+              <div
+                key={slot.id}
+                onClick={() => setSelectedSlotId(slot.id)}
+                style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  background: selectedSlotId === slot.id
+                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                  color: selectedSlotId === slot.id ? 'white' : '#2c3e50',
+                  border: selectedSlotId === slot.id ? '2px solid #667eea' : '2px solid transparent',
+                  boxShadow: selectedSlotId === slot.id
+                    ? '0 8px 25px rgba(102, 126, 234, 0.3)'
+                    : '0 4px 15px rgba(0,0,0,0.1)',
+                  transform: selectedSlotId === slot.id ? 'scale(1.02)' : 'scale(1)'
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{
+                      fontSize: '1.2rem',
+                      fontWeight: 'bold',
+                      marginBottom: '5px'
+                    }}>
+                      {slot.date}
+                    </div>
+                    <div style={{
+                      fontSize: '1.1rem',
+                      opacity: 0.9
+                    }}>
+                      🕐 {slot.time}
+                    </div>
+                  </div>
+                  {selectedSlotId === slot.id && (
+                    <div style={{ fontSize: '2rem' }}>✅</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Service Details */}
+      <div className="card" style={{
+        padding: '25px',
+        marginBottom: '20px',
+        borderRadius: '16px',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
+      }}>
+        <h3 style={{
+          margin: '0 0 20px 0',
+          fontSize: '1.3rem',
+          fontWeight: '600',
+          color: '#2c3e50',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>🎨</span>
+          Деталі послуги
+        </h3>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '0.95rem',
+            fontWeight: '600',
+            color: '#555'
+          }}>Дизайн</label>
+          <select
+            value={design}
+            onChange={(e) => setDesign(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '15px',
+              fontSize: '1rem',
+              borderRadius: '10px',
+              border: '2px solid #e0e0e0',
+              background: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <option>Класичний френч</option>
+            <option>Манікюр з малюнком</option>
+            <option>Однотонне покриття</option>
+            <option>Геометрія</option>
+            <option>Градієнт</option>
+          </select>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '0.95rem',
+            fontWeight: '600',
+            color: '#555'
+          }}>Довжина нігтів</label>
+          <select
+            value={length}
+            onChange={(e) => setLength(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '15px',
+              fontSize: '1rem',
+              borderRadius: '10px',
+              border: '2px solid #e0e0e0',
+              background: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <option>Короткі</option>
+            <option>Середні</option>
+            <option>Довгі</option>
+          </select>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '0.95rem',
+            fontWeight: '600',
+            color: '#555'
+          }}>Тип покриття</label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '15px',
+              fontSize: '1rem',
+              borderRadius: '10px',
+              border: '2px solid #e0e0e0',
+              background: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <option>Гель-лак</option>
+            <option>Нарощування</option>
+            <option>Зміцнення</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '0.95rem',
+            fontWeight: '600',
+            color: '#555'
+          }}>Коментар (опціонально)</label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Додаткові побажання..."
+            style={{
+              width: '100%',
+              padding: '15px',
+              fontSize: '1rem',
+              borderRadius: '10px',
+              border: '2px solid #e0e0e0',
+              background: 'white',
+              minHeight: '100px',
+              resize: 'vertical',
+              fontFamily: 'inherit'
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Photo Uploads */}
+      <div className="card" style={{
+        padding: '25px',
+        marginBottom: '20px',
+        borderRadius: '16px',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
+      }}>
+        <h3 style={{
+          margin: '0 0 20px 0',
+          fontSize: '1.3rem',
+          fontWeight: '600',
+          color: '#2c3e50',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>📸</span>
+          Фото (опціонально)
+        </h3>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '10px',
+            fontSize: '0.95rem',
+            fontWeight: '600',
+            color: '#555'
+          }}>Поточний стан нігтів</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(e) => setCurrentHandsPhotos([...e.target.files])}
+            style={{
+              width: '100%',
+              padding: '15px',
+              fontSize: '0.95rem',
+              borderRadius: '10px',
+              border: '2px dashed #e0e0e0',
+              background: '#f9f9f9',
+              cursor: 'pointer'
+            }}
+          />
+          {currentHandsPhotos.length > 0 && (
+            <div style={{
+              marginTop: '10px',
+              fontSize: '0.9rem',
+              color: '#27ae60',
+              fontWeight: '500'
+            }}>
+              ✓ Завантажено: {currentHandsPhotos.length} фото
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label style={{
+            display: 'block',
+            marginBottom: '10px',
+            fontSize: '0.95rem',
+            fontWeight: '600',
+            color: '#555'
+          }}>Референси дизайну</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(e) => setReference([...e.target.files])}
+            style={{
+              width: '100%',
+              padding: '15px',
+              fontSize: '0.95rem',
+              borderRadius: '10px',
+              border: '2px dashed #e0e0e0',
+              background: '#f9f9f9',
+              cursor: 'pointer'
+            }}
+          />
+          {reference.length > 0 && (
+            <div style={{
+              marginTop: '10px',
+              fontSize: '0.9rem',
+              color: '#27ae60',
+              fontWeight: '500'
+            }}>
+              ✓ Завантажено: {reference.length} фото
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Back Button */}
+      <div style={{ textAlign: 'center', marginTop: '30px' }}>
+        <button
+          className="primary-btn"
+          onClick={() => setMode("menu")}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px 30px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease',
+            width: '100%',
+            maxWidth: '300px'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          ← Назад до меню
+        </button>
+      </div>
+
+      {modal}
+    </div>
+  );
+}
+
 if (mode === "myAppointments") {
   return (
     <div className="app-container">
