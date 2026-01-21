@@ -48,12 +48,8 @@ const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [modalImage, setModalImage] = useState(null);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [priceList, setPriceList] = useState([]);
-  const [dynamicPrices, setDynamicPrices] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [referralCode, setReferralCode] = useState(null);
-  const [enteredReferralCode, setEnteredReferralCode] = useState("");
-  const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
-  const [isFirstTime, setIsFirstTime] = useState(false);
   const [analyticsHours, setAnalyticsHours] = useState([]);
   const [analyticsDays, setAnalyticsDays] = useState([]);
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
@@ -64,15 +60,7 @@ const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
 
   // BOOKING INTERFACE HOOKS
-  const [bookingStep, setBookingStep] = useState(1);
   const totalSteps = 4;
-
-  const nextStep = () => setBookingStep(prev => Math.min(prev + 1, totalSteps));
-  const prevStep = () => setBookingStep(prev => Math.max(prev - 1, 1));
-  const resetBooking = () => {
-    setBookingStep(1);
-    setSelectedSlotId("");
-    setEnteredReferralCode("");
     setComment("");
     setReference([]);
     setCurrentHandsPhotos([]);
@@ -188,12 +176,10 @@ const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [design, setDesign] = useState("Класичний френч");
   const [length, setLength] = useState("Короткі");
   const [type, setType] = useState("Гель-лак");
-  const [serviceCategory, setServiceCategory] = useState("Гібридний манікюр");
   const [serviceSub, setServiceSub] = useState("Гібридний манікюр — один колір 120–150 zł");
-  const [price, setPrice] = useState(135);
   // Fallback for non-Telegram (web) users
-  const [manualName, setManualName] = useState("");
-  const [manualTgId, setManualTgId] = useState("");
+  const [manualName] = useState("");
+  const [manualTgId] = useState("");
 
   useEffect(() => {
   WebApp.ready();
@@ -332,12 +318,6 @@ fetch(`${API}/api/appointment`, {
   }, {});
 
   const sortedDates = Object.keys(groupedSlots).sort();
-  const grouped = sortedDates.map(date => ({
-    date,
-    slots: groupedSlots[date].sort((a, b) => a.time.localeCompare(b.time))
-  }));
-
-  const selectedSlot = slots.find(s => s.id === selectedSlotId);
 
   // ADMIN FUNCTIONS
   const applyFilter = (status) => {
