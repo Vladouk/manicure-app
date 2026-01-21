@@ -379,7 +379,7 @@ fetch(`${API}/api/appointment`, {
       
       return () => clearInterval(interval);
     }
-  }, [mode]);
+  }, [mode, loadAppointments]);
 
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
