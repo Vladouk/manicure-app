@@ -40,7 +40,8 @@ function App() {
 const [clientHistory, setClientHistory] = useState([]);
 const [selectedClient, setSelectedClient] = useState(null);
 const [comment, setComment] = useState("");
-const [reference, setReference] = useState(null);
+const [reference, setReference] = useState([]);
+const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [mode, setMode] = useState("menu");
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
@@ -70,7 +71,8 @@ const [reference, setReference] = useState(null);
     setSelectedSlotId("");
     setEnteredReferralCode("");
     setComment("");
-    setReference(null);
+    setReference([]);
+    setCurrentHandsPhotos([]);
   };
 
   // Function to select service from price list and go to booking form
@@ -248,9 +250,15 @@ formData.append("type", type);
 formData.append("comment", comment);
         formData.append("tg_id", effectiveTgId);
 
-if (reference) {
-  formData.append("reference", reference);
-}
+        // Add current hands photos
+        currentHandsPhotos.forEach((photo, index) => {
+          formData.append(`current_hands_${index}`, photo);
+        });
+
+        // Add reference photos
+        reference.forEach((ref, index) => {
+          formData.append(`reference_${index}`, ref);
+        });
 
 fetch(`${API}/api/appointment`, {
   method: "POST",
@@ -2612,10 +2620,10 @@ if (mode === "addSlot") {
                 />
               </div>
 
-              {/* Reference Image */}
+              {/* Current Hands Photos */}
               <div>
                 <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
-                  Фото-референс (необов'язково):
+                  Фото ваших рук зараз (допоможе майстру):
                 </label>
                 <div style={{
                   border: '2px dashed #e0e0e0',
@@ -2623,19 +2631,147 @@ if (mode === "addSlot") {
                   padding: 20,
                   textAlign: 'center',
                   transition: 'border-color 0.3s ease',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  marginBottom: 10
                 }}
-                onClick={() => document.getElementById('reference-input').click()}>
-                  <div style={{ fontSize: 24, marginBottom: 10 }}>📸</div>
+                onClick={() => document.getElementById('current-hands-input').click()}>
+                  <div style={{ fontSize: 24, marginBottom: 10 }}>🤲</div>
                   <div style={{ color: '#666' }}>
-                    {reference ? `Вибрано: ${reference.name}` : 'Натисніть щоб додати фото манікюру'}
+                    {currentHandsPhotos.length > 0
+                      ? `Вибрано ${currentHandsPhotos.length} фото`
+                      : 'Натисніть щоб додати фото ваших рук'
+                    }
                   </div>
                 </div>
+                {currentHandsPhotos.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+                    {currentHandsPhotos.map((photo, index) => (
+                      <div key={index} style={{
+                        position: 'relative',
+                        display: 'inline-block'
+                      }}>
+                        <img
+                          src={URL.createObjectURL(photo)}
+                          alt={`Current hands ${index + 1}`}
+                          style={{
+                            width: 80,
+                            height: 80,
+                            objectFit: 'cover',
+                            borderRadius: 8,
+                            border: '2px solid #e0e0e0'
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            setCurrentHandsPhotos(currentHandsPhotos.filter((_, i) => i !== index));
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: -5,
+                            right: -5,
+                            background: '#ff4757',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: 20,
+                            height: 20,
+                            cursor: 'pointer',
+                            fontSize: 12
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input
+                  id="current-hands-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={e => {
+                    const files = Array.from(e.target.files);
+                    setCurrentHandsPhotos([...currentHandsPhotos, ...files]);
+                  }}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              {/* Reference Images */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Фото-референси (необов'язково):
+                </label>
+                <div style={{
+                  border: '2px dashed #e0e0e0',
+                  borderRadius: 12,
+                  padding: 20,
+                  textAlign: 'center',
+                  transition: 'border-color 0.3s ease',
+                  cursor: 'pointer',
+                  marginBottom: 10
+                }}
+                onClick={() => document.getElementById('reference-input').click()}>
+                  <div style={{ fontSize: 24, marginBottom: 10 }}>💅</div>
+                  <div style={{ color: '#666' }}>
+                    {reference.length > 0
+                      ? `Вибрано ${reference.length} фото`
+                      : 'Натисніть щоб додати фото манікюру'
+                    }
+                  </div>
+                </div>
+                {reference.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+                    {reference.map((ref, index) => (
+                      <div key={index} style={{
+                        position: 'relative',
+                        display: 'inline-block'
+                      }}>
+                        <img
+                          src={URL.createObjectURL(ref)}
+                          alt={`Reference ${index + 1}`}
+                          style={{
+                            width: 80,
+                            height: 80,
+                            objectFit: 'cover',
+                            borderRadius: 8,
+                            border: '2px solid #e0e0e0'
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            setReference(reference.filter((_, i) => i !== index));
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: -5,
+                            right: -5,
+                            background: '#ff4757',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: 20,
+                            height: 20,
+                            cursor: 'pointer',
+                            fontSize: 12
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <input
                   id="reference-input"
                   type="file"
                   accept="image/*"
-                  onChange={e => setReference(e.target.files[0])}
+                  multiple
+                  onChange={e => {
+                    const files = Array.from(e.target.files);
+                    setReference([...reference, ...files]);
+                  }}
                   style={{ display: 'none' }}
                 />
               </div>
@@ -2871,9 +3007,15 @@ if (mode === "addSlot") {
                     formData.append("referral_code", enteredReferralCode.trim());
                   }
 
-                  if (reference) {
-                    formData.append("reference", reference);
-                  }
+                  // Add current hands photos
+                  currentHandsPhotos.forEach((photo, index) => {
+                    formData.append(`current_hands_${index}`, photo);
+                  });
+
+                  // Add reference photos
+                  reference.forEach((ref, index) => {
+                    formData.append(`reference_${index}`, ref);
+                  });
 
                   fetch(`${API}/api/appointment`, {
                     method: "POST",
