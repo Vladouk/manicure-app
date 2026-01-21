@@ -58,7 +58,6 @@ const [reference, setReference] = useState(null);
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
   const [analyticsForecast, setAnalyticsForecast] = useState(null);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
-  const [selectedFromPriceList, setSelectedFromPriceList] = useState(false);
 
   // BOOKING INTERFACE HOOKS
   const [bookingStep, setBookingStep] = useState(1);
@@ -72,7 +71,6 @@ const [reference, setReference] = useState(null);
     setEnteredReferralCode("");
     setComment("");
     setReference(null);
-    setSelectedFromPriceList(false);
   };
 
   // Function to select service from price list and go to booking form
@@ -84,7 +82,6 @@ const [reference, setReference] = useState(null);
     setServiceCategory(serviceData.category || "Покриття");
     setServiceSub(serviceData.serviceName || "");
     setPrice(serviceData.price || 0);
-    setSelectedFromPriceList(true);
     
     // Go to client booking mode
     setMode("client");
@@ -2237,7 +2234,6 @@ if (mode === "addSlot") {
                       onClick={() => {
                         setServiceCategory(cat.name);
                         setServiceSub("");
-                        setSelectedFromPriceList(false);
                       }}
                       style={{
                         padding: 15,
@@ -2276,7 +2272,6 @@ if (mode === "addSlot") {
                           onClick={() => {
                             setServiceSub(displayName);
                             setPrice(service.is_promotion ? service.discount_price : service.price);
-                            setSelectedFromPriceList(true);
                           }}
                           style={{
                             padding: 15,
@@ -2481,7 +2476,6 @@ if (mode === "addSlot") {
                       key={item.value}
                       onClick={() => {
                         setDesign(item.value);
-                        setSelectedFromPriceList(false);
                       }}
                       style={{
                         padding: 15,
@@ -2516,7 +2510,6 @@ if (mode === "addSlot") {
                       key={item.value}
                       onClick={() => {
                         setLength(item.value);
-                        setSelectedFromPriceList(false);
                       }}
                       style={{
                         padding: 12,
@@ -2551,7 +2544,6 @@ if (mode === "addSlot") {
                       key={item.value}
                       onClick={() => {
                         setType(item.value);
-                        setSelectedFromPriceList(false);
                       }}
                       style={{
                         padding: 12,
