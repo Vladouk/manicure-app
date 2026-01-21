@@ -4114,6 +4114,25 @@ if (mode === "calendarAdmin") {
 
 // =============== CALENDAR VIEW FOR SLOTS ===============
 if (mode === "slotsCalendar") {
+  // Load slots if empty
+  useEffect(() => {
+    if (!slotsAdmin || slotsAdmin.length === 0) {
+      fetch(`${API}/api/admin/slots`, {
+        headers: { "x-init-data": WebApp.initData }
+      })
+        .then(r => r.json())
+        .then(data => {
+          setSlotsAdmin(
+            data.sort((a, b) =>
+              new Date(`${a.date} ${a.time}`) -
+              new Date(`${b.date} ${b.time}`)
+            )
+          );
+        })
+        .catch(err => console.error('Error loading slots:', err));
+    }
+  }, [mode]);
+
   // Normalize date format for comparison (DD.MM.YYYY or DD/MM/YYYY)
   const formatDateForComparison = (dateStr) => {
     if (!dateStr) return '';

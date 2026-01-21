@@ -279,7 +279,10 @@ initializeDatabase().then(() => {
 async function deleteOldSlots() {
   try {
     const today = new Date();
-    const todayStr = today.toLocaleDateString('uk-UA');
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const todayStr = `${day}.${month}.${year}`;
     
     const result = await pool.query(`
       DELETE FROM work_slots 
