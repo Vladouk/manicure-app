@@ -327,11 +327,13 @@ fetch(`${API}/api/appointment`, {
   // Load slots when mode changes to slotsCalendar
   useEffect(() => {
     if (mode === "slotsCalendar" && (!slotsAdmin || slotsAdmin.length === 0)) {
+      console.log('Loading slots for calendar...');
       fetch(`${API}/api/admin/slots`, {
         headers: { "x-init-data": WebApp.initData }
       })
         .then(r => r.json())
         .then(data => {
+          console.log('Slots loaded:', data);
           setSlotsAdmin(
             data.sort((a, b) =>
               new Date(`${a.date} ${a.time}`) -
@@ -341,7 +343,7 @@ fetch(`${API}/api/appointment`, {
         })
         .catch(err => console.error('Error loading slots:', err));
     }
-  }, [mode, slotsAdmin]);
+  }, [mode]);
 
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
