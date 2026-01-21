@@ -2867,53 +2867,7 @@ if (mode === "adminMenu") {
           }}>🔥 HOT</div>
         </div>
 
-        {/* Calendar View Card */}
-        <div
-          className="menu-card"
-          onClick={() => {
-            loadAppointments();
-            setCalendarDate(new Date());
-            setMode("calendarAdmin");
-          }}
-          style={{
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            borderRadius: '16px',
-            padding: '25px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 8px 25px rgba(79, 172, 254, 0.3)',
-            border: 'none',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-5px)';
-            e.target.style.boxShadow = '0 15px 35px rgba(79, 172, 254, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 8px 25px rgba(79, 172, 254, 0.3)';
-          }}
-        >
-          <div style={{
-            fontSize: '3rem',
-            marginBottom: '15px',
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-          }}>📅</div>
-          <h3 style={{
-            margin: '0 0 8px 0',
-            fontSize: '1.3rem',
-            fontWeight: '600',
-            color: 'white'
-          }}>Календар</h3>
-          <p style={{
-            margin: '0',
-            fontSize: '0.9rem',
-            opacity: '0.9',
-            color: 'white'
-          }}>Записи по датам</p>
-        </div>
+        {/* Calendar View Card - REMOVED, moved to appointments history */}
       </div>
 
       {/* Back Button */}
