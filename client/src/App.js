@@ -985,25 +985,103 @@ if (mode === "clientPromotions") {
 if (mode === "menu") {
   return (
     <div className="app-container">
-
-      <div className="card">
-        <h2>💅 nailbysp</h2>
-        <p style={{ opacity: 0.7 }}>
+      {/* Modern Header */}
+      <div className="card" style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '30px 20px',
+        marginBottom: '30px',
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '-50%',
+          left: '-50%',
+          width: '200%',
+          height: '200%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+          animation: 'pulse 3s ease-in-out infinite'
+        }}></div>
+        <h2 style={{
+          fontSize: '2.5rem',
+          margin: '0 0 10px 0',
+          fontWeight: '700',
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          💅 nailbysp
+        </h2>
+        <p style={{
+          fontSize: '1.1rem',
+          margin: '0',
+          opacity: 0.9,
+          fontWeight: '300',
+          zIndex: 1,
+          position: 'relative'
+        }}>
           Привіт, {tgUser?.first_name} 💖
         </p>
       </div>
 
-      <div className="menu-buttons">
-
-        <button
-          className="primary-btn"
+      {/* Modern Menu Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '20px',
+        padding: '0 10px'
+      }}>
+        {/* Booking Card */}
+        <div
+          className="menu-card"
           onClick={() => setMode("client")}
+          style={{
+            background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 25px rgba(255, 154, 158, 0.3)',
+            border: 'none',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-5px)';
+            e.target.style.boxShadow = '0 15px 35px rgba(255, 154, 158, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 8px 25px rgba(255, 154, 158, 0.3)';
+          }}
         >
-          📅 Записатися на манікюр
-        </button>
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '15px',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+          }}>📅</div>
+          <h3 style={{
+            margin: '0 0 8px 0',
+            fontSize: '1.3rem',
+            fontWeight: '600',
+            color: 'white'
+          }}>Записатися на манікюр</h3>
+          <p style={{
+            margin: '0',
+            fontSize: '0.9rem',
+            opacity: '0.9',
+            color: 'white'
+          }}>Оберіть час та послугу</p>
+        </div>
 
-        <button
-          className="primary-btn"
+        {/* My Appointments Card */}
+        <div
+          className="menu-card"
           onClick={() => {
             fetch(`${API}/api/my-appointments`, {
               headers: { "x-init-data": WebApp.initData }
@@ -1019,21 +1097,95 @@ if (mode === "menu") {
                 setMode("myAppointments");
               });
           }}
+          style={{
+            background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 25px rgba(168, 237, 234, 0.3)',
+            border: 'none',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-5px)';
+            e.target.style.boxShadow = '0 15px 35px rgba(168, 237, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 8px 25px rgba(168, 237, 234, 0.3)';
+          }}
         >
-          📖 Мої записи
-        </button>
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '15px',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+          }}>📖</div>
+          <h3 style={{
+            margin: '0 0 8px 0',
+            fontSize: '1.3rem',
+            fontWeight: '600',
+            color: '#2c3e50'
+          }}>Мої записи</h3>
+          <p style={{
+            margin: '0',
+            fontSize: '0.9rem',
+            opacity: '0.8',
+            color: '#2c3e50'
+          }}>Переглянути мої візити</p>
+        </div>
 
+        {/* Admin Panel Card - Only for admins */}
         {isAdmin && (
-          <button
-            className="primary-btn"
+          <div
+            className="menu-card"
             onClick={() => setMode("adminMenu")}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: '16px',
+              padding: '25px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+              border: 'none',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-5px)';
+              e.target.style.boxShadow = '0 15px 35px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.3)';
+            }}
           >
-            🔒 Адмінка
-          </button>
+            <div style={{
+              fontSize: '3rem',
+              marginBottom: '15px',
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+            }}>🔒</div>
+            <h3 style={{
+              margin: '0 0 8px 0',
+              fontSize: '1.3rem',
+              fontWeight: '600',
+              color: 'white'
+            }}>Адмінка</h3>
+            <p style={{
+              margin: '0',
+              fontSize: '0.9rem',
+              opacity: '0.9',
+              color: 'white'
+            }}>Панель управління</p>
+          </div>
         )}
 
-        <button
-          className="primary-btn"
+        {/* Price List Card */}
+        <div
+          className="menu-card"
           onClick={() => {
             fetch(`${API}/api/prices`)
               .then(r => r.json())
@@ -1042,12 +1194,49 @@ if (mode === "menu") {
                 setMode("priceList");
               });
           }}
+          style={{
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
+            border: 'none',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-5px)';
+            e.target.style.boxShadow = '0 15px 35px rgba(240, 147, 251, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 8px 25px rgba(240, 147, 251, 0.3)';
+          }}
         >
-          💰 Прайс
-        </button>
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '15px',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+          }}>💰</div>
+          <h3 style={{
+            margin: '0 0 8px 0',
+            fontSize: '1.3rem',
+            fontWeight: '600',
+            color: 'white'
+          }}>Прайс</h3>
+          <p style={{
+            margin: '0',
+            fontSize: '0.9rem',
+            opacity: '0.9',
+            color: 'white'
+          }}>Ціни на послуги</p>
+        </div>
 
-        <button
-          className="primary-btn"
+        {/* Promotions Card */}
+        <div
+          className="menu-card"
           onClick={() => {
             fetch(`${API}/api/promotions`)
               .then(r => r.json())
@@ -1056,17 +1245,89 @@ if (mode === "menu") {
                 setMode("clientPromotions");
               });
           }}
+          style={{
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 25px rgba(79, 172, 254, 0.3)',
+            border: 'none',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-5px)';
+            e.target.style.boxShadow = '0 15px 35px rgba(79, 172, 254, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 8px 25px rgba(79, 172, 254, 0.3)';
+          }}
         >
-          🎉 Акції
-        </button>
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '15px',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+          }}>🎉</div>
+          <h3 style={{
+            margin: '0 0 8px 0',
+            fontSize: '1.3rem',
+            fontWeight: '600',
+            color: 'white'
+          }}>Акції</h3>
+          <p style={{
+            margin: '0',
+            fontSize: '0.9rem',
+            opacity: '0.9',
+            color: 'white'
+          }}>Спеціальні пропозиції</p>
+        </div>
 
-        <button
-          className="primary-btn"
+        {/* Contact Master Card */}
+        <div
+          className="menu-card"
           onClick={() => WebApp.openTelegramLink("https://t.me/vlad0uk")}
+          style={{
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 25px rgba(67, 233, 123, 0.3)',
+            border: 'none',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-5px)';
+            e.target.style.boxShadow = '0 15px 35px rgba(67, 233, 123, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 8px 25px rgba(67, 233, 123, 0.3)';
+          }}
         >
-          💬 Звʼязатись з майстром
-        </button>
-
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '15px',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+          }}>💬</div>
+          <h3 style={{
+            margin: '0 0 8px 0',
+            fontSize: '1.3rem',
+            fontWeight: '600',
+            color: '#2c3e50'
+          }}>Звʼязатись з майстром</h3>
+          <p style={{
+            margin: '0',
+            fontSize: '0.9rem',
+            opacity: '0.8',
+            color: '#2c3e50'
+          }}>Написати в Telegram</p>
+        </div>
       </div>
 
       {modal}
