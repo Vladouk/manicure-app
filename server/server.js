@@ -286,6 +286,14 @@ async function deleteOldSlots() {
     
     console.log(`🔍 Deleting slots older than: ${todayStr}`);
     
+    // First check what slots exist
+    const checkResult = await pool.query(`
+      SELECT id, date, is_booked FROM work_slots 
+      WHERE date < $1 AND is_booked = false
+      LIMIT 5
+    `, [todayStr]);
+    console.log('Slots to be deleted:', checkResult.rows);
+    
     const result = await pool.query(`
       DELETE FROM work_slots 
       WHERE is_booked = false 

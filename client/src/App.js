@@ -324,51 +324,6 @@ fetch(`${API}/api/appointment`, {
     }
   }, [tgUser?.id]);
 
-  // Load slots when mode changes to slotsCalendar
-  useEffect(() => {
-    if (mode === "slotsCalendar" && (!slotsAdmin || slotsAdmin.length === 0)) {
-      console.log('Loading slots for calendar...');
-      fetch(`${API}/api/admin/slots`, {
-        headers: { "x-init-data": WebApp.initData }
-      })
-        .then(r => r.json())
-        .then(data => {
-          console.log('Slots loaded:', data);
-          setSlotsAdmin(
-            data.sort((a, b) =>
-              new Date(`${a.date} ${a.time}`) -
-              new Date(`${b.date} ${b.time}`)
-            )
-          );
-        })
-        .catch(err => console.error('Error loading slots:', err));
-    }
-  }, [mode, slotsAdmin]);
-
-  // Auto-refresh slots every 10 seconds when in calendar mode
-  useEffect(() => {
-    if (mode === "slotsCalendar") {
-      const interval = setInterval(() => {
-        console.log('Auto-refreshing slots...');
-        fetch(`${API}/api/admin/slots`, {
-          headers: { "x-init-data": WebApp.initData }
-        })
-          .then(r => r.json())
-          .then(data => {
-            setSlotsAdmin(
-              data.sort((a, b) =>
-                new Date(`${a.date} ${a.time}`) -
-                new Date(`${b.date} ${b.time}`)
-              )
-            );
-          })
-          .catch(err => console.error('Error auto-refreshing slots:', err));
-      }, 10000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [mode]);
-
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
     acc[slot.date].push(slot);
@@ -4263,57 +4218,7 @@ if (mode === "calendarAdmin") {
   );
 }
 
-// =============== CALENDAR VIEW FOR SLOTS ===============
-if (mode === "slotsCalendar") {
-  // Convert YYYY-MM-DD to DD.MM.YYYY or handle DD.MM.YYYY format
-  const formatDateForComparison = (dateStr) => {
-    if (!dateStr) return '';
-    // If format is YYYY-MM-DD, convert to DD.MM.YYYY
-    if (dateStr.includes('-') && dateStr.length === 10) {
-      const [year, month, day] = dateStr.split('-');
-      return `${day}.${month}.${year}`;
-    }
-    // If already DD.MM.YYYY or DD/MM/YYYY, normalize slashes to dots
-    return dateStr.replace(/\//g, '.');
-  };
-  
-  const selectedDateStr = formatDateForComparison(
-    calendarDate.toLocaleDateString('uk-UA', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  );
-  
-  console.log('Selected date:', selectedDateStr);
-  console.log('Available slots:', slotsAdmin.map(s => ({ date: s.date, formatted: formatDateForComparison(s.date) })));
-  
-  const slotsOnSelectedDate = slotsAdmin.filter(slot => {
-    const slotDate = formatDateForComparison(slot.date);
-    return slotDate === selectedDateStr;
-  });
-
-  const datesWithSlots = new Set(
-    slotsAdmin.map(slot => formatDateForComparison(slot.date))
-  );
-
-  const tileClassName = ({ date, view }) => {
-    if (view === 'month') {
-      const dateStr = formatDateForComparison(
-        date.toLocaleDateString('uk-UA', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        })
-      );
-      if (datesWithSlots.has(dateStr)) {
-        return 'calendar-date-with-appointments';
-      }
-    }
-    return null;
-  };
-
-  return (
+// =============== CALENDAR VIEW FOR SLOTS - REMOVED, USE CALENDAR FOR APPOINTMENTS INSTEAD ===============
     <div className="app-container">
       {/* Modern Header */}
       <div className="card" style={{
