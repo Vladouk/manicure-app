@@ -167,6 +167,12 @@ async function initializeDatabase() {
       ADD COLUMN IF NOT EXISTS current_hands_images TEXT
     `).catch(err => console.log('Current hands images column already exists or error:', err.message));
 
+    // Add viewed_by_admin column if it doesn't exist
+    await pool.query(`
+      ALTER TABLE appointments
+      ADD COLUMN IF NOT EXISTS viewed_by_admin BOOLEAN DEFAULT false
+    `).catch(err => console.log('Viewed by admin column already exists or error:', err.message));
+
     // Create reminders table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reminders (
@@ -776,6 +782,22 @@ app.post(
 
           pool.query(sql, params)
             .then(result => res.json(result.rows))
+            .catch(err => res.status(500).json({ error: "DB error" }));
+        });
+
+        // ====== ADMIN: MARK APPOINTMENTS AS VIEWED ======
+        app.post('/api/admin/mark-viewed', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          pool.query(`UPDATE appointments SET viewed_by_admin = true WHERE viewed_by_admin = false`)
+            .then(() => res.json({ ok: true }))
             .catch(err => res.status(500).json({ error: "DB error" }));
         });
 

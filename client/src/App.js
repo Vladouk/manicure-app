@@ -360,7 +360,20 @@ fetch(`${API}/api/appointment`, {
       }
     })
       .then(r => r.json())
-      .then(setAppointments)
+      .then(data => {
+        setAppointments(data);
+        
+        // Mark appointments as viewed after a short delay
+        // This allows the user to see which appointments are new
+        setTimeout(() => {
+          fetch(`${API}/api/admin/mark-viewed`, {
+            method: "POST",
+            headers: {
+              "x-init-data": WebApp.initData
+            }
+          }).catch(err => console.error("Failed to mark as viewed:", err));
+        }, 3000); // 3 seconds delay to show new appointments
+      })
       .catch(() => alert("❌ Помилка завантаження"));
   }, [filter]);
 
@@ -5832,7 +5845,6 @@ if (mode === "admin") {
                   value={calendarDate}
                   tileClassName={tileClassName}
                   maxDate={new Date(new Date().getTime() + 60 * 24 * 60 * 60 * 1000)}
-                  minDate={new Date()}
                 />
               </div>
 
@@ -5852,47 +5864,145 @@ if (mode === "admin") {
                   <div style={{ display: 'grid', gap: '12px' }}>
                     {appointmentsOnSelectedDate.map((apt) => (
                       <div key={apt.id} style={{
-                        background: 'white',
-                        border: '1px solid #e0e0e0',
+                        background: apt.viewed_by_admin === false ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'white',
+                        border: apt.viewed_by_admin === false ? '2px solid #FF6B00' : '1px solid #e0e0e0',
                         borderRadius: '12px',
                         padding: '15px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        transition: 'all 0.3s ease'
+                        transition: 'all 0.3s ease',
+                        boxShadow: apt.viewed_by_admin === false ? '0 4px 15px rgba(255, 107, 0, 0.3)' : 'none',
+                        position: 'relative'
                       }}>
-                        <div>
-                          <strong>{apt.time}</strong> - {apt.type} ({apt.length})
-                          <br />
-                          <small style={{ color: '#666' }}>
-                            {apt.client_name || 'Невідомий клієнт'}
-                          </small>
-                          {apt.reference_image && (
-                            <div style={{ marginTop: '10px' }}>
-                              <img
-                                src={apt.reference_image}
-                                alt="Reference"
-                                onClick={() => setModalImage(apt.reference_image)}
+                        {apt.viewed_by_admin === false && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '-10px',
+                            right: '-10px',
+                            background: '#FF6B00',
+                            color: 'white',
+                            borderRadius: '50%',
+                            width: '30px',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 8px rgba(255, 107, 0, 0.5)',
+                            animation: 'pulse 2s infinite'
+                          }}>
+                            NEW
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                          <div style={{ flex: 1 }}>
+                            <strong>{apt.time}</strong> - {apt.type} ({apt.length})
+                            <br />
+                            {apt.tg_id ? (
+                              <a
+                                href={`https://t.me/${apt.username || apt.tg_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 style={{
-                                  width: '60px',
-                                  height: '60px',
-                                  objectFit: 'cover',
-                                  borderRadius: '8px',
-                                  cursor: 'pointer'
+                                  color: '#0088cc',
+                                  textDecoration: 'none',
+                                  fontSize: '0.9rem',
+                                  fontWeight: '500'
                                 }}
-                              />
-                            </div>
-                          )}
+                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                              >
+                                👤 {apt.client || apt.client_name || 'Клієнт'} →
+                              </a>
+                            ) : (
+                              <small style={{ color: '#666' }}>
+                                {apt.client_name || 'Невідомий клієнт'}
+                              </small>
+                            )}
+                            {apt.reference_image && (
+                              <div style={{ marginTop: '10px' }}>
+                                <img
+                                  src={apt.reference_image}
+                                  alt="Reference"
+                                  onClick={() => setModalImage(apt.reference_image)}
+                                  style={{
+                                    width: '60px',
+                                    height: '60px',
+                                    objectFit: 'cover',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer'
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                          <div style={{
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            background: apt.status === 'confirmed' ? '#d4edda' : apt.status === 'approved' ? '#cce5ff' : '#fff3cd',
+                            color: apt.status === 'confirmed' ? '#155724' : apt.status === 'approved' ? '#004085' : '#856404',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {apt.status === 'confirmed' ? '✅ Підтверджено' : apt.status === 'approved' ? '✔️ Затверджено' : '⏳ Очікує'}
+                          </div>
                         </div>
-                        <div style={{
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          background: apt.status === 'confirmed' ? '#d4edda' : apt.status === 'approved' ? '#cce5ff' : '#fff3cd',
-                          color: apt.status === 'confirmed' ? '#155724' : apt.status === 'approved' ? '#004085' : '#856404'
-                        }}>
-                          {apt.status === 'confirmed' ? '✅ Підтверджено' : apt.status === 'approved' ? '✔️ Затверджено' : '⏳ Очікує'}
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                          {apt.status !== 'approved' && (
+                            <button
+                              onClick={() => changeStatus(apt.id, 'approved')}
+                              style={{
+                                flex: 1,
+                                background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                color: 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = '0 4px 12px rgba(39, 174, 96, 0.3)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = 'none';
+                              }}
+                            >
+                              ✅ Підтвердити
+                            </button>
+                          )}
+                          {apt.status !== 'canceled' && (
+                            <button
+                              onClick={() => changeStatus(apt.id, 'canceled')}
+                              style={{
+                                flex: 1,
+                                background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                color: 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.3)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = 'none';
+                              }}
+                            >
+                              ❌ Скасувати
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -5916,19 +6026,23 @@ if (mode === "admin") {
             className="menu-card"
             key={a.id}
             style={{
-              background: getSlotLabel(a.date) === "today"
+              background: a.viewed_by_admin === false
+                ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'
+                : getSlotLabel(a.date) === "today"
                 ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
                 : getSlotLabel(a.date) === "tomorrow"
                 ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
                 : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
               borderRadius: '16px',
               padding: '25px',
-              boxShadow: getSlotLabel(a.date) === "today"
+              boxShadow: a.viewed_by_admin === false
+                ? '0 8px 25px rgba(255, 165, 0, 0.5)'
+                : getSlotLabel(a.date) === "today"
                 ? '0 8px 25px rgba(79, 172, 254, 0.3)'
                 : getSlotLabel(a.date) === "tomorrow"
                 ? '0 8px 25px rgba(67, 233, 123, 0.3)'
                 : '0 8px 25px rgba(240, 147, 251, 0.3)',
-              border: 'none',
+              border: a.viewed_by_admin === false ? '3px solid #FF6B00' : 'none',
               position: 'relative',
               overflow: 'hidden',
               transition: 'all 0.3s ease'
@@ -5965,6 +6079,26 @@ if (mode === "admin") {
             }}>
               {getSlotLabel(a.date) === "today" ? "📅 Сьогодні" : getSlotLabel(a.date) === "tomorrow" ? "📅 Завтра" : "📅 Майбутнє"}
             </div>
+
+            {/* NEW Badge for unviewed appointments */}
+            {a.viewed_by_admin === false && (
+              <div style={{
+                position: 'absolute',
+                top: '50px',
+                left: '15px',
+                background: '#FF6B00',
+                color: 'white',
+                padding: '5px 12px',
+                borderRadius: '20px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                boxShadow: '0 2px 8px rgba(255, 107, 0, 0.5)',
+                animation: 'pulse 2s infinite'
+              }}>
+                🆕 НОВИЙ
+              </div>
+            )}
 
             {/* Status Badge */}
             <div style={{
@@ -6007,7 +6141,26 @@ if (mode === "admin") {
                   color: '#2c3e50',
                   marginBottom: '8px'
                 }}>
-                  👤 {a.client}
+                  {a.tg_id ? (
+                    <a
+                      href={`https://t.me/${a.username || a.tg_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: '#0088cc',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                      onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                    >
+                      👤 {a.client} →
+                    </a>
+                  ) : (
+                    <>👤 {a.client}</>
+                  )}
                 </div>
                 <div style={{
                   fontSize: '0.9rem',
@@ -7312,8 +7465,7 @@ if (mode === "admin") {
           </div>
         )}
 
-        </div>
-      )}
+      </div> {/* End Step Content */}
 
       {/* SLOT MODAL */}
       {isSlotModalOpen && (
