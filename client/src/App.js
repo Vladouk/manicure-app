@@ -6761,10 +6761,9 @@ if (mode === "admin") {
   );
 }
 
-  // CLIENT BOOKING FORM
-  if (effectiveMode === "client") {
-    return (
-      <div className="app-container" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', minHeight: '100vh', padding: '20px 0' }}>
+
+  return (
+    <div className="app-container" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', minHeight: '100vh', padding: '20px 0' }}>
 
       {isAdmin && (
         <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
@@ -6825,228 +6824,174 @@ if (mode === "admin") {
 
         {/* Step 1: Welcome & Service Selection */}
         {bookingStep === 1 && (
-          <div
-            className="menu-card"
-            style={{
-              background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-              borderRadius: '16px',
-              padding: '25px',
-              boxShadow: '0 8px 25px rgba(255, 154, 158, 0.3)',
-              border: 'none',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            <div style={{
-              position: 'absolute',
-              top: '15px',
-              left: '15px',
-              background: 'rgba(255,255,255,0.9)',
-              color: '#ff6b6b',
-              padding: '5px 12px',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: '600',
-              textTransform: 'uppercase'
-            }}>
-              💅 Крок 1: Послуга
+          <div style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 30,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>💅</div>
+              <h1 style={{ color: '#333', marginBottom: 10, fontSize: 28 }}>Запис на манікюр</h1>
+              <p style={{ color: '#666', fontSize: 16 }}>
+                Привіт{tgUser?.first_name ? `, ${tgUser.first_name}` : ''}! Давайте створимо ваш ідеальний манікюр
+              </p>
             </div>
 
-            <div style={{ paddingTop: '20px' }}>
-              <div style={{ textAlign: 'center', marginBottom: 30 }}>
-                <div style={{ fontSize: 48, marginBottom: 10 }}>💅</div>
-                <h1 style={{ color: 'white', marginBottom: 10, fontSize: 28, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>Запис на манікюр</h1>
-                <p style={{ color: 'white', fontSize: 16, opacity: 0.9 }}>
-                  Привіт{tgUser?.first_name ? `, ${tgUser.first_name}` : ''}! Давайте створимо ваш ідеальний манікюр
-                </p>
+            <div style={{ marginBottom: 30 }}>
+              <h3 style={{ color: '#333', marginBottom: 20, textAlign: 'center' }}>Оберіть послугу</h3>
+
+              {/* Service Category Selection */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                  Категорія послуги:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                  {dynamicPrices.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setServiceCategory(cat.name);
+                        setServiceSub("");
+                      }}
+                      style={{
+                        padding: 15,
+                        borderRadius: 12,
+                        border: serviceCategory === cat.name ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                        background: serviceCategory === cat.name ? 'rgba(255,107,157,0.1)' : 'white',
+                        cursor: 'pointer',
+                        fontSize: 16,
+                        fontWeight: serviceCategory === cat.name ? 'bold' : 'normal',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div style={{ marginBottom: 30 }}>
-                <h3 style={{ color: 'white', marginBottom: 20, textAlign: 'center', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>Оберіть послугу</h3>
-
-                {/* Service Category Selection */}
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
-                    Категорія послуги:
+              {/* Service Selection */}
+              {serviceCategory && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                    Конкретна послуга:
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
-                    {dynamicPrices.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          setServiceCategory(cat.name);
-                          setServiceSub("");
-                        }}
-                        style={{
-                          padding: 15,
-                          borderRadius: 12,
-                          border: serviceCategory === cat.name ? '2px solid #FF6B9D' : 'none',
-                          background: serviceCategory === cat.name ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.7)',
-                          cursor: 'pointer',
-                          fontSize: 16,
-                          fontWeight: serviceCategory === cat.name ? 'bold' : '600',
-                          color: serviceCategory === cat.name ? '#FF6B9D' : '#2c3e50',
-                          transition: 'all 0.3s ease',
-                          textAlign: 'center',
-                          boxShadow: serviceCategory === cat.name ? '0 4px 15px rgba(255,107,157,0.3)' : 'none'
-                        }}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+                    {dynamicPrices.find(cat => cat.name === serviceCategory)?.services.map(service => {
+                      const displayName = service.is_promotion
+                        ? `${service.name} (${service.discount_price} zł 🔥 Акція)`
+                        : `${service.name} (${service.price} zł)`;
+                      const isSelected = serviceSub === displayName;
+
+                      return (
+                        <div
+                          key={service.id}
+                          onClick={() => {
+                            setServiceSub(displayName);
+                            setPrice(service.is_promotion ? service.discount_price : service.price);
+                          }}
+                          style={{
+                            padding: 15,
+                            borderRadius: 12,
+                            border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                            background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            position: 'relative'
+                          }}
+                        >
+                          {service.is_promotion && (
+                            <div style={{
+                              position: 'absolute',
+                              top: -8,
+                              right: -8,
+                              background: '#FF6B9D',
+                              color: 'white',
+                              borderRadius: '50%',
+                              width: 24,
+                              height: 24,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 12,
+                              fontWeight: 'bold'
+                            }}>
+                              🔥
+                            </div>
+                          )}
+                          <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333' }}>
+                            {service.name}
+                          </div>
+                          <div style={{
+                            color: service.is_promotion ? '#FF6B9D' : '#666',
+                            fontWeight: service.is_promotion ? 'bold' : 'normal'
+                          }}>
+                            {service.is_promotion ? `${service.discount_price} zł` : `${service.price} zł`}
+                            {service.is_promotion && <span style={{ marginLeft: 5 }}>🔥 Акція</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
+              )}
+            </div>
 
-                {/* Service Selection */}
-                {serviceCategory && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
-                      Конкретна послуга:
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
-                      {dynamicPrices.find(cat => cat.name === serviceCategory)?.services.map(service => {
-                        const displayName = service.is_promotion
-                          ? `${service.name} (${service.discount_price} zł 🔥 Акція)`
-                          : `${service.name} (${service.price} zł)`;
-                        const isSelected = serviceSub === displayName;
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={() => setMode("menu")}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: '#f0f0f0',
+                  color: '#666',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold'
+                }}
+              >
+                ← Назад до меню
+              </button>
 
-                        return (
-                          <div
-                            key={service.id}
-                            onClick={() => {
-                              setServiceSub(displayName);
-                              setPrice(service.is_promotion ? service.discount_price : service.price);
-                            }}
-                            style={{
-                              padding: 15,
-                              borderRadius: 12,
-                              border: isSelected ? '2px solid #FF6B9D' : 'none',
-                              background: isSelected ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              position: 'relative',
-                              boxShadow: isSelected ? '0 4px 15px rgba(255,107,157,0.3)' : 'none'
-                            }}
-                          >
-                            {service.is_promotion && (
-                              <div style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -8,
-                                background: '#FF6B9D',
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: 24,
-                                height: 24,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 12,
-                                fontWeight: 'bold'
-                              }}>
-                                🔥
-                              </div>
-                            )}
-                            <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#2c3e50' }}>
-                              {service.name}
-                            </div>
-                            <div style={{
-                              color: service.is_promotion ? '#FF6B9D' : '#666',
-                              fontWeight: service.is_promotion ? 'bold' : 'normal'
-                            }}>
-                              {service.is_promotion ? `${service.discount_price} zł` : `${service.price} zł`}
-                              {service.is_promotion && <span style={{ marginLeft: 5 }}>🔥 Акція</span>}
-                            </div>
-                            {service.description && (
-                              <div style={{ fontSize: '0.85rem', color: '#666', marginTop: 8 }}>
-                                {service.description}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
-                <button
-                  onClick={() => setMode("menu")}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: 'rgba(255,255,255,0.8)',
-                    color: '#666',
-                    cursor: 'pointer',
-                    fontSize: 16,
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  ← Назад до меню
-                </button>
-
-                <button
-                  onClick={nextStep}
-                  disabled={!serviceSub}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: serviceSub ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' : 'rgba(255,255,255,0.5)',
-                    color: 'white',
-                    cursor: serviceSub ? 'pointer' : 'not-allowed',
-                    fontSize: 16,
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease',
-                    boxShadow: serviceSub ? '0 4px 15px rgba(67, 233, 123, 0.3)' : 'none'
-                  }}
-                >
-                  Далі →
-                </button>
-              </div>
+              <button
+                onClick={nextStep}
+                disabled={!serviceSub}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: serviceSub ? 'linear-gradient(45deg, #FF6B9D, #C44569)' : '#ccc',
+                  color: 'white',
+                  cursor: serviceSub ? 'pointer' : 'not-allowed',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Далі →
+              </button>
             </div>
           </div>
         )}
 
         {/* Step 2: Date & Time Selection */}
         {bookingStep === 2 && (
-          <div
-            className="menu-card"
-            style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              borderRadius: '16px',
-              padding: '25px',
-              boxShadow: '0 8px 25px rgba(79, 172, 254, 0.3)',
-              border: 'none',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            <div style={{
-              position: 'absolute',
-              top: '15px',
-              left: '15px',
-              background: 'rgba(255,255,255,0.9)',
-              color: '#3498db',
-              padding: '5px 12px',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: '600',
-              textTransform: 'uppercase'
-            }}>
-              📅 Крок 2: Дата і час
+          <div style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 30,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>📅</div>
+              <h2 style={{ color: '#333', marginBottom: 10 }}>Оберіть дату та час</h2>
+              <p style={{ color: '#666' }}>Виберіть зручний для вас час візиту</p>
             </div>
-
-            <div style={{ paddingTop: '20px' }}>
-              <div style={{ textAlign: 'center', marginBottom: 30 }}>
-                <div style={{ fontSize: 48, marginBottom: 10 }}>📅</div>
-                <h2 style={{ color: 'white', marginBottom: 10, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>Оберіть дату та час</h2>
-                <p style={{ color: 'white', opacity: 0.9 }}>Виберіть зручний для вас час візиту</p>
-              </div>
 
             <div style={{ marginBottom: 30 }}>
               <button
@@ -7081,89 +7026,64 @@ if (mode === "admin") {
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
-                <button
-                  onClick={prevStep}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: 'rgba(255,255,255,0.8)',
-                    color: '#666',
-                    cursor: 'pointer',
-                    fontSize: 16,
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  ← Назад
-                </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={prevStep}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: '#f0f0f0',
+                  color: '#666',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold'
+                }}
+              >
+                ← Назад
+              </button>
 
-                <button
-                  onClick={nextStep}
-                  disabled={!selectedSlot}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: selectedSlot ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' : 'rgba(255,255,255,0.5)',
-                    color: 'white',
-                    cursor: selectedSlot ? 'pointer' : 'not-allowed',
-                    fontSize: 16,
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease',
-                    boxShadow: selectedSlot ? '0 4px 15px rgba(67, 233, 123, 0.3)' : 'none'
-                  }}
-                >
-                  Далі →
-                </button>
-              </div>
+              <button
+                onClick={nextStep}
+                disabled={!selectedSlot}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: 25,
+                  border: 'none',
+                  background: selectedSlot ? 'linear-gradient(45deg, #FF6B9D, #C44569)' : '#ccc',
+                  color: 'white',
+                  cursor: selectedSlot ? 'pointer' : 'not-allowed',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Далі →
+              </button>
             </div>
           </div>
         )}
 
         {/* Step 3: Preferences & Details */}
         {bookingStep === 3 && (
-          <div
-            className="menu-card"
-            style={{
-              background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-              borderRadius: '16px',
-              padding: '25px',
-              boxShadow: '0 8px 25px rgba(168, 237, 234, 0.3)',
-              border: 'none',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            <div style={{
-              position: 'absolute',
-              top: '15px',
-              left: '15px',
-              background: 'rgba(255,255,255,0.9)',
-              color: '#16a085',
-              padding: '5px 12px',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: '600',
-              textTransform: 'uppercase'
-            }}>
-              ✨ Крок 3: Деталі
+          <div style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 30,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>✨</div>
+              <h2 style={{ color: '#333', marginBottom: 10 }}>Деталі та побажання</h2>
+              <p style={{ color: '#666' }}>Розкажіть про ваші вподобання</p>
             </div>
-
-            <div style={{ paddingTop: '20px' }}>
-              <div style={{ textAlign: 'center', marginBottom: 30 }}>
-                <div style={{ fontSize: 48, marginBottom: 10 }}>✨</div>
-                <h2 style={{ color: 'white', marginBottom: 10, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>Деталі та побажання</h2>
-                <p style={{ color: 'white', opacity: 0.9 }}>Розкажіть про ваші вподобання</p>
-              </div>
 
             <div style={{ display: 'grid', gap: 20 }}>
 
               {/* Design Selection */}
               <div>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                   Дизайн манікюру:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
@@ -7180,17 +7100,15 @@ if (mode === "admin") {
                       style={{
                         padding: 15,
                         borderRadius: 12,
-                        border: design === item.value ? '2px solid #16a085' : 'none',
-                        background: design === item.value ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
+                        border: design === item.value ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                        background: design === item.value ? 'rgba(255,107,157,0.1)' : 'white',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        textAlign: 'center',
-                        boxShadow: design === item.value ? '0 4px 15px rgba(22, 160, 133, 0.3)' : 'none',
-                        fontWeight: design === item.value ? '600' : 'normal'
+                        textAlign: 'center'
                       }}
                     >
                       <div style={{ fontSize: 24, marginBottom: 5 }}>{item.emoji}</div>
-                      <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#2c3e50' }}>{item.value}</div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 3 }}>{item.value}</div>
                       <div style={{ fontSize: 12, color: '#666' }}>{item.desc}</div>
                     </button>
                   ))}
@@ -7199,7 +7117,7 @@ if (mode === "admin") {
 
               {/* Length Selection */}
               <div>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                   Довжина нігтів:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
@@ -7216,17 +7134,15 @@ if (mode === "admin") {
                       style={{
                         padding: 12,
                         borderRadius: 12,
-                        border: length === item.value ? '2px solid #16a085' : 'none',
-                        background: length === item.value ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
+                        border: length === item.value ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                        background: length === item.value ? 'rgba(255,107,157,0.1)' : 'white',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        textAlign: 'center',
-                        boxShadow: length === item.value ? '0 4px 15px rgba(22, 160, 133, 0.3)' : 'none',
-                        fontWeight: length === item.value ? '600' : 'normal'
+                        textAlign: 'center'
                       }}
                     >
                       <div style={{ fontSize: 20, marginBottom: 3 }}>{item.emoji}</div>
-                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{item.value}</div>
+                      <div style={{ fontWeight: 'bold' }}>{item.value}</div>
                       <div style={{ fontSize: 11, color: '#666' }}>{item.desc}</div>
                     </button>
                   ))}
@@ -7235,7 +7151,7 @@ if (mode === "admin") {
 
               {/* Type Selection */}
               <div>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                   Тип покриття:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
@@ -7252,16 +7168,14 @@ if (mode === "admin") {
                       style={{
                         padding: 12,
                         borderRadius: 12,
-                        border: type === item.value ? '2px solid #16a085' : 'none',
-                        background: type === item.value ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
+                        border: type === item.value ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                        background: type === item.value ? 'rgba(255,107,157,0.1)' : 'white',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        textAlign: 'center',
-                        boxShadow: type === item.value ? '0 4px 15px rgba(22, 160, 133, 0.3)' : 'none',
-                        fontWeight: type === item.value ? '600' : 'normal'
+                        textAlign: 'center'
                       }}
                     >
-                      <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#2c3e50' }}>{item.value}</div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 3 }}>{item.value}</div>
                       <div style={{ fontSize: 12, color: '#666' }}>{item.desc}</div>
                     </button>
                   ))}
@@ -7270,7 +7184,7 @@ if (mode === "admin") {
 
               {/* Referral Code */}
               <div>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                   Реферальний код (якщо є):
                 </label>
                 <input
@@ -7282,21 +7196,21 @@ if (mode === "admin") {
                     width: '100%',
                     padding: 15,
                     borderRadius: 12,
-                    border: 'none',
+                    border: '2px solid #e0e0e0',
                     fontSize: 16,
-                    background: 'rgba(255,255,255,0.9)',
-                    color: '#2c3e50',
-                    fontWeight: '500'
+                    transition: 'border-color 0.3s ease'
                   }}
+                  onFocus={(e) => e.target.style.borderColor = '#FF6B9D'}
+                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                 />
-                <small style={{ color: 'white', fontSize: 12, marginTop: 5, display: 'block', opacity: 0.9 }}>
+                <small style={{ color: '#666', fontSize: 12, marginTop: 5, display: 'block' }}>
                   Якщо у вас є реферальний код від подруги, введіть його тут для отримання знижки
                 </small>
               </div>
 
               {/* Comment */}
               <div>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                   Ваші побажання:
                 </label>
                 <textarea
@@ -7307,35 +7221,34 @@ if (mode === "admin") {
                     width: '100%',
                     padding: 15,
                     borderRadius: 12,
-                    border: 'none',
+                    border: '2px solid #e0e0e0',
                     fontSize: 16,
                     minHeight: 80,
                     resize: 'vertical',
-                    background: 'rgba(255,255,255,0.9)',
-                    color: '#2c3e50',
-                    fontWeight: '500'
+                    transition: 'border-color 0.3s ease'
                   }}
+                  onFocus={(e) => e.target.style.borderColor = '#FF6B9D'}
+                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                 />
               </div>
 
               {/* Current Hands Photos */}
               <div>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                   Фото ваших рук зараз (допоможе майстру):
                 </label>
                 <div style={{
-                  border: '2px dashed rgba(255,255,255,0.6)',
+                  border: '2px dashed #e0e0e0',
                   borderRadius: 12,
                   padding: 20,
                   textAlign: 'center',
+                  transition: 'border-color 0.3s ease',
                   cursor: 'pointer',
-                  marginBottom: 10,
-                  background: 'rgba(255,255,255,0.1)',
-                  transition: 'all 0.3s ease'
+                  marginBottom: 10
                 }}
                 onClick={() => document.getElementById('current-hands-input').click()}>
                   <div style={{ fontSize: 24, marginBottom: 10 }}>🤲</div>
-                  <div style={{ color: 'white', fontWeight: '500' }}>
+                  <div style={{ color: '#666' }}>
                     {currentHandsPhotos.length > 0
                       ? `Вибрано ${currentHandsPhotos.length} фото`
                       : 'Натисніть щоб додати фото ваших рук'
@@ -7399,22 +7312,21 @@ if (mode === "admin") {
 
               {/* Reference Images */}
               <div>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: 'white', fontSize: '0.95rem' }}>
+                <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                   Фото-референси (необов'язково):
                 </label>
                 <div style={{
-                  border: '2px dashed rgba(255,255,255,0.6)',
+                  border: '2px dashed #e0e0e0',
                   borderRadius: 12,
                   padding: 20,
                   textAlign: 'center',
+                  transition: 'border-color 0.3s ease',
                   cursor: 'pointer',
-                  marginBottom: 10,
-                  background: 'rgba(255,255,255,0.1)',
-                  transition: 'all 0.3s ease'
+                  marginBottom: 10
                 }}
                 onClick={() => document.getElementById('reference-input').click()}>
                   <div style={{ fontSize: 24, marginBottom: 10 }}>💅</div>
-                  <div style={{ color: 'white', fontWeight: '500' }}>
+                  <div style={{ color: '#666' }}>
                     {reference.length > 0
                       ? `Вибрано ${reference.length} фото`
                       : 'Натисніть щоб додати фото манікюру'
@@ -7518,20 +7430,18 @@ if (mode === "admin") {
 
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 30, gap: '15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 30 }}>
               <button
                 onClick={prevStep}
                 style={{
                   padding: '12px 24px',
-                  borderRadius: '12px',
+                  borderRadius: 25,
                   border: 'none',
-                  background: 'rgba(255,255,255,0.8)',
+                  background: '#f0f0f0',
                   color: '#666',
                   cursor: 'pointer',
                   fontSize: 16,
-                  fontWeight: '600',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                  fontWeight: 'bold'
                 }}
               >
                 ← Назад
@@ -7541,67 +7451,45 @@ if (mode === "admin") {
                 onClick={nextStep}
                 style={{
                   padding: '12px 24px',
-                  borderRadius: '12px',
+                  borderRadius: 25,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                  background: 'linear-gradient(45deg, #FF6B9D, #C44569)',
                   color: 'white',
                   cursor: 'pointer',
                   fontSize: 16,
-                  fontWeight: '600',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(67, 233, 123, 0.3)'
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease'
                 }}
               >
                 Далі →
               </button>
-            </div>
             </div>
           </div>
         )}
 
         {/* Step 4: Confirmation */}
         {bookingStep === 4 && (
-          <div
-            className="menu-card"
-            style={{
-              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-              borderRadius: '16px',
-              padding: '25px',
-              boxShadow: '0 8px 25px rgba(67, 233, 123, 0.3)',
-              border: 'none',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            <div style={{
-              position: 'absolute',
-              top: '15px',
-              left: '15px',
-              background: 'rgba(255,255,255,0.9)',
-              color: '#27ae60',
-              padding: '5px 12px',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: '600',
-              textTransform: 'uppercase'
-            }}>
-              ✅ Крок 4: Підтвердження
+          <div style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 30,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>✅</div>
+              <h2 style={{ color: '#333', marginBottom: 10 }}>Підтвердження запису</h2>
+              <p style={{ color: '#666' }}>Перевірте ваші дані перед підтвердженням</p>
             </div>
 
-            <div style={{ paddingTop: '20px' }}>
-              <div style={{ textAlign: 'center', marginBottom: 30 }}>
-                <div style={{ fontSize: 48, marginBottom: 10 }}>✅</div>
-                <h2 style={{ color: 'white', marginBottom: 10, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>Підтвердження запису</h2>
-                <p style={{ color: 'white', opacity: 0.9 }}>Перевірте ваші дані перед підтвердженням</p>
-              </div>
-
-              {/* Summary Card */}
-              <div style={{
-                background: 'rgba(255,255,255,0.95)',
-                borderRadius: '12px',
-                padding: '25px',
-                marginBottom: '30px'
-              }}>
+            {/* Summary Card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+              borderRadius: 15,
+              padding: 25,
+              marginBottom: 30,
+              border: '1px solid #e0e0e0'
+            }}>
               <h3 style={{ marginBottom: 20, color: '#333', textAlign: 'center' }}>📋 Деталі вашого запису</h3>
 
               <div style={{ display: 'grid', gap: 15 }}>
@@ -7690,20 +7578,18 @@ if (mode === "admin") {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <button
                 onClick={prevStep}
                 style={{
                   padding: '12px 24px',
-                  borderRadius: '12px',
+                  borderRadius: 25,
                   border: 'none',
-                  background: 'rgba(255,255,255,0.8)',
+                  background: '#f0f0f0',
                   color: '#666',
                   cursor: 'pointer',
                   fontSize: 16,
-                  fontWeight: '600',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                  fontWeight: 'bold'
                 }}
               >
                 ← Назад
@@ -7772,20 +7658,19 @@ if (mode === "admin") {
                 }}
                 style={{
                   padding: '15px 30px',
-                  borderRadius: '12px',
+                  borderRadius: 25,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: 'linear-gradient(45deg, #4CAF50, #45a049)',
                   color: 'white',
                   cursor: 'pointer',
                   fontSize: 18,
-                  fontWeight: '600',
+                  fontWeight: 'bold',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+                  boxShadow: '0 4px 15px rgba(76, 175, 80, 0.3)'
                 }}
               >
                 ✅ Підтвердити запис
               </button>
-            </div>
             </div>
           </div>
         )}
@@ -7915,11 +7800,11 @@ if (mode === "admin") {
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-  return null;
+      {modal}
+    </div>
+    
+  );
 }
 
 export default App;
