@@ -78,20 +78,6 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     setCurrentHandsPhotos([]);
   };
 
-  // Function to select service from price list and go to booking form
-  const selectServiceFromPriceList = (serviceData) => {
-    // Set the service details
-    setType(serviceData.type || "Гель-лак");
-    setLength(serviceData.length || "Середні");
-    setDesign(serviceData.design || "Класичний френч");
-    setServiceCategory(serviceData.category || "Покриття");
-    setServiceSub(serviceData.serviceName || "");
-    setPrice(serviceData.price || 0);
-    
-    // Go to client booking mode
-    setMode("client");
-  };
-
   const spendPoints = async (points) => {
     if (bonusPoints < points) return;
     try {
