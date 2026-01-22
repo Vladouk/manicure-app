@@ -6321,7 +6321,6 @@ if (mode === "admin") {
             </div>
           </div>
         ))}
-        </div>
 
         {/* Empty State */}
         {sortedAppointments.length === 0 && (
@@ -7311,10 +7310,9 @@ if (mode === "admin") {
               </button>
             </div>
           </div>
-        ))}
+        )}
 
         </div>
-      </div>
       )}
 
       {/* SLOT MODAL */}
