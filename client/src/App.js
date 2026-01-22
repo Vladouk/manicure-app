@@ -403,14 +403,33 @@ fetch(`${API}/api/appointment`, {
   if (effectiveMode === "clients") {
   return (
     <div className="app-container">
+      {/* Header */}
+      <div className="card" style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '30px 20px',
+        marginBottom: '25px',
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)'
+      }}>
+        <div style={{ fontSize: '3rem', marginBottom: '10px' }}>👥</div>
+        <h1 style={{ margin: '0 0 5px 0', fontSize: '1.8rem' }}>База клієнтів</h1>
+        <p style={{ margin: '0', opacity: '0.9', fontSize: '0.95rem' }}>
+          Всього клієнтів: {clientList.length}
+        </p>
+      </div>
 
-      <h1>👥 Усі клієнти</h1>
-
-      <ul>
+      {/* Clients Grid */}
+      <div style={{
+        display: 'grid',
+        gap: '15px',
+        marginBottom: '25px'
+      }}>
         {clientList.map(c => (
-          <li
+          <div
             key={c.tg_id}
-            style={{ marginBottom: 10, cursor: "pointer" }}
+            className="menu-card"
             onClick={() => {
               setSelectedClient(c);
               fetch(`${API}/api/admin/client-history?tg_id=${c.tg_id}`, {
@@ -422,20 +441,137 @@ fetch(`${API}/api/appointment`, {
                   setMode("clientHistory");
                 });
             }}
+            style={{
+              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+              borderRadius: '16px',
+              padding: '20px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+              border: 'none',
+              position: 'relative'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-3px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.12)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+            }}
           >
-            <b>{c.client}</b>  
-            <br />
-            <small>Останній запис: {c.last_visit || "немає"}</small>
-          </li>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '12px'
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  color: '#2c3e50',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  👤 {c.client}
+                </div>
+                {c.username && (
+                  <a
+                    href={`https://t.me/${c.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      color: '#0088cc',
+                      textDecoration: 'none',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                  >
+                    📱 @{c.username} →
+                  </a>
+                )}
+              </div>
+              <div style={{
+                background: 'rgba(102, 126, 234, 0.15)',
+                color: '#667eea',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: '600'
+              }}>
+                {c.total_visits || 0} {c.total_visits === 1 ? 'візит' : 'візитів'}
+              </div>
+            </div>
+            
+            <div style={{
+              fontSize: '0.9rem',
+              color: '#666',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span style={{ opacity: 0.7 }}>📅</span>
+              <span>
+                Останній візит: <strong>{c.last_visit ? new Date(c.last_visit.replace(' ', 'T')).toLocaleDateString('uk-UA', { 
+                  day: 'numeric', 
+                  month: 'long', 
+                  year: 'numeric' 
+                }) : "немає"}</strong>
+              </span>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
 
+      {clientList.length === 0 && (
+        <div className="card" style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+          borderRadius: '20px'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '20px', opacity: 0.5 }}>👥</div>
+          <h3 style={{ color: '#666', margin: '0 0 10px 0' }}>Поки немає клієнтів</h3>
+          <p style={{ color: '#888', margin: 0 }}>Клієнти з'являться після перших записів</p>
+        </div>
+      )}
+
+      {/* Back Button */}
       <button
         className="primary-btn"
         onClick={() => setMode("adminMenu")}
-        style={{ marginTop: 16 }}
+        style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          border: 'none',
+          borderRadius: '12px',
+          padding: '15px 30px',
+          fontSize: '1rem',
+          fontWeight: '600',
+          color: 'white',
+          cursor: 'pointer',
+          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+          transition: 'all 0.3s ease',
+          marginTop: '20px'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'translateY(-2px)';
+          e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'translateY(0)';
+          e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+        }}
       >
-        ← Назад
+        ← Назад в адмінку
       </button>
 
       {modal}

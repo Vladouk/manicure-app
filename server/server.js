@@ -897,9 +897,12 @@ app.post(
     SELECT 
       tg_id,
       client,
-      MAX(date || ' ' || time) AS last_visit
+      username,
+      MAX(date || ' ' || time) AS last_visit,
+      COUNT(*) as total_visits
     FROM appointments
-    GROUP BY tg_id, client
+    WHERE status != 'canceled'
+    GROUP BY tg_id, client, username
     ORDER BY last_visit DESC
     `,
             []
