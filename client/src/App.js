@@ -1121,28 +1121,9 @@ if (mode === "priceList") {
                 borderRadius: '12px',
                 padding: '20px',
                 marginBottom: '15px',
-                cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 position: 'relative',
                 overflow: 'hidden'
-              }}
-              onClick={() => selectServiceFromPriceList({
-                type: "Гель-лак",
-                length: "Середні",
-                design: "Класичний френч",
-                category: "Покриття",
-                serviceName: "Покриття «гель-лак» (100 zł)",
-                price: 100
-              })}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-3px)';
-                e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                e.target.querySelector('.price-tag').style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = 'none';
-                e.target.querySelector('.price-tag').style.transform = 'scale(1)';
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -1181,28 +1162,9 @@ if (mode === "priceList") {
                 background: 'rgba(255,255,255,0.9)',
                 borderRadius: '12px',
                 padding: '20px',
-                cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 position: 'relative',
                 overflow: 'hidden'
-              }}
-              onClick={() => selectServiceFromPriceList({
-                type: "Гель-лак",
-                length: "Середні",
-                design: "Класичний френч",
-                category: "Покриття",
-                serviceName: "Покриття з укріпленням (120 zł)",
-                price: 120
-              })}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-3px)';
-                e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                e.target.querySelector('.price-tag').style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = 'none';
-                e.target.querySelector('.price-tag').style.transform = 'scale(1)';
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -1279,26 +1241,7 @@ if (mode === "priceList") {
                   borderRadius: '12px',
                   padding: '20px',
                   textAlign: 'center',
-                  cursor: 'pointer',
                   transition: 'all 0.3s ease'
-                }}
-                onClick={() => selectServiceFromPriceList({
-                  type: "Акрил",
-                  length: "Короткі",
-                  design: "Класичний френч",
-                  category: "Нарощення",
-                  serviceName: "Нарощення нігтів S (130 zł)",
-                  price: 130
-                })}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)';
-                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                  e.target.querySelector('.size-indicator').style.transform = 'scale(1.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
-                  e.target.querySelector('.size-indicator').style.transform = 'scale(1)';
                 }}
               >
                 <div className="size-indicator" style={{
@@ -1330,26 +1273,7 @@ if (mode === "priceList") {
                   borderRadius: '12px',
                   padding: '20px',
                   textAlign: 'center',
-                  cursor: 'pointer',
                   transition: 'all 0.3s ease'
-                }}
-                onClick={() => selectServiceFromPriceList({
-                  type: "Акрил",
-                  length: "Середні",
-                  design: "Класичний френч",
-                  category: "Нарощення",
-                  serviceName: "Нарощення нігтів M (150 zł)",
-                  price: 150
-                })}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)';
-                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                  e.target.querySelector('.size-indicator').style.transform = 'scale(1.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
-                  e.target.querySelector('.size-indicator').style.transform = 'scale(1)';
                 }}
               >
                 <div className="size-indicator" style={{
@@ -1381,26 +1305,7 @@ if (mode === "priceList") {
                   borderRadius: '12px',
                   padding: '20px',
                   textAlign: 'center',
-                  cursor: 'pointer',
                   transition: 'all 0.3s ease'
-                }}
-                onClick={() => selectServiceFromPriceList({
-                  type: "Акрил",
-                  length: "Довгі",
-                  design: "Класичний френч",
-                  category: "Нарощення",
-                  serviceName: "Нарощення нігтів L (170 zł)",
-                  price: 170
-                })}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)';
-                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                  e.target.querySelector('.size-indicator').style.transform = 'scale(1.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
-                  e.target.querySelector('.size-indicator').style.transform = 'scale(1)';
                 }}
               >
                 <div className="size-indicator" style={{
@@ -1466,24 +1371,7 @@ if (mode === "priceList") {
                   background: 'rgba(255,255,255,0.9)',
                   borderRadius: '12px',
                   padding: '15px',
-                  cursor: 'pointer',
                   transition: 'all 0.3s ease'
-                }}
-                onClick={() => selectServiceFromPriceList({
-                  type: "Гель-лак",
-                  length: "Середні",
-                  design: "Мінімалізм",
-                  category: "Дизайн",
-                  serviceName: "Дизайн 1–5 нігтів (20 zł)",
-                  price: 20
-                })}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)';
-                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -1510,24 +1398,7 @@ if (mode === "priceList") {
                   background: 'rgba(255,255,255,0.9)',
                   borderRadius: '12px',
                   padding: '15px',
-                  cursor: 'pointer',
                   transition: 'all 0.3s ease'
-                }}
-                onClick={() => selectServiceFromPriceList({
-                  type: "Гель-лак",
-                  length: "Середні",
-                  design: "Гліттер",
-                  category: "Дизайн",
-                  serviceName: "Дизайн на всі нігті (35 zł)",
-                  price: 35
-                })}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)';
-                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -1636,24 +1507,7 @@ if (mode === "priceList") {
                   background: 'rgba(255,255,255,0.9)',
                   borderRadius: '12px',
                   padding: '15px',
-                  cursor: 'pointer',
                   transition: 'all 0.3s ease'
-                }}
-                onClick={() => selectServiceFromPriceList({
-                  type: "Гель-лак",
-                  length: "Середні",
-                  design: "Класичний френч",
-                  category: "Чоловічий манікюр",
-                  serviceName: "Чоловічий манікюр (50 zł)",
-                  price: 50
-                })}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)';
-                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -1680,24 +1534,7 @@ if (mode === "priceList") {
                   background: 'rgba(255,255,255,0.9)',
                   borderRadius: '12px',
                   padding: '15px',
-                  cursor: 'pointer',
                   transition: 'all 0.3s ease'
-                }}
-                onClick={() => selectServiceFromPriceList({
-                  type: "Гель-лак",
-                  length: "Середні",
-                  design: "Класичний френч",
-                  category: "Покриття",
-                  serviceName: "Прозоре матове покриття (30 zł)",
-                  price: 30
-                })}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)';
-                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
