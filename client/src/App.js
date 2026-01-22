@@ -6762,12 +6762,12 @@ if (mode === "admin") {
             </div>
           </div>
         ))}
-      </div>
+        </div>
 
-      {/* Empty State */}
-      {sortedAppointments.length === 0 && (
-        <div
-          className="menu-card"
+        {/* Empty State */}
+        {sortedAppointments.length === 0 && (
+          <div
+            className="menu-card"
           style={{
             background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
             borderRadius: '16px',
@@ -6800,6 +6800,8 @@ if (mode === "admin") {
           }}>
             Нові бронювання з'являться тут
           </div>
+        </div>
+        )}
         </div>
       )}
 
