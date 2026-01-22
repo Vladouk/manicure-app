@@ -6346,7 +6346,12 @@ if (mode === "admin") {
           );
         })()
       ) : (
-        /* Appointments List View */
+        <div style={{
+          display: 'grid',
+          gap: '20px',
+          padding: '0 10px'
+        }}>
+        {/* Appointments List View */}
         {sortedAppointments.map(a => (
           <div
             className="menu-card"
@@ -7745,8 +7750,9 @@ if (mode === "admin") {
               </button>
             </div>
           </div>
-        )}
+        ))}
 
+        </div>
       </div>
       )}
 
