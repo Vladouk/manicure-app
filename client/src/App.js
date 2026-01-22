@@ -6770,13 +6770,13 @@ if (mode === "admin") {
             className="menu-card"
             style={{
               background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            borderRadius: '16px',
-            padding: '40px 25px',
-            boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
-            border: 'none',
-            textAlign: 'center'
-          }}
-        >
+              borderRadius: '16px',
+              padding: '40px 25px',
+              boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
+              border: 'none',
+              textAlign: 'center'
+            }}
+          >
           <div style={{
             fontSize: '4rem',
             marginBottom: '20px',
