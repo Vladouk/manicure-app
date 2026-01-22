@@ -6336,30 +6336,30 @@ if (mode === "admin") {
               textAlign: 'center'
             }}
           >
-          <div style={{
-            fontSize: '4rem',
-            marginBottom: '20px',
-            opacity: 0.7
-          }}>
-            📭
+            <div style={{
+              fontSize: '4rem',
+              marginBottom: '20px',
+              opacity: 0.7
+            }}>
+              📭
+            </div>
+            <div style={{
+              fontSize: '1.2rem',
+              fontWeight: 'bold',
+              color: 'white',
+              marginBottom: '10px',
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+            }}>
+              Записів поки що немає
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              color: 'white',
+              opacity: 0.8
+            }}>
+              Нові бронювання з'являться тут
+            </div>
           </div>
-          <div style={{
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            color: 'white',
-            marginBottom: '10px',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-          }}>
-            Записів поки що немає
-          </div>
-          <div style={{
-            fontSize: '0.9rem',
-            color: 'white',
-            opacity: 0.8
-          }}>
-            Нові бронювання з'являться тут
-          </div>
-        </div>
         )}
         </div>
       )}
