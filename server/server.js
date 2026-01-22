@@ -588,9 +588,11 @@ app.post(
              .catch(err => console.error("❌ Client notification error:", err));
 
             // 🔥 Сповіщення адміну — РОЗШИРЕНА ВЕРСІЯ
+            let clientLink = username ? `[@${username}](https://t.me/${username})` : `[${client}](tg://user?id=${tg_id})`;
             let adminMessage = `🔔 *Новий запис!*
 
-👤 Клієнт: [${client}](tg://user?id=${tg_id})
+👤 Клієнт: ${clientLink}
+📝 Ім'я: *${client}*
 
 📅 Дата: *${slot.date}*
 ⏰ Час: *${slot.time}*
@@ -664,7 +666,7 @@ app.post(
           if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
           pool.query(
-            `SELECT id, date, time, design, length, comment, type FROM appointments WHERE tg_id = $1 AND status != 'canceled'`,
+            `SELECT id, date, time, design, length, comment, type, client, username FROM appointments WHERE tg_id = $1 AND status != 'canceled'`,
             [tg_id]
           )
           .then(result => {
@@ -691,11 +693,13 @@ app.post(
             );
 
             // 4️⃣ Повідомляємо адміну
+            let cancelLink = row.username ? `[@${row.username}](https://t.me/${row.username})` : `[Клієнт](tg://user?id=${tg_id})`;
             bot.sendMessage(
               ADMIN_TG_ID,
               `❗ *Клієнт сам скасував запис*  
 
-👤 [Клієнт](tg://user?id=${tg_id})  
+👤 ${cancelLink}
+📝 Ім'я: *${row.client}*
 📅 ${row.date}  
 ⏰ ${row.time}
 
