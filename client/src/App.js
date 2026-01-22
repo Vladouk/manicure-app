@@ -44,6 +44,7 @@ const [comment, setComment] = useState("");
 const [reference, setReference] = useState([]);
 const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
 const [calendarDate, setCalendarDate] = useState(new Date());
+  const [adminCalendarView, setAdminCalendarView] = useState(false);
   const [mode, setMode] = useState("menu");
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
@@ -363,17 +364,7 @@ fetch(`${API}/api/appointment`, {
       .catch(() => alert("❌ Помилка завантаження"));
   }, [filter]);
 
-  // Auto-refresh appointments every 10 seconds when in calendar mode
-  useEffect(() => {
-    if (mode === "calendarAdmin") {
-      const interval = setInterval(() => {
-        console.log('Auto-refreshing appointments...');
-        loadAppointments();
-      }, 10000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [mode, loadAppointments]);
+
 
   const changeStatus = (id, status) => {
     fetch(`${API}/api/admin/status`, {
@@ -6187,16 +6178,175 @@ if (mode === "admin") {
             >
               ❌ Скасовані
             </button>
+
+            <button
+              onClick={() => setAdminCalendarView(!adminCalendarView)}
+              style={{
+                background: adminCalendarView ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '15px 20px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                color: adminCalendarView ? 'white' : '#667eea',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: adminCalendarView 
+                  ? '0 6px 20px rgba(102, 126, 234, 0.3)' 
+                  : '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = adminCalendarView 
+                  ? '0 6px 20px rgba(102, 126, 234, 0.3)' 
+                  : '0 2px 8px rgba(0,0,0,0.1)';
+              }}
+            >
+              📅 Календар
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Appointments List */}
-      <div style={{
-        display: 'grid',
-        gap: '20px',
-        padding: '0 10px'
-      }}>
+      {/* Calendar View or List View */}
+      {adminCalendarView ? (
+        (() => {
+          const formatDateForComparison = (dateStr) => {
+            if (!dateStr) return '';
+            if (dateStr.includes('-') && dateStr.length === 10) {
+              const [year, month, day] = dateStr.split('-');
+              return `${day}.${month}.${year}`;
+            }
+            return dateStr.replace(/\//g, '.');
+          };
+
+          const selectedDateStr = formatDateForComparison(
+            calendarDate.toLocaleDateString('uk-UA', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric'
+            })
+          );
+
+          const appointmentsOnSelectedDate = sortedAppointments.filter(apt => {
+            const aptDate = formatDateForComparison(apt.date);
+            return aptDate === selectedDateStr;
+          });
+
+          const datesWithAppointments = new Set(
+            sortedAppointments.map(apt => formatDateForComparison(apt.date))
+          );
+
+          const tileClassName = ({ date, view }) => {
+            if (view === 'month') {
+              const dateStr = formatDateForComparison(
+                date.toLocaleDateString('uk-UA', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                })
+              );
+              if (datesWithAppointments.has(dateStr)) {
+                return 'calendar-date-with-appointments';
+              }
+            }
+            return null;
+          };
+
+          return (
+            <div>
+              <div className="card" style={{
+                background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                borderRadius: '16px',
+                padding: '30px 20px',
+                marginBottom: '30px',
+                boxShadow: '0 8px 25px rgba(168, 237, 234, 0.3)',
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <Calendar
+                  onChange={setCalendarDate}
+                  value={calendarDate}
+                  tileClassName={tileClassName}
+                  maxDate={new Date(new Date().getTime() + 60 * 24 * 60 * 60 * 1000)}
+                  minDate={new Date()}
+                />
+              </div>
+
+              <div className="card" style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: '16px',
+                padding: '20px',
+                marginBottom: '30px',
+                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
+                borderLeft: '5px solid #667eea'
+              }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50', fontSize: '1.2rem' }}>
+                  📍 Записи на {selectedDateStr}
+                </h3>
+
+                {appointmentsOnSelectedDate.length > 0 ? (
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    {appointmentsOnSelectedDate.map((apt) => (
+                      <div key={apt.id} style={{
+                        background: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '12px',
+                        padding: '15px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        transition: 'all 0.3s ease'
+                      }}>
+                        <div>
+                          <strong>{apt.time}</strong> - {apt.type} ({apt.length})
+                          <br />
+                          <small style={{ color: '#666' }}>
+                            {apt.client_name || 'Невідомий клієнт'}
+                          </small>
+                          {apt.reference_image && (
+                            <div style={{ marginTop: '10px' }}>
+                              <img
+                                src={apt.reference_image}
+                                alt="Reference"
+                                onClick={() => setModalImage(apt.reference_image)}
+                                style={{
+                                  width: '60px',
+                                  height: '60px',
+                                  objectFit: 'cover',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer'
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <div style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          background: apt.status === 'confirmed' ? '#d4edda' : apt.status === 'approved' ? '#cce5ff' : '#fff3cd',
+                          color: apt.status === 'confirmed' ? '#155724' : apt.status === 'approved' ? '#004085' : '#856404'
+                        }}>
+                          {apt.status === 'confirmed' ? '✅ Підтверджено' : apt.status === 'approved' ? '✔️ Затверджено' : '⏳ Очікує'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ color: '#999', margin: '0' }}>Немає записів на цей день</p>
+                )}
+              </div>
+            </div>
+          );
+        })()
+      ) : (
+        /* Appointments List View */
         {sortedAppointments.map(a => (
           <div
             className="menu-card"
@@ -7598,6 +7748,7 @@ if (mode === "admin") {
         )}
 
       </div>
+      )}
 
       {/* SLOT MODAL */}
       {isSlotModalOpen && (
