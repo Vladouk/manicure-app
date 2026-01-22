@@ -6768,8 +6768,8 @@ if (mode === "admin") {
         {sortedAppointments.length === 0 && (
           <div
             className="menu-card"
-          style={{
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
             borderRadius: '16px',
             padding: '40px 25px',
             boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
