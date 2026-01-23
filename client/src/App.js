@@ -6829,89 +6829,121 @@ if (mode === "admin") {
                 flexWrap: 'wrap'
               }}>
                 {a.status === "approved" && (
-                  <button
-                    className="btn-approved-static"
-                    onClick={() => {
-                      if (!window.confirm("Ви хочете змінити статус запису?")) return;
-
-                      const newStatus = window.prompt(
-                        "Виберіть новий статус:\n- canceled\n- pending",
-                        "pending"
-                      );
-
-                      if (!["canceled", "pending"].includes(newStatus)) {
-                        return alert("❌ Невірний статус");
-                      }
-
-                      changeStatus(a.id, newStatus);
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '12px 20px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      color: 'white',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 15px rgba(39, 174, 96, 0.3)',
-                      transition: 'all 0.3s ease',
-                      flex: 1
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 6px 20px rgba(39, 174, 96, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 4px 15px rgba(39, 174, 96, 0.3)';
-                    }}
-                  >
-                    ✔ Підтверджено
-                  </button>
+                  <>
+                    <button
+                      className="btn-cancel"
+                      onClick={() => changeStatus(a.id, "canceled")}
+                      style={{
+                        background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px 20px',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(231, 76, 60, 0.3)',
+                        transition: 'all 0.3s ease',
+                        flex: 1
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(231, 76, 60, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.3)';
+                      }}
+                    >
+                      ❌ Скасувати
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => changeStatus(a.id, "pending")}
+                      style={{
+                        background: 'linear-gradient(135deg, #f1c40f 0%, #f39c12 100%)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px 20px',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: '#2c3e50',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(243, 156, 18, 0.3)',
+                        transition: 'all 0.3s ease',
+                        flex: 1
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(243, 156, 18, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(243, 156, 18, 0.3)';
+                      }}
+                    >
+                      ⏳ В очікуванні
+                    </button>
+                  </>
                 )}
 
                 {a.status === "canceled" && (
-                  <button
-                    className="btn-canceled-static"
-                    onClick={() => {
-                      if (!window.confirm("Ви хочете змінити статус запису?")) return;
-
-                      const newStatus = window.prompt(
-                        "Виберіть новий статус:\n- approved\n- pending",
-                        "pending"
-                      );
-
-                      if (!["approved", "pending"].includes(newStatus)) {
-                        return alert("❌ Невірний статус");
-                      }
-
-                      changeStatus(a.id, newStatus);
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '12px 20px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      color: 'white',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 15px rgba(231, 76, 60, 0.3)',
-                      transition: 'all 0.3s ease',
-                      flex: 1
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 6px 20px rgba(231, 76, 60, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.3)';
-                    }}
-                  >
-                    ❌ Скасовано
-                  </button>
+                  <>
+                    <button
+                      className="btn-approve"
+                      onClick={() => changeStatus(a.id, "approved")}
+                      style={{
+                        background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px 20px',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(39, 174, 96, 0.3)',
+                        transition: 'all 0.3s ease',
+                        flex: 1
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(39, 174, 96, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(39, 174, 96, 0.3)';
+                      }}
+                    >
+                      ✓ Підтвердити
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => changeStatus(a.id, "pending")}
+                      style={{
+                        background: 'linear-gradient(135deg, #f1c40f 0%, #f39c12 100%)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px 20px',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: '#2c3e50',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(243, 156, 18, 0.3)',
+                        transition: 'all 0.3s ease',
+                        flex: 1
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(243, 156, 18, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(243, 156, 18, 0.3)';
+                      }}
+                    >
+                      ⏳ В очікуванні
+                    </button>
+                  </>
                 )}
 
                 {a.status === "pending" && (
