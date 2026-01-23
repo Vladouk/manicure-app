@@ -68,6 +68,8 @@ app.get('/api/test', (req, res) => {
 });
 const path = require("path");
 
+// Verbose logging removed for production stability
+
 
 // =============== FILE UPLOADS ===============
 app.use("/uploads", express.static("uploads"));
@@ -155,23 +157,13 @@ async function initializeDatabase() {
       )
     `);
 
-    // Add username column if it doesn't exist (for migration)
+    // Migrate additional appointment columns if they don't exist
     await pool.query(`
       ALTER TABLE appointments
-      ADD COLUMN IF NOT EXISTS username TEXT
-    `).catch(err => console.log('Username column already exists or error:', err.message));
-
-    // Add current_hands_images column if it doesn't exist (for migration)
-    await pool.query(`
-      ALTER TABLE appointments
-      ADD COLUMN IF NOT EXISTS current_hands_images TEXT
-    `).catch(err => console.log('Current hands images column already exists or error:', err.message));
-
-    // Add viewed_by_admin column if it doesn't exist
-    await pool.query(`
-      ALTER TABLE appointments
+      ADD COLUMN IF NOT EXISTS username TEXT,
+      ADD COLUMN IF NOT EXISTS current_hands_images TEXT,
       ADD COLUMN IF NOT EXISTS viewed_by_admin BOOLEAN DEFAULT false
-    `).catch(err => console.log('Viewed by admin column already exists or error:', err.message));
+    `);
 
     // Create reminders table
     await pool.query(`
@@ -292,14 +284,6 @@ async function deleteOldSlots() {
     
     console.log(`🔍 Deleting slots older than: ${todayStr}`);
     
-    // First check what slots exist
-    const checkResult = await pool.query(`
-      SELECT id, date, is_booked FROM work_slots 
-      WHERE date < $1 AND is_booked = false
-      LIMIT 5
-    `, [todayStr]);
-    console.log('Slots to be deleted:', checkResult.rows);
-    
     const result = await pool.query(`
       DELETE FROM work_slots 
       WHERE is_booked = false 
@@ -385,8 +369,7 @@ app.post(
     { name: 'reference_4', maxCount: 1 }
   ]),
   (req, res) => {
-    console.log("📝 Received appointment data:", req.body);
-    console.log("📎 Files received:", req.files);
+    // removed noisy request logging
     const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code } = req.body;
     
     // Handle multiple current hands photos
@@ -423,7 +406,7 @@ app.post(
     req.body.tg_id = tgIdNum;
 
     // Check if first-time client for 20% discount
-    pool.query(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = $1 AND status != 'canceled'`, [tg_id])
+    pool.query(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = $1 AND status != 'canceled'`, [tgIdNum])
       .then(result => {
         const firstTimeRow = result.rows[0];
         let finalPrice = price;
@@ -437,7 +420,7 @@ app.post(
         }
 
         // Check for referral discount available
-        return pool.query(`SELECT referral_discount_available FROM client_points WHERE tg_id = $1`, [tg_id])
+        return pool.query(`SELECT referral_discount_available FROM client_points WHERE tg_id = $1`, [tgIdNum])
           .then(result => {
             const referralRow = result.rows[0];
             if (referralRow && referralRow.referral_discount_available) {
@@ -455,7 +438,7 @@ app.post(
                   const codeRow = result.rows[0];
                   if (codeRow) {
                     // Check if user already used this referral code
-                    return pool.query(`SELECT id FROM referral_uses WHERE referral_code_id = $1 AND used_by_tg_id = $2`, [codeRow.id, tg_id])
+                    return pool.query(`SELECT id FROM referral_uses WHERE referral_code_id = $1 AND used_by_tg_id = $2`, [codeRow.id, tgIdNum])
                       .then(result => {
                         const useRow = result.rows[0];
                         if (!useRow) {
@@ -463,14 +446,10 @@ app.post(
                           pool.query(`UPDATE client_points SET referral_discount_available = 1 WHERE tg_id = $1`, [codeRow.referrer_tg_id])
                             .catch(err => console.error('Error updating referral discount:', err));
 
-                          // Record the referral use
-                          pool.query(`INSERT INTO referral_uses (referral_code_id, used_by_tg_id, discount_applied) VALUES ($1, $2, 0)`, [codeRow.id, tg_id])
-                            .catch(err => console.error('Error inserting referral use:', err));
-
+                          // Prepare referral info to be saved after appointment is created
                           referralInfo = {
                             code_id: codeRow.id,
-                            referrer_tg_id: codeRow.referrer_tg_id,
-                            discount_available: true
+                            referrer_tg_id: codeRow.referrer_tg_id
                           };
                         }
 
@@ -491,9 +470,9 @@ app.post(
       });
 
     function createAppointment(finalPrice, discountApplied, referralInfo) {
-      console.log("🔍 Checking slot availability for slot_id:", slot_id);
+      console.log("🔍 Checking slot availability for slot_id:", slotIdNum);
       // Check slot availability
-      pool.query(`SELECT date, time FROM work_slots WHERE id = $1 AND is_booked = false`, [slot_id])
+      pool.query(`SELECT date, time FROM work_slots WHERE id = $1 AND is_booked = false`, [slotIdNum])
         .then(result => {
           const slot = result.rows[0];
           if (!slot) {
@@ -520,7 +499,7 @@ app.post(
               comment,
               JSON.stringify(referenceImages),
               JSON.stringify(currentHandsImages),
-              tg_id,
+              tgIdNum,
               username
             ]
           )
@@ -536,7 +515,7 @@ app.post(
             if (referralInfo) {
               pool.query(
                 `INSERT INTO referral_uses (referral_code_id, used_by_tg_id, appointment_id, discount_applied) VALUES ($1, $2, $3, $4)`,
-                [referralInfo.code_id, tg_id, appointmentId, 0],  // Assuming discount_applied is 0 for now
+                [referralInfo.code_id, tgIdNum, appointmentId, 0],  // Assuming discount_applied is 0 for now
                 (err) => {
                   if (!err) {
                     // Update referral code usage count
@@ -545,7 +524,7 @@ app.post(
 
                     // Give referrer 10zl bonus (add to points or notify)
                     // For now, we'll just log it - can be extended to add points
-                    console.log(`Referral bonus: ${referralInfo.referrer_tg_id} gets 10zl for referring ${tg_id}`);
+                    console.log(`Referral bonus: ${referralInfo.referrer_tg_id} gets 10zl for referring ${tgIdNum}`);
                   }
                 }
               )
@@ -553,7 +532,7 @@ app.post(
             }
 
             // Update slot as booked
-            pool.query(`UPDATE work_slots SET is_booked = true WHERE id = $1`, [slot_id])
+            pool.query(`UPDATE work_slots SET is_booked = true WHERE id = $1`, [slotIdNum])
               .then(() => console.log("✅ Slot marked as booked"))
               .catch(err => console.error("❌ Slot update error:", err));
 
@@ -581,14 +560,14 @@ app.post(
             clientMessage += `\n\n⏳ *Статус:* очікує підтвердження`;
 
             bot.sendMessage(
-              tg_id,
+              tgIdNum,
               clientMessage,
               { parse_mode: "Markdown" }
             ).then(() => console.log("✅ Client notification sent"))
              .catch(err => console.error("❌ Client notification error:", err));
 
             // 🔥 Сповіщення адміну — РОЗШИРЕНА ВЕРСІЯ
-            let clientLink = username ? `[@${username}](https://t.me/${username})` : `[${client}](tg://user?id=${tg_id})`;
+            let clientLink = username ? `[@${username}](https://t.me/${username})` : `[${client}](tg://user?id=${tgIdNum})`;
             let adminMessage = `🔔 *Новий запис!*
 
 👤 Клієнт: ${clientLink}

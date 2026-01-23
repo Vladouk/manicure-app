@@ -2404,6 +2404,9 @@ if (mode === "menu") {
 const deleteSlot = (id) => {
   if (!window.confirm("Видалити слот?")) return;
 
+  // Optimistically remove from UI for instant feedback
+  setSlotsAdmin(prev => prev.filter(slot => slot.id !== id));
+
   fetch(`${API}/api/admin/delete-slot`, {
     method: "POST",
     headers: {
