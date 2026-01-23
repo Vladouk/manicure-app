@@ -565,42 +565,262 @@ fetch(`${API}/api/appointment`, {
   );
 }
 if (effectiveMode === "clientHistory") {
+  const totalVisits = clientHistory.length;
+  const completedVisits = clientHistory.filter(h => h.status === 'approved').length;
+  const totalSpent = clientHistory
+    .filter(h => h.status === 'approved')
+    .reduce((sum, h) => sum + (h.price || 0), 0);
+  const avgPrice = completedVisits > 0 ? Math.round(totalSpent / completedVisits) : 0;
+  
   return (
     <div className="app-container">
+      {/* Client Header Card */}
+      <div style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '16px',
+        padding: '25px',
+        marginBottom: '20px',
+        color: 'white',
+        boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px',
+          marginBottom: '20px'
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '50%',
+            width: '60px',
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2rem'
+          }}>
+            👤
+          </div>
+          <div>
+            <h2 style={{
+              margin: '0 0 5px 0',
+              fontSize: '1.5rem',
+              fontWeight: '600'
+            }}>{selectedClient?.client}</h2>
+            {selectedClient?.username && (
+              <a 
+                href={`https://t.me/${selectedClient.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  textDecoration: 'none',
+                  fontSize: '0.9rem'
+                }}
+              >
+                @{selectedClient.username}
+              </a>
+            )}
+          </div>
+        </div>
 
-      <h1>📜 Історія — {selectedClient?.client}</h1>
+        {/* Statistics Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '10px'
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.15)',
+            borderRadius: '12px',
+            padding: '15px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ fontSize: '0.75rem', opacity: 0.9, marginBottom: '5px' }}>
+              Всього візитів
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>
+              {totalVisits}
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.15)',
+            borderRadius: '12px',
+            padding: '15px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ fontSize: '0.75rem', opacity: 0.9, marginBottom: '5px' }}>
+              Підтверджено
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>
+              {completedVisits}
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.15)',
+            borderRadius: '12px',
+            padding: '15px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ fontSize: '0.75rem', opacity: 0.9, marginBottom: '5px' }}>
+              Витрачено всього
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>
+              {totalSpent} zł
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.15)',
+            borderRadius: '12px',
+            padding: '15px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ fontSize: '0.75rem', opacity: 0.9, marginBottom: '5px' }}>
+              Середній чек
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>
+              {avgPrice} zł
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Appointments Timeline */}
+      <h3 style={{
+        margin: '0 0 15px 0',
+        fontSize: '1.2rem',
+        color: '#2c3e50'
+      }}>📜 Історія записів</h3>
 
       <div>
         {clientHistory.map(h => {
           const label = getSlotLabel(h.date);
+          const statusColors = {
+            'approved': { bg: '#d4edda', border: '#28a745', text: '#155724', label: '✅ Підтверджено' },
+            'pending': { bg: '#fff3cd', border: '#ffc107', text: '#856404', label: '⏳ Очікує' },
+            'canceled': { bg: '#f8d7da', border: '#dc3545', text: '#721c24', label: '❌ Скасовано' }
+          };
+          const statusStyle = statusColors[h.status] || statusColors['pending'];
+          
           return (
             <div
               key={h.id}
-              className="card"
               style={{
-                marginBottom: 12,
-                border:
-                  label === "today"
-                    ? "2px solid #4CAF50"
-                    : label === "tomorrow"
-                    ? "2px solid #2196F3"
-                    : "1px solid #eee",
-                background:
-                  label === "today"
-                    ? "rgba(76, 175, 80, 0.08)"
-                    : label === "tomorrow"
-                    ? "rgba(33, 150, 243, 0.08)"
-                    : "#fff",
+                background: 'white',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '15px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                border: `2px solid ${statusStyle.border}`
               }}
             >
-              <div>
-                <b>📅</b> {h.date} — {h.time}
+              {/* Status Badge */}
+              <div style={{
+                display: 'inline-block',
+                background: statusStyle.bg,
+                color: statusStyle.text,
+                padding: '5px 12px',
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                marginBottom: '12px',
+                border: `1px solid ${statusStyle.border}`
+              }}>
+                {statusStyle.label}
               </div>
-              <div>🎨 {h.design}, {h.length}, {h.type}</div>
-              <div>
-                Статус: <b>{h.status}</b>
+
+              {/* Date & Time */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '15px',
+                marginBottom: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  color: '#2c3e50'
+                }}>
+                  <span>📅</span>
+                  <span>{h.date}</span>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  color: '#2c3e50'
+                }}>
+                  <span>⏰</span>
+                  <span>{h.time}</span>
+                </div>
+                <div style={{
+                  marginLeft: 'auto',
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  color: '#667eea'
+                }}>
+                  {h.price} zł
+                </div>
               </div>
-              {h.comment && <div>💬 {h.comment}</div>}
+
+              {/* Service Details */}
+              <div style={{
+                background: '#f8f9fa',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '12px'
+              }}>
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.1rem' }}>🎨</span>
+                    <span style={{ color: '#666', fontSize: '0.9rem' }}>Дизайн:</span>
+                    <span style={{ fontWeight: '600', color: '#2c3e50' }}>{h.design}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.1rem' }}>📏</span>
+                    <span style={{ color: '#666', fontSize: '0.9rem' }}>Довжина:</span>
+                    <span style={{ fontWeight: '600', color: '#2c3e50' }}>{h.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.1rem' }}>💅</span>
+                    <span style={{ color: '#666', fontSize: '0.9rem' }}>Тип:</span>
+                    <span style={{ fontWeight: '600', color: '#2c3e50' }}>{h.type}</span>
+                  </div>
+                  {h.service && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.1rem' }}>💼</span>
+                      <span style={{ color: '#666', fontSize: '0.9rem' }}>Послуга:</span>
+                      <span style={{ fontWeight: '600', color: '#2c3e50' }}>{h.service}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {h.comment && (
+                <div style={{
+                  background: '#e3f2fd',
+                  borderLeft: '4px solid #2196F3',
+                  padding: '10px 12px',
+                  borderRadius: '4px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{ fontSize: '0.85rem', color: '#1976d2', fontWeight: '600', marginBottom: '4px' }}>
+                    💬 Коментар:
+                  </div>
+                  <div style={{ color: '#555', lineHeight: '1.4' }}>
+                    {h.comment}
+                  </div>
+                </div>
+              )}
               
               {/* Reference Image */}
               {h.reference_image && (() => {
@@ -608,28 +828,58 @@ if (effectiveMode === "clientHistory") {
                   const images = JSON.parse(h.reference_image);
                   if (Array.isArray(images) && images.length > 0) {
                     return (
-                      <div style={{ marginTop: '10px' }}>
-                        <div><b>🖼️ Фото-приклад:</b></div>
+                      <div style={{
+                        background: '#f8f9fa',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        marginBottom: '10px'
+                      }}>
+                        <div style={{
+                          fontSize: '0.9rem',
+                          fontWeight: '600',
+                          color: '#667eea',
+                          marginBottom: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span>🖼️</span>
+                          <span>Фото-приклад</span>
+                        </div>
                         <div style={{
                           display: 'grid',
                           gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                          gap: '8px',
-                          marginTop: '5px'
+                          gap: '10px'
                         }}>
                           {images.map((imgPath, idx) => (
-                            <img
+                            <div
                               key={idx}
-                              src={`${API}${imgPath}`}
-                              alt={`Reference ${idx + 1}`}
                               style={{
-                                width: '100%',
-                                maxHeight: '120px',
-                                objectFit: 'cover',
+                                position: 'relative',
+                                paddingTop: '100%',
                                 borderRadius: '8px',
-                                cursor: 'pointer'
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                transition: 'transform 0.2s'
                               }}
+                              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                               onClick={() => setModalImage(`${API}${imgPath}`)}
-                            />
+                            >
+                              <img
+                                src={`${API}${imgPath}`}
+                                alt={`Reference ${idx + 1}`}
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover'
+                                }}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -647,28 +897,57 @@ if (effectiveMode === "clientHistory") {
                   const images = JSON.parse(h.current_hands_images);
                   if (Array.isArray(images) && images.length > 0) {
                     return (
-                      <div style={{ marginTop: '10px' }}>
-                        <div><b>✋ Поточний стан рук:</b></div>
+                      <div style={{
+                        background: '#f8f9fa',
+                        borderRadius: '8px',
+                        padding: '12px'
+                      }}>
+                        <div style={{
+                          fontSize: '0.9rem',
+                          fontWeight: '600',
+                          color: '#667eea',
+                          marginBottom: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span>✋</span>
+                          <span>Поточний стан рук</span>
+                        </div>
                         <div style={{
                           display: 'grid',
                           gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                          gap: '8px',
-                          marginTop: '5px'
+                          gap: '10px'
                         }}>
                           {images.map((imgPath, idx) => (
-                            <img
+                            <div
                               key={idx}
-                              src={`${API}${imgPath}`}
-                              alt={`Current hands ${idx + 1}`}
                               style={{
-                                width: '100%',
-                                maxHeight: '120px',
-                                objectFit: 'cover',
+                                position: 'relative',
+                                paddingTop: '100%',
                                 borderRadius: '8px',
-                                cursor: 'pointer'
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                transition: 'transform 0.2s'
                               }}
+                              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                               onClick={() => setModalImage(`${API}${imgPath}`)}
-                            />
+                            >
+                              <img
+                                src={`${API}${imgPath}`}
+                                alt={`Current hands ${idx + 1}`}
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover'
+                                }}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -684,7 +963,19 @@ if (effectiveMode === "clientHistory") {
         })}
       </div>
 
-      <button onClick={() => setMode("clients")}>⬅ Назад до клієнтів</button>
+      <button 
+        className="primary-btn"
+        onClick={() => setMode("clients")}
+        style={{
+          width: '100%',
+          padding: '15px',
+          fontSize: '1rem',
+          fontWeight: '600',
+          marginTop: '20px'
+        }}
+      >
+        ⬅ Назад до клієнтів
+      </button>
 
       {modal}
     </div>
