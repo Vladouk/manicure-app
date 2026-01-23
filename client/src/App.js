@@ -697,7 +697,6 @@ if (effectiveMode === "clientHistory") {
 
       <div>
         {clientHistory.map(h => {
-          const label = getSlotLabel(h.date);
           const statusColors = {
             'approved': { bg: '#d4edda', border: '#28a745', text: '#155724', label: '✅ Підтверджено' },
             'pending': { bg: '#fff3cd', border: '#ffc107', text: '#856404', label: '⏳ Очікує' },
