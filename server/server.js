@@ -274,8 +274,10 @@ async function initializeDatabase() {
 initializeDatabase().then(() => {
   populateDatabase();
   deleteOldSlots(); // Delete old slots on startup
+  cancelExpiredPendingAppointments(); // Cancel unconfirmed appointments that are already in the past
   // Schedule daily cleanup at midnight
   setInterval(deleteOldSlots, 24 * 60 * 60 * 1000);
+  setInterval(cancelExpiredPendingAppointments, 5 * 60 * 1000); // Check every 5 minutes
 }).catch(error => {
   console.error('Error initializing database:', error);
 });
@@ -305,6 +307,43 @@ async function deleteOldSlots() {
     }
   } catch (err) {
     console.error('❌ Error deleting old slots:', err);
+  }
+}
+
+// Авто-скасовуємо прострочені непідтверджені записи та звільняємо їх слоти
+let isCancelingPending = false;
+async function cancelExpiredPendingAppointments() {
+  if (isCancelingPending) return;
+  isCancelingPending = true;
+
+  try {
+    const result = await pool.query(`
+      UPDATE appointments a
+      SET status = 'canceled'
+      WHERE a.status = 'pending'
+        AND (a.date || ' ' || a.time)::timestamp <= NOW()
+      RETURNING id, tg_id, date, time
+    `);
+
+    if (result.rowCount > 0) {
+      console.log(`⚠️ Auto-canceled ${result.rowCount} pending appointments that were in the past`);
+
+      for (const row of result.rows) {
+        // Не звільняємо слоти в минулому - вони і так будуть видалені deleteOldSlots()
+        
+        if (row.tg_id) {
+          bot.sendMessage(
+            row.tg_id,
+            `❌ *Ваш запис скасовано.*\n\nЗапит на ${row.date} ${row.time} не був підтверджений вчасно. Можна створити новий зручний слот у боті 💅`,
+            { parse_mode: "Markdown" }
+          ).catch(err => console.error("Auto-cancel client notify error:", err));
+        }
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error auto-canceling stale pending appointments:', err);
+  } finally {
+    isCancelingPending = false;
   }
 }
 
