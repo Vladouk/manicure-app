@@ -67,7 +67,6 @@ app.use(cors());
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
 });
-const path = require("path");
 
 // Verbose logging removed for production stability
 
