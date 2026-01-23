@@ -70,12 +70,14 @@ app.get('/api/test', (req, res) => {
 
 // Verbose logging removed for production stability
 
+// Define uploads directory path
+const uploadsDir = path.join(__dirname, 'uploads');
 
 // =============== FILE UPLOADS ===============
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(uploadsDir));
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -119,7 +121,7 @@ const pool = new Pool({
 });
 
 // Create uploads directory
-const uploadsDir = path.join(__dirname, 'uploads');
+// Ensure uploads directory exists and is writable
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log('✅ Created uploads directory');
