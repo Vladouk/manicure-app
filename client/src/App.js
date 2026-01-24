@@ -78,6 +78,62 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     setCurrentHandsPhotos([]);
   };
 
+  const submitBooking = async () => {
+    if (!selectedSlotId) {
+      alert("❗ Оберіть дату та час");
+      return;
+    }
+
+    const clientName = tgUser?.first_name || manualName || "Anon";
+    const effectiveTgId = tgUser?.id || manualTgId || '';
+
+    if (!effectiveTgId) {
+      alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("client", clientName);
+    formData.append("slot_id", selectedSlotId);
+    formData.append("design", design);
+    formData.append("length", length);
+    formData.append("type", type);
+    formData.append("comment", comment);
+    formData.append("tg_id", effectiveTgId);
+    formData.append("service_category", serviceCategory);
+    formData.append("service_sub", serviceSub);
+    formData.append("price", price);
+    formData.append("referral_code", enteredReferralCode);
+
+    // Add current hands photos
+    currentHandsPhotos.forEach((photo, index) => {
+      formData.append(`current_hands_${index}`, photo);
+    });
+
+    // Add reference photos
+    reference.forEach((ref, index) => {
+      formData.append(`reference_${index}`, ref);
+    });
+
+    try {
+      const response = await fetch(`${API}/api/appointment`, {
+        method: "POST",
+        body: formData
+      });
+
+      if (response.ok) {
+        alert("✅ Запис створено!");
+        resetBooking();
+        setMode("menu");
+      } else {
+        alert("❌ Помилка при відправці");
+      }
+    } catch (error) {
+      console.error("Error submitting booking:", error);
+      alert("❌ Помилка при відправці");
+    }
+  };
+
   const spendPoints = async (points) => {
     if (bonusPoints < points) return;
     try {
