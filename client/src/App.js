@@ -3059,64 +3059,6 @@ if (mode === "adminMenu") {
           }}>Спеціальні пропозиції</p>
         </div>
 
-        {/* Monthly Slots Overview Card */}
-        <div
-          className="menu-card"
-          onClick={() => {
-            fetch(`${API}/api/admin/slots`, {
-              headers: { "x-init-data": WebApp.initData }
-            })
-              .then(r => r.json())
-              .then(data => {
-                setSlotsAdmin(
-                  data.sort((a, b) =>
-                    new Date(`${a.date} ${a.time}`) -
-                    new Date(`${b.date} ${b.time}`)
-                  )
-                );
-              });
-            setMode("monthlySlots");
-          }}
-          style={{
-            background: 'linear-gradient(135deg, #f5af19 0%, #f12711 100%)',
-            borderRadius: '16px',
-            padding: '25px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 8px 25px rgba(245, 175, 25, 0.3)',
-            border: 'none',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-5px)';
-            e.target.style.boxShadow = '0 15px 35px rgba(245, 175, 25, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 8px 25px rgba(245, 175, 25, 0.3)';
-          }}
-        >
-          <div style={{
-            fontSize: '3rem',
-            marginBottom: '15px',
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-          }}>📋</div>
-          <h3 style={{
-            margin: '0 0 8px 0',
-            fontSize: '1.3rem',
-            fontWeight: '600',
-            color: 'white'
-          }}>В сторіс</h3>
-          <p style={{
-            margin: '0',
-            fontSize: '0.9rem',
-            opacity: '0.9',
-            color: 'white'
-          }}>Всі слоти за місяць</p>
-        </div>
-
         {/* Analytics Card */}
         <div
           className="menu-card"
@@ -5223,6 +5165,36 @@ if (mode === "prices") {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Back Button */}
+      <div style={{ textAlign: 'center', marginTop: '30px' }}>
+        <button
+          className="primary-btn"
+          onClick={() => setMode("adminMenu")}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px 30px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          ← Назад в адмінку
+        </button>
       </div>
 
       {modal}
