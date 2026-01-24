@@ -3278,14 +3278,14 @@ if (mode === "monthlySlots") {
           margin: '0 0 4px 0',
           fontWeight: '700'
         }}>
-          📋 {monthStart.toLocaleString('uk-UA', { month: 'short', year: '2-digit' })}
+          �️ Вільні віконечка
         </h2>
         <p style={{
           fontSize: '0.75rem',
           margin: '0',
           opacity: 0.95
         }}>
-          Всього: {monthlySlots.length} | 🔴 {monthlySlots.filter(s => s.is_booked).length} | 🟢 {monthlySlots.filter(s => !s.is_booked).length}
+          {monthStart.toLocaleString('uk-UA', { month: 'long', year: 'numeric' })} | Всього: {monthlySlots.length}
         </p>
       </div>
 
@@ -3300,9 +3300,8 @@ if (mode === "monthlySlots") {
           sortedDates.map(date => {
             const dateObj = new Date(date);
             const dayNum = dateObj.getDate();
-            const booked = slotsByDate[date].filter(s => s.is_booked).length;
-            const free = slotsByDate[date].filter(s => !s.is_booked).length;
             const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' });
+            const freeSlots = slotsByDate[date].filter(s => !s.is_booked).map(s => s.time).sort();
             
             return (
               <div
@@ -3319,7 +3318,7 @@ if (mode === "monthlySlots") {
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
-                  gap: '2px'
+                  gap: '3px'
                 }}
               >
                 <div style={{ fontWeight: '700', color: '#f12711', fontSize: '0.95rem' }}>
@@ -3328,11 +3327,14 @@ if (mode === "monthlySlots") {
                 <div style={{ fontSize: '0.6rem', color: '#666', fontWeight: '500' }}>
                   {dayName}
                 </div>
-                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#d32f2f' }}>
-                  🔴 {booked}
-                </div>
-                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#4caf50' }}>
-                  🟢 {free}
+                <div style={{ 
+                  fontSize: '0.55rem', 
+                  fontWeight: '600', 
+                  color: '#4caf50',
+                  lineHeight: '1.2'
+                }}>
+                  {freeSlots.length > 0 ? freeSlots.slice(0, 3).join(', ') : 'Немає'}
+                  {freeSlots.length > 3 && <div style={{fontSize: '0.5rem', color: '#999'}}>+{freeSlots.length - 3} ще</div>}
                 </div>
               </div>
             );
