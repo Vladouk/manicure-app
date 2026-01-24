@@ -382,6 +382,27 @@ fetch(`${API}/api/appointment`, {
       .catch(() => alert("❌ Помилка оновлення"));
   };
 
+  const deleteAppointment = (id) => {
+    if (!window.confirm("Ви впевнені, що хочете видалити цей запис повністю? Цю дію неможливо скасувати.")) {
+      return;
+    }
+
+    fetch(`${API}/api/admin/delete`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-init-data": WebApp.initData
+      },
+      body: JSON.stringify({ id })
+    })
+      .then(r => r.json())
+      .then(() => {
+        alert("✅ Запис видалено!");
+        loadAppointments();
+      })
+      .catch(() => alert("❌ Помилка видалення"));
+  };
+
   // ADMIN PANEL
 
 
@@ -7005,6 +7026,37 @@ if (mode === "admin") {
                     </button>
                   </>
                 )}
+              </div>
+
+              {/* Delete Button - Always visible for all appointments */}
+              <div style={{ marginTop: '10px' }}>
+                <button
+                  className="btn-delete"
+                  onClick={() => deleteAppointment(a.id)}
+                  style={{
+                    background: 'linear-gradient(135deg, #8e44ad 0%, #6c3483 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 20px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(142, 68, 173, 0.3)',
+                    transition: 'all 0.3s ease',
+                    width: '100%'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 20px rgba(142, 68, 173, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 15px rgba(142, 68, 173, 0.3)';
+                  }}
+                >
+                  🗑 Видалити запис повністю
+                </button>
               </div>
             </div>
           </div>
