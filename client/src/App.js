@@ -3278,7 +3278,7 @@ if (mode === "monthlySlots") {
           margin: '0 0 4px 0',
           fontWeight: '700'
         }}>
-          �️ Вільні віконечка
+          🗓️ Вільні віконечка
         </h2>
         <p style={{
           fontSize: '0.75rem',
@@ -4597,200 +4597,321 @@ if (mode === "slotsCalendar") {
 if (mode === "prices") {
   return (
     <div className="app-container">
-      {/* Modern Header */}
-      <div className="card" style={{
+      {/* Simple Header */}
+      <div style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
         textAlign: 'center',
-        padding: '30px 20px',
-        marginBottom: '30px',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
-        position: 'relative',
-        overflow: 'hidden'
+        padding: '20px',
+        marginBottom: '20px',
+        borderRadius: '14px',
+        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
       }}>
-        <div style={{
-          position: 'absolute',
-          top: '-50%',
-          left: '-50%',
-          width: '200%',
-          height: '200%',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-          animation: 'pulse 3s ease-in-out infinite'
-        }}></div>
-        <h2 style={{
-          fontSize: '2.5rem',
-          margin: '0 0 10px 0',
-          fontWeight: '700',
-          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-          zIndex: 1,
-          position: 'relative'
-        }}>
-          💰 Прайс-лист 🔥
+        <h2 style={{ fontSize: '1.8rem', margin: '0', fontWeight: '700' }}>
+          💰 Прайс-лист
         </h2>
-        <p style={{
-          fontSize: '1rem',
-          margin: '0',
-          opacity: 0.9,
-          fontWeight: '300',
-          zIndex: 1,
-          position: 'relative'
-        }}>
-          Керуйте цінами та послугами
+        <p style={{ fontSize: '0.85rem', margin: '5px 0 0 0', opacity: 0.9 }}>
+          Редагуйте послуги та ціни
         </p>
       </div>
 
-      {/* Add Category Card */}
-      <div
-        className="menu-card"
-        style={{
-          background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-          borderRadius: '16px',
-          padding: '25px',
-          marginBottom: '30px',
-          boxShadow: '0 8px 25px rgba(255, 154, 158, 0.3)',
-          border: 'none',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
-        <div style={{
-          position: 'absolute',
-          top: '15px',
-          left: '15px',
-          background: 'rgba(255,255,255,0.9)',
-          color: '#ff6b6b',
-          padding: '5px 12px',
-          borderRadius: '20px',
-          fontSize: '0.8rem',
-          fontWeight: '600',
-          textTransform: 'uppercase'
-        }}>
+      {/* Add Category Section */}
+      <div style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        borderRadius: '12px',
+        padding: '20px',
+        marginBottom: '20px'
+      }}>
+        <h3 style={{ margin: '0 0 15px 0', fontSize: '1.2rem', fontWeight: '600' }}>
           ➕ Нова категорія
-        </div>
+        </h3>
+        <input
+          id="newCategoryName"
+          placeholder="Назва категорії (напр. Гібридний манікюр)"
+          style={{
+            width: '100%',
+            padding: '12px',
+            borderRadius: '8px',
+            border: 'none',
+            marginBottom: '10px',
+            fontSize: '0.95rem',
+            boxSizing: 'border-box'
+          }}
+        />
+        <button
+          className="primary-btn"
+          onClick={() => {
+            const name = document.getElementById("newCategoryName").value.trim();
+            if (!name) return alert("Введіть назву категорії");
 
-        <div style={{ paddingTop: '20px' }}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontWeight: '600',
-              color: 'white',
-              marginBottom: '8px',
-              fontSize: '0.9rem'
-            }}>
-              📁 Назва категорії
-            </label>
-            <input
-              id="newCategoryName"
-              placeholder="Назва категорії"
-              className="input"
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '10px',
-                border: 'none',
-                fontSize: '1rem',
-                background: 'rgba(255,255,255,0.9)',
-                color: '#2c3e50',
-                fontWeight: '500'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontWeight: '600',
-              color: 'white',
-              marginBottom: '8px',
-              fontSize: '0.9rem'
-            }}>
-              📝 Опис (необов'язково)
-            </label>
-            <textarea
-              id="newCategoryDesc"
-              placeholder="Опис категорії"
-              className="input"
-              rows="3"
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '10px',
-                border: 'none',
-                fontSize: '1rem',
-                background: 'rgba(255,255,255,0.9)',
-                color: '#2c3e50',
-                fontWeight: '500',
-                resize: 'vertical'
-              }}
-            />
-          </div>
-
-          <button
-            className="primary-btn"
-            onClick={() => {
-              const name = document.getElementById("newCategoryName").value.trim();
-              if (!name) return alert("Введіть назву категорії");
-
-              fetch(`${API}/api/admin/category`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "x-init-data": WebApp.initData
-                },
-                body: JSON.stringify({
-                  name,
-                  description: document.getElementById("newCategoryDesc").value.trim(),
-                  is_active: true
-                })
+            fetch(`${API}/api/admin/category`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "x-init-data": WebApp.initData },
+              body: JSON.stringify({ name, is_active: true })
+            })
+              .then(r => r.json())
+              .then(() => {
+                alert("✅ Категорію додано!");
+                document.getElementById("newCategoryName").value = "";
+                fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
+                  .then(r => r.json())
+                  .then(setPriceList);
               })
-                .then(r => r.json())
-                .then(() => {
-                  alert("Категорію додано!");
-                  document.getElementById("newCategoryName").value = "";
-                  document.getElementById("newCategoryDesc").value = "";
-                  // Reload prices
-                  fetch(`${API}/api/admin/prices`, {
-                    headers: { "x-init-data": WebApp.initData }
-                  })
-                    .then(r => r.json())
-                    .then(setPriceList);
-                });
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '15px 30px',
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: 'white',
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.3s ease',
-              width: '100%'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
-            }}
-          >
-            ➕ Додати категорію
-          </button>
-        </div>
+              .catch(() => alert("❌ Помилка!"));
+          }}
+          style={{
+            width: '100%',
+            background: 'rgba(255,255,255,0.2)',
+            border: '2px solid white',
+            color: 'white',
+            padding: '12px',
+            borderRadius: '8px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            transition: 'all 0.3s'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = 'rgba(255,255,255,0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'rgba(255,255,255,0.2)';
+          }}
+        >
+          + Додати
+        </button>
       </div>
 
-      {/* Categories and Services */}
-      <div style={{
-        display: 'grid',
-        gap: '25px',
-        padding: '0 10px'
-      }}>
-        {priceList.map(category => (
+      {/* Categories List */}
+      <div style={{ display: 'grid', gap: '15px', marginBottom: '20px' }}>
+        {priceList.length > 0 ? priceList.map(category => (
+          <div key={category.id} style={{
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: '12px',
+            padding: '15px',
+            border: '2px solid #667eea'
+          }}>
+            {/* Category Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px',
+              paddingBottom: '12px',
+              borderBottom: '1px solid #e0e0e0'
+            }}>
+              <h3 style={{ margin: 0, color: '#667eea', fontSize: '1.1rem', fontWeight: '600' }}>
+                📁 {category.name}
+              </h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => {
+                    const newName = prompt("Нова назва:", category.name);
+                    if (newName && newName.trim()) {
+                      fetch(`${API}/api/admin/category`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "x-init-data": WebApp.initData },
+                        body: JSON.stringify({ id: category.id, name: newName.trim(), is_active: true })
+                      })
+                        .then(() => {
+                          fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
+                            .then(r => r.json())
+                            .then(setPriceList);
+                        });
+                    }
+                  }}
+                  style={{ background: '#f39c12', border: 'none', color: 'white', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Видалити "${category.name}"?`)) {
+                      fetch(`${API}/api/admin/category/${category.id}`, {
+                        method: "DELETE",
+                        headers: { "x-init-data": WebApp.initData }
+                      })
+                        .then(() => {
+                          fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
+                            .then(r => r.json())
+                            .then(setPriceList);
+                        });
+                    }
+                  }}
+                  style={{ background: '#e74c3c', border: 'none', color: 'white', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            {/* Services List */}
+            <div style={{ marginBottom: '12px' }}>
+              {category.services && category.services.length > 0 ? (
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {category.services.map(service => (
+                    <div key={service.id} style={{
+                      background: '#f8f9fa',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      border: '1px solid #e0e0e0'
+                    }}>
+                      <div>
+                        <p style={{ margin: '0 0 3px 0', fontWeight: '600', color: '#2c3e50' }}>
+                          💅 {service.name}
+                        </p>
+                        <p style={{ margin: 0, color: '#667eea', fontWeight: 'bold', fontSize: '1rem' }}>
+                          💰 {service.price} zł
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => {
+                            const newPrice = prompt("Нова ціна:", service.price);
+                            if (newPrice && !isNaN(newPrice)) {
+                              fetch(`${API}/api/admin/service`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", "x-init-data": WebApp.initData },
+                                body: JSON.stringify({ id: service.id, category_id: category.id, name: service.name, price: parseInt(newPrice), is_active: true })
+                              })
+                                .then(() => {
+                                  fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
+                                    .then(r => r.json())
+                                    .then(setPriceList);
+                                });
+                            }
+                          }}
+                          style={{ background: '#3498db', border: 'none', color: 'white', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontSize: '0.75rem' }}
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Видалити "${service.name}"?`)) {
+                              fetch(`${API}/api/admin/service/${service.id}`, {
+                                method: "DELETE",
+                                headers: { "x-init-data": WebApp.initData }
+                              })
+                                .then(() => {
+                                  fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
+                                    .then(r => r.json())
+                                    .then(setPriceList);
+                                });
+                            }
+                          }}
+                          style={{ background: '#e74c3c', border: 'none', color: 'white', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontSize: '0.75rem' }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: '#999', fontSize: '0.9rem', margin: 0 }}>Немає послуг</p>
+              )}
+            </div>
+
+            {/* Add Service */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: '8px' }}>
+              <input
+                id={`serviceName-${category.id}`}
+                placeholder="Назва послуги"
+                style={{
+                  padding: '8px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                  fontSize: '0.9rem'
+                }}
+              />
+              <input
+                id={`servicePrice-${category.id}`}
+                type="number"
+                placeholder="Ціна"
+                style={{
+                  padding: '8px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                  fontSize: '0.9rem'
+                }}
+              />
+            </div>
+            <button
+              onClick={() => {
+                const name = document.getElementById(`serviceName-${category.id}`).value.trim();
+                const price = parseInt(document.getElementById(`servicePrice-${category.id}`).value);
+                if (!name || isNaN(price)) return alert("Заповніть назву та ціну");
+
+                fetch(`${API}/api/admin/service`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "x-init-data": WebApp.initData },
+                  body: JSON.stringify({ category_id: category.id, name, price, is_active: true })
+                })
+                  .then(() => {
+                    document.getElementById(`serviceName-${category.id}`).value = "";
+                    document.getElementById(`servicePrice-${category.id}`).value = "";
+                    fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
+                      .then(r => r.json())
+                      .then(setPriceList);
+                  });
+              }}
+              style={{
+                width: '100%',
+                marginTop: '8px',
+                background: '#4caf50',
+                border: 'none',
+                color: 'white',
+                padding: '8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '0.85rem'
+              }}
+            >
+              + Послуга
+            </button>
+          </div>
+        )) : (
+          <div style={{
+            textAlign: 'center',
+            color: '#999',
+            padding: '30px 20px',
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            border: '2px dashed #ddd'
+          }}>
+            <p style={{ margin: 0, fontSize: '1rem' }}>📭 Немає категорій</p>
+            <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem' }}>Додайте першу категорію вище</p>
+          </div>
+        )}
+      </div>
+
+      {/* Back Button */}
+      <button
+        onClick={() => setMode("adminMenu")}
+        style={{
+          width: '100%',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          border: 'none',
+          color: 'white',
+          padding: '14px',
+          borderRadius: '10px',
+          fontWeight: '600',
+          fontSize: '0.95rem',
+          cursor: 'pointer',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+      >
+        ← Назад
+      </button>
+    </div>
+  );
           <div
             key={category.id}
             className="menu-card"
@@ -5311,36 +5432,6 @@ if (mode === "prices") {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Back Button */}
-      <div style={{ textAlign: 'center', marginTop: '30px' }}>
-        <button
-          className="primary-btn"
-          onClick={() => setMode("adminMenu")}
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '15px 30px',
-            fontSize: '1rem',
-            fontWeight: '600',
-            color: 'white',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
-          }}
-        >
-          ← Назад в адмінку
-        </button>
       </div>
 
       {modal}
