@@ -3263,175 +3263,125 @@ if (mode === "monthlySlots") {
 
   return (
     <div className="app-container">
-      {/* Modern Header */}
-      <div className="card" style={{
+      {/* Компактний заголовок */}
+      <div style={{
         background: 'linear-gradient(135deg, #f5af19 0%, #f12711 100%)',
         color: 'white',
         textAlign: 'center',
-        padding: '30px 20px',
-        marginBottom: '30px',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(245, 175, 25, 0.3)',
-        position: 'relative',
-        overflow: 'hidden'
+        padding: '12px 10px',
+        marginBottom: '12px',
+        borderRadius: '14px',
+        boxShadow: '0 3px 10px rgba(245, 175, 25, 0.25)'
       }}>
-        <div style={{
-          position: 'absolute',
-          top: '-50%',
-          left: '-50%',
-          width: '200%',
-          height: '200%',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-          animation: 'pulse 3s ease-in-out infinite'
-        }}></div>
         <h2 style={{
-          fontSize: '2.5rem',
-          margin: '0 0 10px 0',
-          fontWeight: '700',
-          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-          zIndex: 1,
-          position: 'relative'
+          fontSize: '1.3rem',
+          margin: '0 0 4px 0',
+          fontWeight: '700'
         }}>
-          📋 Слоти за {monthStart.toLocaleString('uk-UA', { month: 'long', year: 'numeric' })}
+          📋 {monthStart.toLocaleString('uk-UA', { month: 'short', year: '2-digit' })}
         </h2>
         <p style={{
-          fontSize: '1rem',
+          fontSize: '0.75rem',
           margin: '0',
-          opacity: 0.9,
-          fontWeight: '300',
-          zIndex: 1,
-          position: 'relative'
+          opacity: 0.95
         }}>
-          Всього: <strong>{monthlySlots.length} слотів</strong> | Занято: <strong style={{color: '#d32f2f'}}>{monthlySlots.filter(s => s.is_booked).length}</strong> | Вільно: <strong style={{color: '#4caf50'}}>{monthlySlots.filter(s => !s.is_booked).length}</strong>
+          Всього: {monthlySlots.length} | 🔴 {monthlySlots.filter(s => s.is_booked).length} | 🟢 {monthlySlots.filter(s => !s.is_booked).length}
         </p>
       </div>
 
-      {/* Slots Grid */}
+      {/* Компактна сітка днів */}
       <div style={{
         display: 'grid',
-        gap: '25px',
-        marginBottom: '30px'
+        gridTemplateColumns: 'repeat(auto-fill, minmax(75px, 1fr))',
+        gap: '6px',
+        marginBottom: '12px'
       }}>
         {sortedDates.length > 0 ? (
-          sortedDates.map(date => (
-            <div
-              key={date}
-              className="card"
-              style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                borderRadius: '16px',
-                padding: '20px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                border: '2px solid #f5af19'
-              }}
-            >
-              <h3 style={{
-                margin: '0 0 15px 0',
-                color: '#f12711',
-                fontSize: '1.2rem',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                📅 {new Date(date).toLocaleDateString('uk-UA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </h3>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                gap: '10px'
-              }}>
-                {slotsByDate[date].map(slot => (
-                  <div
-                    key={slot.id}
-                    style={{
-                      padding: '12px',
-                      borderRadius: '10px',
-                      textAlign: 'center',
-                      fontSize: '0.95rem',
-                      fontWeight: '600',
-                      border: '2px solid',
-                      backgroundColor: slot.is_booked ? '#ffebee' : '#e8f5e9',
-                      borderColor: slot.is_booked ? '#d32f2f' : '#4caf50',
-                      color: slot.is_booked ? '#d32f2f' : '#2e7d32'
-                    }}
-                  >
-                    <div style={{ fontSize: '1.3rem', marginBottom: '5px' }}>
-                      {slot.is_booked ? '🔴' : '🟢'}
-                    </div>
-                    <div>{slot.time}</div>
-                    {slot.is_booked && (
-                      <div style={{ fontSize: '0.75rem', marginTop: '5px', opacity: 0.8 }}>
-                        {slot.client_name}
-                      </div>
-                    )}
-                  </div>
-                ))}
+          sortedDates.map(date => {
+            const dateObj = new Date(date);
+            const dayNum = dateObj.getDate();
+            const booked = slotsByDate[date].filter(s => s.is_booked).length;
+            const free = slotsByDate[date].filter(s => !s.is_booked).length;
+            const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' });
+            
+            return (
+              <div
+                key={date}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.98)',
+                  borderRadius: '10px',
+                  padding: '6px 4px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                  border: '1px solid #f5af19',
+                  textAlign: 'center',
+                  fontSize: '0.65rem',
+                  minHeight: '65px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  gap: '2px'
+                }}
+              >
+                <div style={{ fontWeight: '700', color: '#f12711', fontSize: '0.95rem' }}>
+                  {dayNum}
+                </div>
+                <div style={{ fontSize: '0.6rem', color: '#666', fontWeight: '500' }}>
+                  {dayName}
+                </div>
+                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#d32f2f' }}>
+                  🔴 {booked}
+                </div>
+                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#4caf50' }}>
+                  🟢 {free}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
-          <div
-            className="card"
-            style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              borderRadius: '16px',
-              padding: '40px 25px',
-              boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
-              border: 'none',
-              textAlign: 'center'
-            }}
-          >
-            <div style={{
-              fontSize: '4rem',
-              marginBottom: '20px',
-              opacity: 0.7
-            }}>
-              📭
-            </div>
-            <div style={{
-              fontSize: '1.2rem',
-              fontWeight: 'bold',
-              color: 'white',
-              marginBottom: '10px',
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-            }}>
-              Нема слотів на цей місяць
-            </div>
+          <div style={{
+            gridColumn: '1 / -1',
+            background: '#fff3cd',
+            color: '#856404',
+            padding: '10px',
+            borderRadius: '8px',
+            textAlign: 'center',
+            border: '1px solid #ffc107',
+            fontSize: '0.85rem'
+          }}>
+            ⚠️ Немає слотів
           </div>
         )}
       </div>
 
       {/* Back Button */}
-      <div style={{ textAlign: 'center' }}>
-        <button
-          className="primary-btn"
-          onClick={() => setMode("adminMenu")}
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '15px 30px',
-            fontSize: '1rem',
-            fontWeight: '600',
-            color: 'white',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
-          }}
-        >
-          ← Назад в адмінку
-        </button>
-      </div>
+      <button
+        className="primary-btn"
+        onClick={() => setMode("adminMenu")}
+        style={{
+          width: '100%',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          border: 'none',
+          borderRadius: '10px',
+          padding: '12px 20px',
+          fontSize: '0.95rem',
+          fontWeight: '600',
+          color: 'white',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          marginTop: '8px',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'translateY(-2px)';
+          e.target.style.boxShadow = '0 8px 20px rgba(102, 126, 234, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'translateY(0)';
+          e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+        }}
+      >
+        ← Назад
+      </button>
 
       {modal}
     </div>
