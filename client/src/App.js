@@ -250,7 +250,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   fetch(`${API}/api/prices`)
     .then(r => r.json())
     .then(data => {
-      setDynamicPrices(data);
+      _setDynamicPrices(data);
       // Set defaults based on first category and service
       if (data.length > 0) {
         const firstCategory = data[0];
@@ -362,8 +362,8 @@ fetch(`${API}/api/appointment`, {
     if (tgUser?.id) {
       fetch(`${API}/api/client/first-time?tg_id=${tgUser.id}`)
         .then(r => r.json())
-        .then(data => setIsFirstTime(data.first_time))
-        .catch(() => setIsFirstTime(false));
+        .then(data => _setIsFirstTime(data.first_time))
+        .catch(() => _setIsFirstTime(false));
     }
   }, [tgUser?.id]);
 
@@ -2624,7 +2624,7 @@ if (mode === "menu") {
             fetch(`${API}/api/prices`)
               .then(r => r.json())
               .then(data => {
-                setDynamicPrices(data);
+                _setDynamicPrices(data);
                 setMode("priceList");
               });
           }}
