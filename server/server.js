@@ -6,14 +6,28 @@ const crypto = require('crypto');
 const TelegramBot = require('node-telegram-bot-api');
 const multer = require("multer");
 const cors = require('cors');
+
+// ✅ Check required environment variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!BOT_TOKEN) {
+  console.error('❌ ERROR: BOT_TOKEN environment variable is not set');
+  process.exit(1);
+}
+
+if (!DATABASE_URL) {
+  console.error('❌ ERROR: DATABASE_URL environment variable is not set');
+  process.exit(1);
+}
+
 const ADMIN_TG_IDS = [1342762796];
 const ADMIN_TG_ID = ADMIN_TG_IDS[0]; // for messages
 
 // 🔥 Telegram bot для надсилання повідомлень клієнтам
 const bot = new TelegramBot(BOT_TOKEN, { polling: false });
 
-// Set webhook
+// Set webhookа
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
 if (WEBHOOK_URL) {
   bot.setWebHook(WEBHOOK_URL);
@@ -125,8 +139,8 @@ function validateInitData(initData) {
 
 // =============== DATABASE ===============
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  connectionString: DATABASE_URL,
+  ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 // Create uploads directory
