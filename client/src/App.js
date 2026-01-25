@@ -3270,8 +3270,16 @@ if (mode === "adminMenu") {
             fetch(`${API}/api/admin/prices`, {
               headers: { "x-init-data": WebApp.initData }
             })
-              .then(r => r.json())
-              .then(setPriceList);
+              .then(r => {
+                if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                return r.json();
+              })
+              .then(setPriceList)
+              .catch(err => {
+                console.error('❌ Помилка завантаження прайсу:', err);
+                alert(`❌ Помилка завантаження прайсу: ${err.message}`);
+                setPriceList([]);
+              });
             setMode("prices");
           }}
           style={{
