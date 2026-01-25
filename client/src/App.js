@@ -237,15 +237,26 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const calculatePrice = (category, size, design, matting) => {
     let basePrice = 0;
     
-    // Get base price from size
-    if (category === 'Укріплення' && size) {
-      basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
-    } else if (category === 'Нарощення' && size) {
-      basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
-    } else if (category === 'Гігієнічний') {
-      basePrice = 70;
-    } else if (category === 'Ремонт') {
-      basePrice = 0; // Ремонт - за домовленістю
+    // Try to get price from database first
+    if (priceList.length > 0 && category) {
+      const categoryData = priceList.find(cat => cat.name === category);
+      if (categoryData && categoryData.services.length > 0) {
+        const serviceData = categoryData.services[0]; // Get first service in category
+        basePrice = serviceData.price || 0;
+      }
+    }
+    
+    // Fallback to hardcoded prices if not in DB
+    if (basePrice === 0) {
+      if (category === 'Укріплення' && size) {
+        basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
+      } else if (category === 'Нарощення' && size) {
+        basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
+      } else if (category === 'Гігієнічний') {
+        basePrice = 70;
+      } else if (category === 'Ремонт') {
+        basePrice = 0; // Ремонт - за домовленістю
+      }
     }
     
     // Add design price
@@ -381,12 +392,18 @@ fetch(`${API}/api/appointment`, {
         .then(r => r.json())
         .then(data => setPromotions(data))
         .catch(() => setPromotions([]));
+      
+      // Load prices
+      fetch(`${API}/api/prices`)
+        .then(r => r.json())
+        .then(data => setPriceList(data))
+        .catch(() => setPriceList([]));
     }
   }, [mode, tgUser?.id]);
 
   useEffect(() => {
     setPrice(calculatePrice(serviceSub));
-  }, [serviceSub]);
+  }, [serviceSub, priceList]);
 
   // Refresh slots when entering client booking mode
   useEffect(() => {
@@ -6996,16 +7013,29 @@ if (mode === "booking") {
                       const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[designCategory] || 0;
                       const mattingPrice = mattingCategory === 'Матове' ? 30 : 0;
                       let basePrice = 0;
-                      if (serviceCategory === 'Укріплення' && sizeCategory) {
-                        basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[sizeCategory] || 0;
-                      } else if (serviceCategory === 'Нарощення' && sizeCategory) {
-                        basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[sizeCategory] || 0;
-                      } else if (serviceCategory === 'Гігієнічний') {
-                        basePrice = 70;
-                      } else if (serviceCategory === 'Ремонт') {
-                        basePrice = 0;
-                      } else {
-                        basePrice = Math.max(price - designPrice - mattingPrice, 0);
+                      
+                      // Try to get price from database first
+                      if (priceList.length > 0 && serviceCategory) {
+                        const categoryData = priceList.find(cat => cat.name === serviceCategory);
+                        if (categoryData && categoryData.services.length > 0) {
+                          const serviceData = categoryData.services[0]; // Get first service in category
+                          basePrice = serviceData.price || 0;
+                        }
+                      }
+                      
+                      // Fallback to hardcoded prices if not in DB
+                      if (basePrice === 0) {
+                        if (serviceCategory === 'Укріплення' && sizeCategory) {
+                          basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[sizeCategory] || 0;
+                        } else if (serviceCategory === 'Нарощення' && sizeCategory) {
+                          basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[sizeCategory] || 0;
+                        } else if (serviceCategory === 'Гігієнічний') {
+                          basePrice = 70;
+                        } else if (serviceCategory === 'Ремонт') {
+                          basePrice = 0;
+                        } else {
+                          basePrice = Math.max(price - designPrice - mattingPrice, 0);
+                        }
                       }
                       const rawPrice = price || (basePrice + designPrice + mattingPrice);
 
