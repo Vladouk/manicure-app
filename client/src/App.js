@@ -1697,28 +1697,6 @@ if (mode === "priceList") {
               ))}
             </div>
           </div>
-
-          {/* Matting Option */}
-          <div style={{
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: '12px',
-            padding: '20px',
-            color: '#2c3e50'
-          }}>
-            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
-              Покриття (додатково)
-            </h4>
-            <div style={{
-              padding: '10px 15px',
-              background: 'rgba(102, 126, 234, 0.1)',
-              borderRadius: '8px',
-              display: 'flex',
-              justifyContent: 'space-between'
-            }}>
-              <span style={{ fontWeight: '500' }}>Матове покриття</span>
-              <span style={{ fontWeight: 'bold', color: '#667eea' }}>+30 zł</span>
-            </div>
-          </div>
         </div>
 
         {/* НАРОЩЕННЯ */}
@@ -1813,28 +1791,6 @@ if (mode === "priceList") {
                   <div style={{ fontSize: '0.85rem', color: '#666' }}>{item.desc}</div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Matting Option */}
-          <div style={{
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: '12px',
-            padding: '20px',
-            color: '#2c3e50'
-          }}>
-            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
-              Покриття (додатково)
-            </h4>
-            <div style={{
-              padding: '10px 15px',
-              background: 'rgba(255, 154, 158, 0.15)',
-              borderRadius: '8px',
-              display: 'flex',
-              justifyContent: 'space-between'
-            }}>
-              <span style={{ fontWeight: '500' }}>Матове покриття</span>
-              <span style={{ fontWeight: 'bold', color: '#ff6b6b' }}>+30 zł</span>
             </div>
           </div>
         </div>
