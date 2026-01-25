@@ -303,7 +303,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       .then(r => r.json())
         .then(data => {
           setBonusPoints(data.points || 0);
-          setIsFirstTime(data.is_first_time || false);
+          _setIsFirstTime(data.is_first_time || false);
           setHasReferralDiscount(data.referral_discount_available || false);
         })
       .catch(() => setBonusPoints(0));
@@ -370,7 +370,7 @@ fetch(`${API}/api/appointment`, {
         .then(r => r.json())
           .then(data => {
             setBonusPoints(data.points || 0);
-            setIsFirstTime(data.is_first_time || false);
+            _setIsFirstTime(data.is_first_time || false);
             setHasReferralDiscount(data.referral_discount_available || false);
           })
         .catch(() => setBonusPoints(0));
@@ -6886,7 +6886,7 @@ if (mode === "booking") {
                   )}
 
                     {(() => {
-                      const firstTimeDiscountAmount = isFirstTime ? Math.round(price * 0.2) : 0;
+                      const firstTimeDiscountAmount = _isFirstTime ? Math.round(price * 0.2) : 0;
                       const referralDiscountAmount = hasReferralDiscount ? Math.round(price * 0.2) : 0;
                       const bestDiscount = Math.max(firstTimeDiscountAmount, referralDiscountAmount);
                       const finalAfterDiscount = price - bestDiscount;
