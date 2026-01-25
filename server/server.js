@@ -21,7 +21,7 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const ADMIN_TG_IDS = [1342762796];
+const ADMIN_TG_IDS = [1342762796, 602355992, 7058392354];
 const ADMIN_TG_ID = ADMIN_TG_IDS[0]; // for messages
 
 // 🔥 Telegram bot для надсилання повідомлень клієнтам
