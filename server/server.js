@@ -939,15 +939,20 @@ app.post(
 
           pool.query(
             `
-    SELECT 
-      tg_id,
-      client,
-      username,
-      MAX(date || ' ' || time) AS last_visit,
-      COUNT(*) as total_visits
-    FROM appointments
-    WHERE status != 'canceled'
-    GROUP BY tg_id, client, username
+    WITH dedup AS (
+      SELECT 
+        COALESCE(tg_id::text, LOWER(client)) AS client_key,
+        MAX(tg_id) AS tg_id,
+        MAX(client) FILTER (WHERE client IS NOT NULL AND client <> '') AS client,
+        MAX(username) FILTER (WHERE username IS NOT NULL AND username <> '') AS username,
+        MAX(date || ' ' || time) AS last_visit,
+        COUNT(*) AS total_visits
+      FROM appointments
+      WHERE status != 'canceled'
+      GROUP BY COALESCE(tg_id::text, LOWER(client))
+    )
+    SELECT tg_id, client, username, last_visit, total_visits
+    FROM dedup
     ORDER BY last_visit DESC
     `,
             []
