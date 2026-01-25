@@ -51,11 +51,13 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [modalImage, setModalImage] = useState(null);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [priceList, setPriceList] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [_dynamicPrices, _setDynamicPrices] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [referralCode, setReferralCode] = useState(null);
   const [enteredReferralCode, setEnteredReferralCode] = useState("");
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [_isFirstTime, _setIsFirstTime] = useState(false);
   const [analyticsHours, setAnalyticsHours] = useState([]);
   const [analyticsDays, setAnalyticsDays] = useState([]);
@@ -234,7 +236,9 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [serviceSub, setServiceSub] = useState("Гібридний манікюр — один колір 120–150 zł");
   const [price, setPrice] = useState(135);
   // Fallback for non-Telegram (web) users
+  // eslint-disable-next-line no-unused-vars
   const [_manualName, _setManualName] = useState("");
+  // eslint-disable-next-line no-unused-vars
   const [_manualTgId, _setManualTgId] = useState("");
 
   useEffect(() => {
