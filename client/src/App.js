@@ -395,8 +395,8 @@ fetch(`${API}/api/appointment`, {
     if (tgUser?.id) {
       fetch(`${API}/api/client/first-time?tg_id=${tgUser.id}`)
         .then(r => r.json())
-        .then(data => _setIsFirstTime(data.first_time))
-        .catch(() => _setIsFirstTime(false));
+        .then(data => setIsFirstTime(data.first_time))
+        .catch(() => setIsFirstTime(false));
     }
   }, [tgUser?.id]);
 
