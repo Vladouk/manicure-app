@@ -6486,42 +6486,6 @@ if (mode === "booking") {
                       })}
                     </div>
                   </div>
-
-                  {/* Matting Selection - УКРІПЛЕННЯ */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
-                      Покриття:
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                      {[
-                        { value: 'Глянцеве', price: 0 },
-                        { value: 'Матове', price: 30 }
-                      ].map(item => {
-                        const isSelected = mattingCategory === item.value;
-                        return (
-                          <button
-                            key={item.value}
-                            onClick={() => {
-                              setMattingCategory(item.value);
-                              setPrice(calculatePrice("Укріплення", sizeCategory, designCategory, item.value));
-                            }}
-                            style={{
-                              padding: 12,
-                              borderRadius: 12,
-                              border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                              background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              textAlign: 'center'
-                            }}
-                          >
-                            <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
-                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </>
               )}
 
@@ -6598,42 +6562,6 @@ if (mode === "booking") {
                           >
                             <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
                             <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
-                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Matting Selection - НАРОЩЕННЯ */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
-                      Покриття:
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                      {[
-                        { value: 'Глянцеве', price: 0 },
-                        { value: 'Матове', price: 30 }
-                      ].map(item => {
-                        const isSelected = mattingCategory === item.value;
-                        return (
-                          <button
-                            key={item.value}
-                            onClick={() => {
-                              setMattingCategory(item.value);
-                              setPrice(calculatePrice("Нарощення", sizeCategory, designCategory, item.value));
-                            }}
-                            style={{
-                              padding: 12,
-                              borderRadius: 12,
-                              border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                              background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              textAlign: 'center'
-                            }}
-                          >
-                            <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
                             <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
                           </button>
                         );
