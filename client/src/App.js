@@ -6418,163 +6418,240 @@ if (mode === "booking") {
 
             <div style={{ display: 'grid', gap: 25 }}>
 
-              {/* Size Selection - УКРІПЛЕННЯ */}
-              {serviceCategory.includes("Укріплення") && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
-                    Довжина нігтів:
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                    {[
-                      { size: 'Нульова', price: 100 },
-                      { size: 'S', price: 110 },
-                      { size: 'M', price: 120 },
-                      { size: 'L', price: 130 },
-                      { size: 'XL', price: 140 },
-                      { size: '2XL', price: 150 },
-                      { size: '3XL', price: 160 }
-                    ].map(item => (
-                      <button
-                        key={item.size}
-                        onClick={() => {
-                          setSizeCategory(item.size);
-                          setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
-                        }}
-                        style={{
-                          padding: 15,
-                          borderRadius: 12,
-                          border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                          background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          textAlign: 'center'
-                        }}
-                      >
-                        <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                        <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Size Selection - НАРОЩЕННЯ */}
-              {serviceCategory.includes("Нарощення") && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
-                    Довжина нігтів:
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                    {[
-                      { size: 'S', length: '±1cm', price: 130 },
-                      { size: 'M', length: '±1.5cm', price: 150 },
-                      { size: 'L', length: '±2cm', price: 170 },
-                      { size: 'XL', length: '±2.5cm', price: 190 },
-                      { size: '2XL', length: '±3cm', price: 210 },
-                      { size: '3XL', length: '±3.5cm', price: 230 }
-                    ].map(item => (
-                      <button
-                        key={item.size}
-                        onClick={() => {
-                          setSizeCategory(item.size);
-                          setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
-                        }}
-                        style={{
-                          padding: 15,
-                          borderRadius: 12,
-                          border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                          background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          textAlign: 'center'
-                        }}
-                      >
-                        <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                        <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
-                        <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Design Selection */}
-              {serviceCategory !== "Чоловічий манікюр" && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
-                    Дизайн:
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                    {[
-                      { value: 'Однотонний', price: 0, desc: 'Без декору' },
-                      { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-                      { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
-                      { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
-                    ].map(item => {
-                      const isSelected = designCategory === item.value;
-                      return (
+              {/* ===== УКРІПЛЕННЯ MENU ===== */}
+              {serviceCategory.includes("Укріплення") && !serviceCategory.includes("Нарощення") && (
+                <>
+                  {/* Size Selection - УКРІПЛЕННЯ ONLY */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                      Довжина нігтів:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+                      {[
+                        { size: 'Нульова', price: 100 },
+                        { size: 'S', price: 110 },
+                        { size: 'M', price: 120 },
+                        { size: 'L', price: 130 },
+                        { size: 'XL', price: 140 },
+                        { size: '2XL', price: 150 },
+                        { size: '3XL', price: 160 }
+                      ].map(item => (
                         <button
-                          key={item.value}
+                          key={item.size}
                           onClick={() => {
-                            setDesignCategory(item.value);
-                            setPrice(calculatePrice(serviceCategory, sizeCategory, item.value, mattingCategory));
+                            setSizeCategory(item.size);
+                            setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
                           }}
                           style={{
-                            padding: 12,
+                            padding: 15,
                             borderRadius: 12,
-                            border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                            background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                            border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                            background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
                             cursor: 'pointer',
                             transition: 'all 0.3s ease',
                             textAlign: 'center'
                           }}
                         >
-                          <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
-                          <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
-                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  {/* Design Selection - УКРІПЛЕННЯ */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                      Дизайн:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+                      {[
+                        { value: 'Однотонний', price: 0, desc: 'Без декору' },
+                        { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+                        { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+                        { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+                      ].map(item => {
+                        const isSelected = designCategory === item.value;
+                        return (
+                          <button
+                            key={item.value}
+                            onClick={() => {
+                              setDesignCategory(item.value);
+                              setPrice(calculatePrice("Укріплення", sizeCategory, item.value, mattingCategory));
+                            }}
+                            style={{
+                              padding: 12,
+                              borderRadius: 12,
+                              border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
+                            <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Matting Selection - УКРІПЛЕННЯ */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                      Покриття:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+                      {[
+                        { value: 'Глянцеве', price: 0 },
+                        { value: 'Матове', price: 30 }
+                      ].map(item => {
+                        const isSelected = mattingCategory === item.value;
+                        return (
+                          <button
+                            key={item.value}
+                            onClick={() => {
+                              setMattingCategory(item.value);
+                              setPrice(calculatePrice("Укріплення", sizeCategory, designCategory, item.value));
+                            }}
+                            style={{
+                              padding: 12,
+                              borderRadius: 12,
+                              border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
 
-              {/* Matting Selection */}
-              {serviceCategory !== "Чоловічий манікюр" && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
-                    Покриття:
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                    {[
-                      { value: 'Глянцеве', price: 0 },
-                      { value: 'Матове', price: 30 }
-                    ].map(item => {
-                      const isSelected = mattingCategory === item.value;
-                      return (
+              {/* ===== НАРОЩЕННЯ MENU ===== */}
+              {serviceCategory.includes("Нарощення") && !serviceCategory.includes("Укріплення") && (
+                <>
+                  {/* Size Selection - НАРОЩЕННЯ ONLY */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                      Довжина нігтів:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+                      {[
+                        { size: 'S', length: '±1cm', price: 130 },
+                        { size: 'M', length: '±1.5cm', price: 150 },
+                        { size: 'L', length: '±2cm', price: 170 },
+                        { size: 'XL', length: '±2.5cm', price: 190 },
+                        { size: '2XL', length: '±3cm', price: 210 },
+                        { size: '3XL', length: '±3.5cm', price: 230 }
+                      ].map(item => (
                         <button
-                          key={item.value}
+                          key={item.size}
                           onClick={() => {
-                            setMattingCategory(item.value);
-                            setPrice(calculatePrice(serviceCategory, sizeCategory, designCategory, item.value));
+                            setSizeCategory(item.size);
+                            setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
                           }}
                           style={{
-                            padding: 12,
+                            padding: 15,
                             borderRadius: 12,
-                            border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                            background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                            border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                            background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
                             cursor: 'pointer',
                             transition: 'all 0.3s ease',
                             textAlign: 'center'
                           }}
                         >
-                          <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
-                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                          <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
+                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  {/* Design Selection - НАРОЩЕННЯ */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                      Дизайн:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+                      {[
+                        { value: 'Однотонний', price: 0, desc: 'Без декору' },
+                        { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+                        { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+                        { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+                      ].map(item => {
+                        const isSelected = designCategory === item.value;
+                        return (
+                          <button
+                            key={item.value}
+                            onClick={() => {
+                              setDesignCategory(item.value);
+                              setPrice(calculatePrice("Нарощення", sizeCategory, item.value, mattingCategory));
+                            }}
+                            style={{
+                              padding: 12,
+                              borderRadius: 12,
+                              border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
+                            <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Matting Selection - НАРОЩЕННЯ */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                      Покриття:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+                      {[
+                        { value: 'Глянцеве', price: 0 },
+                        { value: 'Матове', price: 30 }
+                      ].map(item => {
+                        const isSelected = mattingCategory === item.value;
+                        return (
+                          <button
+                            key={item.value}
+                            onClick={() => {
+                              setMattingCategory(item.value);
+                              setPrice(calculatePrice("Нарощення", sizeCategory, designCategory, item.value));
+                            }}
+                            style={{
+                              padding: 12,
+                              borderRadius: 12,
+                              border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
 
               {/* Current Hands Photos */}
