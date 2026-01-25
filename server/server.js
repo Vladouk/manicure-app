@@ -850,6 +850,82 @@ app.post(
           .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
+        // =============== CLIENT: RESCHEDULE APPOINTMENT ===============
+        app.post('/api/appointment/reschedule', (req, res) => {
+          const { tg_id, appointment_id, new_date, new_time } = req.body;
+
+          if (!tg_id || !appointment_id || !new_date || !new_time) {
+            return res.status(400).json({ error: "Missing required fields" });
+          }
+
+          // 1️⃣ Перевіримо, що запис належить клієнту
+          pool.query(`SELECT id, date, time FROM appointments WHERE id = $1 AND tg_id = $2 AND status != 'canceled'`, [appointment_id, tg_id])
+            .then(result => {
+              const appointment = result.rows[0];
+              if (!appointment) {
+                return res.status(400).json({ error: "Appointment not found" });
+              }
+
+              // 2️⃣ Перевіримо, що новий слот доступний
+              pool.query(`SELECT id FROM work_slots WHERE date = $1 AND time = $2 AND is_booked = false`, [new_date, new_time])
+                .then(result => {
+                  const newSlot = result.rows[0];
+                  if (!newSlot) {
+                    return res.status(400).json({ error: "New slot not available" });
+                  }
+
+                  // 3️⃣ Звільняємо старий слот
+                  pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [appointment.date, appointment.time])
+                    .catch(err => console.error("Free old slot error:", err));
+
+                  // 4️⃣ Бронюємо новий слот
+                  pool.query(`UPDATE work_slots SET is_booked = true WHERE id = $1`, [newSlot.id])
+                    .catch(err => console.error("Book new slot error:", err));
+
+                  // 5️⃣ Оновлюємо запис
+                  pool.query(`UPDATE appointments SET date = $1, time = $2 WHERE id = $3`, [new_date, new_time, appointment_id])
+                    .then(() => {
+                      // 6️⃣ Повідомляємо клієнту
+                      bot.sendMessage(
+                        tg_id,
+                        `✅ *Ваш запис перенесено!*
+
+📅 Було: ${appointment.date} — ${appointment.time}
+📅 Тепер: ${new_date} — ${new_time}
+
+Чекаємо вас! 💅`,
+                        { parse_mode: "Markdown" }
+                      ).catch(err => console.error("Client notification error:", err));
+
+                      // 7️⃣ Повідомляємо адміну
+                      bot.sendMessage(
+                        ADMIN_TG_ID,
+                        `🔄 *Клієнт перенес запис*
+
+👤 Клієнт ID: ${tg_id}
+📅 Було: ${appointment.date} — ${appointment.time}
+📅 Тепер: ${new_date} — ${new_time}`,
+                        { parse_mode: "Markdown" }
+                      ).catch(err => console.error("Admin notification error:", err));
+
+                      res.json({ ok: true });
+                    })
+                    .catch(err => {
+                      console.error("Update appointment error:", err);
+                      res.status(500).json({ error: "Failed to reschedule" });
+                    });
+                })
+                .catch(err => {
+                  console.error("Check new slot error:", err);
+                  res.status(500).json({ error: "DB error" });
+                });
+            })
+            .catch(err => {
+              console.error("Check appointment error:", err);
+              res.status(500).json({ error: "DB error" });
+            });
+        });
+
         // =============== CLIENT: GET BONUS POINTS ===============
         app.get('/api/client/points', (req, res) => {
           const tg_id = req.query.tg_id;
@@ -1156,7 +1232,7 @@ app.post(
 
           pool.query(`
     SELECT
-      id, date, time, design, length, type, status, comment, reference_image, current_hands_images
+      id, date, time, design, length, type, status, comment, reference_image, current_hands_images, service, price, bonus_points_spent, bonus_reward, client
     FROM appointments
     WHERE tg_id = $1
     ORDER BY date DESC, time DESC

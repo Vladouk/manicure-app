@@ -64,6 +64,12 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
   const [analyticsForecast, setAnalyticsForecast] = useState(null);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
+  
+  // RESCHEDULE APPOINTMENT
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+  const [rescheduleOldDate, setRescheduleOldDate] = useState(null);
+  const [rescheduleOldTime, setRescheduleOldTime] = useState(null);
+  const [rescheduleSelectedSlotId, setRescheduleSelectedSlotId] = useState(null);
 
   // BOOKING INTERFACE HOOKS
   const [bookingStep, setBookingStep] = useState(1);
@@ -1390,21 +1396,70 @@ if (mode === "myAppointments") {
                   padding: '15px',
                   marginBottom: '15px'
                 }}>
+                  {/* Послуга та ціна */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    marginBottom: '8px',
-                    fontSize: '1rem'
+                    marginBottom: '10px',
+                    fontSize: '1rem',
+                    fontWeight: '600'
+                  }}>
+                    <span style={{ marginRight: '8px' }}>💼</span>
+                    <span>{h.service}</span>
+                  </div>
+
+                  {/* Оформлення деталей */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '10px',
+                    fontSize: '0.95rem'
                   }}>
                     <span style={{ marginRight: '8px' }}>🎨</span>
                     <span>{h.design}, {h.length}, {h.type}</span>
                   </div>
+
+                  {/* Ціна */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '10px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.95)' : '#27ae60'
+                  }}>
+                    <span style={{ marginRight: '8px' }}>💰</span>
+                    <span>{h.price} zł</span>
+                  </div>
+
+                  {/* Бонус інформація */}
+                  {h.bonus_points_spent > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '10px',
+                      fontSize: '0.9rem',
+                      fontWeight: '500'
+                    }}>
+                      <span style={{ marginRight: '8px' }}>🎁</span>
+                      <span>
+                        {h.bonus_reward === 'free_design' && 'Безкоштовний дизайн'}
+                        {h.bonus_reward === 'discount_50' && 'Знижка 50%'}
+                        {h.bonus_reward === 'free_manicure' && 'Повний манікюр безкоштовно'}
+                        {' (-' + h.bonus_points_spent + ' балів)'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Коментар */}
                   {h.comment && (
                     <div style={{
                       display: 'flex',
                       alignItems: 'flex-start',
                       fontSize: '0.9rem',
-                      opacity: 0.8
+                      opacity: 0.8,
+                      paddingTop: '10px',
+                      borderTop: (label === "today" || label === "tomorrow") ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)'
                     }}>
                       <span style={{ marginRight: '8px', marginTop: '2px' }}>💬</span>
                       <span>{h.comment}</span>
@@ -1513,6 +1568,105 @@ if (mode === "myAppointments") {
                   }
                   return null;
                 })()}
+
+                {/* Action Buttons */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '10px',
+                  marginTop: '20px'
+                }}>
+                  {/* Cancel Button */}
+                  <button
+                    onClick={() => {
+                      const shouldCancel = window.confirm('Ви впевнені, що хочете скасувати цей запис?');
+                      if (shouldCancel) {
+                        fetch(`${API}/api/appointment/cancel`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'x-init-data': WebApp.initData },
+                          body: JSON.stringify({ tg_id: tgUser.id })
+                        })
+                          .then(r => r.json())
+                          .then(data => {
+                            if (data.ok) {
+                              alert('✅ Запис скасовано!');
+                              setMyHistory(myHistory.filter(a => a.id !== h.id));
+                            } else {
+                              alert('❌ Помилка: ' + data.error);
+                            }
+                          })
+                          .catch(err => {
+                            console.error('Cancel error:', err);
+                            alert('❌ Помилка скасування');
+                          });
+                      }
+                    }}
+                    style={{
+                      background: (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.2)' : 'rgba(231, 76, 60, 0.1)',
+                      border: (label === "today" || label === "tomorrow") ? '2px solid rgba(255,255,255,0.4)' : '2px solid #e74c3c',
+                      borderRadius: '10px',
+                      padding: '12px 16px',
+                      fontSize: '0.95rem',
+                      fontWeight: '600',
+                      color: (label === "today" || label === "tomorrow") ? 'white' : '#e74c3c',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.3)' : 'rgba(231, 76, 60, 0.2)';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.2)' : 'rgba(231, 76, 60, 0.1)';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    ❌ Скасувати
+                  </button>
+                  {/* Reschedule Button */}
+                  <button
+                    onClick={() => {
+                      // Завантажимо доступні слоти
+                      fetch(`${API}/api/slots`, {
+                        headers: { "x-init-data": WebApp.initData }
+                      })
+                        .then(r => r.json())
+                        .then(data => {
+                          setSlots(data);
+                          setMode("rescheduleAppointment");
+                          setSelectedAppointmentId(h.id);
+                          setRescheduleOldDate(h.date);
+                          setRescheduleOldTime(h.time);
+                          setRescheduleSelectedSlotId(null);
+                        })
+                        .catch(err => {
+                          console.error('Error loading slots:', err);
+                          alert('❌ Помилка завантаження часів');
+                        });
+                    }}
+                    style={{
+                      background: (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.2)' : 'rgba(52, 152, 219, 0.1)',
+                      border: (label === "today" || label === "tomorrow") ? '2px solid rgba(255,255,255,0.4)' : '2px solid #3498db',
+                      borderRadius: '10px',
+                      padding: '12px 16px',
+                      fontSize: '0.95rem',
+                      fontWeight: '600',
+                      color: (label === "today" || label === "tomorrow") ? 'white' : '#3498db',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.3)' : 'rgba(52, 152, 219, 0.2)';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.2)' : 'rgba(52, 152, 219, 0.1)';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    📅 Перенести
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -2651,6 +2805,244 @@ const deleteSlot = (id) => {
     })
     .catch(() => alert("❌ Помилка видалення"));
 };
+
+if (mode === "rescheduleAppointment") {
+  return (
+    <div className="app-container">
+      {/* Modern Header */}
+      <div className="card" style={{
+        background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '30px 20px',
+        marginBottom: '30px',
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(52, 152, 219, 0.3)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <h2 style={{
+          fontSize: '2.5rem',
+          margin: '0 0 10px 0',
+          fontWeight: '700',
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          📅 Перенести запис
+        </h2>
+        <p style={{
+          fontSize: '1rem',
+          margin: '0',
+          opacity: 0.9,
+          fontWeight: '300',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          Старий час: {rescheduleOldDate} — {rescheduleOldTime}
+        </p>
+      </div>
+
+      {/* Back Button */}
+      <div style={{ textAlign: 'center', margin: '20px 0' }}>
+        <button
+          className="primary-btn"
+          onClick={() => {
+            setMode("myAppointments");
+            setSelectedAppointmentId(null);
+            setRescheduleSelectedSlotId(null);
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px 30px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          ← Назад до записів
+        </button>
+      </div>
+
+      {/* Available Slots */}
+      <div style={{ padding: '0 10px' }}>
+        <h3 style={{ color: '#333', fontSize: '1.3rem', fontWeight: '600', marginBottom: '20px' }}>
+          💫 Вільні часи для запису:
+        </h3>
+
+        {slots.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            borderRadius: '20px',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+            marginBottom: '30px'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '15px', opacity: 0.6 }}>⏳</div>
+            <h3 style={{ margin: '0 0 10px 0', color: '#666', fontSize: '1.2rem', fontWeight: '600' }}>
+              Вільних часів немає
+            </h3>
+            <p style={{ margin: '0', color: '#888', fontSize: '0.95rem' }}>
+              Спробуйте пізніше 😊
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '20px',
+            marginBottom: '30px'
+          }}>
+            {slots.map(slot => (
+              <div
+                key={slot.id}
+                onClick={() => setRescheduleSelectedSlotId(slot.id)}
+                style={{
+                  background: rescheduleSelectedSlotId === slot.id
+                    ? 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)'
+                    : 'linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%)',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  cursor: 'pointer',
+                  border: rescheduleSelectedSlotId === slot.id ? '3px solid #fff' : '2px solid transparent',
+                  transition: 'all 0.3s ease',
+                  boxShadow: rescheduleSelectedSlotId === slot.id
+                    ? '0 8px 25px rgba(52, 152, 219, 0.4)'
+                    : '0 4px 15px rgba(0,0,0,0.1)',
+                  color: rescheduleSelectedSlotId === slot.id ? 'white' : '#333'
+                }}
+                onMouseEnter={(e) => {
+                  if (rescheduleSelectedSlotId !== slot.id) {
+                    e.target.style.transform = 'translateY(-5px)';
+                    e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (rescheduleSelectedSlotId !== slot.id) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                  }
+                }}
+              >
+                <div style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: '600' }}>
+                  📅 {slot.date}
+                </div>
+                <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '12px' }}>
+                  ⏰ {slot.time}
+                </div>
+                {rescheduleSelectedSlotId === slot.id && (
+                  <div style={{
+                    display: 'inline-block',
+                    background: 'rgba(255,255,255,0.2)',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    marginTop: '10px'
+                  }}>
+                    ✅ Вибрано
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Confirm Button */}
+        {rescheduleSelectedSlotId && (
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '30px'
+          }}>
+            <button
+              onClick={() => {
+                const selectedSlot = slots.find(s => s.id === rescheduleSelectedSlotId);
+                if (!selectedSlot) {
+                  alert('❌ Помилка: слот не знайдено');
+                  return;
+                }
+
+                fetch(`${API}/api/appointment/reschedule`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-init-data': WebApp.initData
+                  },
+                  body: JSON.stringify({
+                    tg_id: tgUser.id,
+                    appointment_id: selectedAppointmentId,
+                    new_date: selectedSlot.date,
+                    new_time: selectedSlot.time
+                  })
+                })
+                  .then(r => r.json())
+                  .then(data => {
+                    if (data.ok) {
+                      alert('✅ Запис успішно перенесено!');
+                      setMode("myAppointments");
+                      setSelectedAppointmentId(null);
+                      setRescheduleSelectedSlotId(null);
+                      // Reload appointments
+                      fetch(`${API}/api/my-appointments`, {
+                        headers: { "x-init-data": WebApp.initData }
+                      })
+                        .then(r => r.json())
+                        .then(data => setMyHistory(data))
+                        .catch(err => console.error('Error reloading:', err));
+                    } else {
+                      alert('❌ Помилка: ' + (data.error || 'невідома помилка'));
+                    }
+                  })
+                  .catch(err => {
+                    console.error('Reschedule error:', err);
+                    alert('❌ Помилка перенесення');
+                  });
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '18px 50px',
+                fontSize: '1.1rem',
+                fontWeight: '700',
+                color: 'white',
+                cursor: 'pointer',
+                boxShadow: '0 6px 20px rgba(39, 174, 96, 0.3)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-3px)';
+                e.target.style.boxShadow = '0 10px 30px rgba(39, 174, 96, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 6px 20px rgba(39, 174, 96, 0.3)';
+              }}
+            >
+              ✅ Перенести на цей час
+            </button>
+          </div>
+        )}
+      </div>
+
+      {modal}
+    </div>
+  );
+}
 
 if (mode === "adminMenu") {
   return (
