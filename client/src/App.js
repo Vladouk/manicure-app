@@ -51,12 +51,12 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [modalImage, setModalImage] = useState(null);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [priceList, setPriceList] = useState([]);
-  const [dynamicPrices, _setDynamicPrices] = useState([]);
+  const [_dynamicPrices, _setDynamicPrices] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [referralCode, setReferralCode] = useState(null);
   const [enteredReferralCode, setEnteredReferralCode] = useState("");
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
-  const [isFirstTime, _setIsFirstTime] = useState(false);
+  const [_isFirstTime, _setIsFirstTime] = useState(false);
   const [analyticsHours, setAnalyticsHours] = useState([]);
   const [analyticsDays, setAnalyticsDays] = useState([]);
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
@@ -234,8 +234,8 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [serviceSub, setServiceSub] = useState("Гібридний манікюр — один колір 120–150 zł");
   const [price, setPrice] = useState(135);
   // Fallback for non-Telegram (web) users
-  const [manualName, _setManualName] = useState("");
-  const [manualTgId, _setManualTgId] = useState("");
+  const [_manualName, _setManualName] = useState("");
+  const [_manualTgId, _setManualTgId] = useState("");
 
   useEffect(() => {
   WebApp.ready();
