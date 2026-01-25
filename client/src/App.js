@@ -403,6 +403,7 @@ fetch(`${API}/api/appointment`, {
 
   useEffect(() => {
     setPrice(calculatePrice(serviceSub));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceSub, priceList]);
 
   // Refresh slots when entering client booking mode
