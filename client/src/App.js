@@ -6391,7 +6391,7 @@ if (mode === "booking") {
                       { size: '3XL', length: '±3.5cm' }
                     ].map(item => {
                       const basePrice = serviceCategory === "Укріплення" 
-                        ? { S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[item.size]
+                        ? { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[item.size]
                         : { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[item.size];
                       
                       const isSelected = length === item.size;
@@ -6399,7 +6399,10 @@ if (mode === "booking") {
                       return (
                         <button
                           key={item.size}
-                          onClick={() => setLength(item.size)}
+                          onClick={() => {
+                            setLength(item.size);
+                            setPrice(basePrice);
+                          }}
                           style={{
                             padding: 15,
                             borderRadius: 12,
@@ -6437,7 +6440,23 @@ if (mode === "booking") {
                       return (
                         <button
                           key={item.value}
-                          onClick={() => setDesign(item.value)}
+                          onClick={() => {
+                            setDesign(item.value);
+                            // Recalculate price
+                            const currentType = type || 'Глянцеве';
+                            const mattingPrice = currentType === 'Матове' ? 30 : 0;
+                            let basePrice = 80; // default for men's manicure
+                            
+                            if (serviceCategory === 'Укріплення' && length) {
+                              basePrice = { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[length] || 100;
+                            } else if (serviceCategory === 'Нарощення' && length) {
+                              basePrice = { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[length] || 130;
+                            } else if (serviceCategory === 'Чоловічий манікюр') {
+                              basePrice = 80;
+                            }
+                            
+                            setPrice(basePrice + item.price + mattingPrice);
+                          }}
                           style={{
                             padding: 12,
                             borderRadius: 12,
@@ -6473,7 +6492,23 @@ if (mode === "booking") {
                       return (
                         <button
                           key={item.value}
-                          onClick={() => setType(item.value)}
+                          onClick={() => {
+                            setType(item.value);
+                            // Recalculate price
+                            const currentDesign = design || 'Однотонний';
+                            const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[currentDesign] || 0;
+                            let basePrice = 80;
+                            
+                            if (serviceCategory === 'Укріплення' && length) {
+                              basePrice = { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[length] || 100;
+                            } else if (serviceCategory === 'Нарощення' && length) {
+                              basePrice = { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[length] || 130;
+                            } else if (serviceCategory === 'Чоловічий манікюр') {
+                              basePrice = 80;
+                            }
+                            
+                            setPrice(basePrice + designPrice + item.price);
+                          }}
                           style={{
                             padding: 12,
                             borderRadius: 12,
@@ -6661,40 +6696,83 @@ if (mode === "booking") {
 
             <div style={{ marginBottom: 30 }}>
               <div style={{
-                background: '#f8f9fa',
-                borderRadius: 15,
-                padding: 20,
-                marginBottom: 15
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: 20,
+                padding: 25,
+                color: 'white',
+                boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)'
               }}>
-                <div style={{ marginBottom: 15 }}>
-                  <span style={{ fontWeight: 'bold', color: '#555' }}>Послуга:</span>
-                  <span style={{ marginLeft: 10, color: '#333' }}>{serviceSub}</span>
+                <div style={{ 
+                  fontSize: 20, 
+                  fontWeight: 'bold', 
+                  marginBottom: 20,
+                  paddingBottom: 15,
+                  borderBottom: '2px solid rgba(255,255,255,0.2)'
+                }}>
+                  📋 Деталі запису
                 </div>
-                <div style={{ marginBottom: 15 }}>
-                  <span style={{ fontWeight: 'bold', color: '#555' }}>Дата та час:</span>
-                  <span style={{ marginLeft: 10, color: '#333' }}>{selectedSlot?.date} о {selectedSlot?.time}</span>
-                </div>
-                {length && (
-                  <div style={{ marginBottom: 15 }}>
-                    <span style={{ fontWeight: 'bold', color: '#555' }}>Розмір:</span>
-                    <span style={{ marginLeft: 10, color: '#333' }}>{length}</span>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                  <div style={{ 
+                    background: 'rgba(255,255,255,0.15)',
+                    borderRadius: 12,
+                    padding: 15
+                  }}>
+                    <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 5 }}>Послуга</div>
+                    <div style={{ fontSize: 18, fontWeight: 'bold' }}>{serviceCategory}</div>
                   </div>
-                )}
-                {design && (
-                  <div style={{ marginBottom: 15 }}>
-                    <span style={{ fontWeight: 'bold', color: '#555' }}>Дизайн:</span>
-                    <span style={{ marginLeft: 10, color: '#333' }}>{design}</span>
+
+                  <div style={{ 
+                    background: 'rgba(255,255,255,0.15)',
+                    borderRadius: 12,
+                    padding: 15
+                  }}>
+                    <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 5 }}>Дата та час</div>
+                    <div style={{ fontSize: 18, fontWeight: 'bold' }}>{selectedSlot?.date} о {selectedSlot?.time}</div>
                   </div>
-                )}
-                {type && (
-                  <div style={{ marginBottom: 15 }}>
-                    <span style={{ fontWeight: 'bold', color: '#555' }}>Покриття:</span>
-                    <span style={{ marginLeft: 10, color: '#333' }}>{type}</span>
+
+                  {length && (
+                    <div style={{ 
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 12,
+                      padding: 15
+                    }}>
+                      <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 5 }}>Розмір</div>
+                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{length}</div>
+                    </div>
+                  )}
+
+                  {design && (
+                    <div style={{ 
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 12,
+                      padding: 15
+                    }}>
+                      <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 5 }}>Дизайн</div>
+                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{design}</div>
+                    </div>
+                  )}
+
+                  {type && (
+                    <div style={{ 
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 12,
+                      padding: 15
+                    }}>
+                      <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 5 }}>Покриття</div>
+                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{type}</div>
+                    </div>
+                  )}
+
+                  <div style={{ 
+                    background: 'rgba(255,255,255,0.25)',
+                    borderRadius: 12,
+                    padding: 20,
+                    marginTop: 10
+                  }}>
+                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 8 }}>Загальна вартість</div>
+                    <div style={{ fontSize: 32, fontWeight: 'bold', letterSpacing: '1px' }}>{price} zł</div>
                   </div>
-                )}
-                <div>
-                  <span style={{ fontWeight: 'bold', fontSize: 18, color: '#667eea' }}>Ціна:</span>
-                  <span style={{ marginLeft: 10, fontSize: 18, fontWeight: 'bold', color: '#667eea' }}>{price} zł</span>
                 </div>
               </div>
             </div>
