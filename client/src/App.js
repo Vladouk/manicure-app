@@ -300,9 +300,9 @@ const [calendarDate, setCalendarDate] = useState(new Date());
 
         formData.append("client", clientName);
 formData.append("slot_id", selectedSlotId);
-formData.append("design", design);
-formData.append("length", length);
-formData.append("type", type);
+formData.append("design", designCategory);
+formData.append("length", sizeCategory);
+formData.append("type", mattingCategory);
 formData.append("comment", comment);
         formData.append("tg_id", effectiveTgId);
 
