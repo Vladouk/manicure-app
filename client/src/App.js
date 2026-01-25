@@ -84,8 +84,8 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       return;
     }
 
-    const clientName = tgUser?.first_name || manualName || "Anon";
-    const effectiveTgId = tgUser?.id || manualTgId || '';
+    const clientName = tgUser?.first_name || _manualName || "Anon";
+    const effectiveTgId = tgUser?.id || _manualTgId || '';
 
     if (!effectiveTgId) {
       alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
@@ -279,8 +279,8 @@ const [calendarDate, setCalendarDate] = useState(new Date());
 
         const formData = new FormData();
         // Use Telegram user data when available, otherwise use manual inputs for web users
-        const clientName = tgUser?.first_name || manualName || "Anon";
-        const effectiveTgId = tgUser?.id || manualTgId || '';
+        const clientName = tgUser?.first_name || _manualName || "Anon";
+        const effectiveTgId = tgUser?.id || _manualTgId || '';
 
         if (!effectiveTgId) {
           alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
@@ -325,7 +325,7 @@ fetch(`${API}/api/appointment`, {
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, design, length, type, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, manualName, manualTgId]);
+  }, [effectiveMode, selectedSlotId, design, length, type, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, _manualName, _manualTgId]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
