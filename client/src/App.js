@@ -73,6 +73,12 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const prevStep = () => setBookingStep(prev => Math.max(prev - 1, 1));
   const resetBooking = () => {
     setBookingStep(1);
+    setServiceCategory("");
+    setServiceSub("");
+    setSizeCategory("");
+    setDesignCategory("Однотонний");
+    setMattingCategory("Глянцеве");
+    setPrice(0);
     setSelectedSlotId("");
     setEnteredReferralCode("");
     setComment("");
@@ -97,9 +103,9 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     const formData = new FormData();
     formData.append("client", clientName);
     formData.append("slot_id", selectedSlotId);
-    formData.append("design", design);
-    formData.append("length", length);
-    formData.append("type", type);
+    formData.append("design", designCategory);
+    formData.append("length", sizeCategory);
+    formData.append("type", mattingCategory);
     formData.append("comment", comment);
     formData.append("tg_id", effectiveTgId);
     formData.append("service_category", serviceCategory);
@@ -228,13 +234,14 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   ) : null;
 
 
-  // CLIENT FORM
-  const [design, setDesign] = useState("Класичний френч");
-  const [length, setLength] = useState("Короткі");
-  const [type, setType] = useState("Гель-лак");
-  const [serviceCategory, setServiceCategory] = useState("Гібридний манікюр");
-  const [serviceSub, setServiceSub] = useState("Гібридний манікюр — один колір 120–150 zł");
-  const [price, setPrice] = useState(135);
+  // BOOKING SYSTEM - NEW
+  const [serviceCategory, setServiceCategory] = useState("");
+  const [serviceSub, setServiceSub] = useState("");
+  const [sizeCategory, setSizeCategory] = useState(""); // S, M, L, XL, 2XL, 3XL
+  const [designCategory, setDesignCategory] = useState("Однотонний"); // Однотонний, Простий, Середній, Складний
+  const [mattingCategory, setMattingCategory] = useState("Глянцеве"); // Глянцеве, Матове
+  const [price, setPrice] = useState(0);
+  
   // Fallback for non-Telegram (web) users
   // eslint-disable-next-line no-unused-vars
   const [_manualName, _setManualName] = useState("");
@@ -329,7 +336,7 @@ fetch(`${API}/api/appointment`, {
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, design, length, type, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, _manualName, _manualTgId]);
+  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, _manualName, _manualTgId]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
@@ -6134,6 +6141,10 @@ if (mode === "booking") {
                   onClick={() => {
                     setServiceCategory("Укріплення");
                     setServiceSub("Укріплення");
+                    setSizeCategory("");
+                    setDesignCategory("Однотонний");
+                    setMattingCategory("Глянцеве");
+                    setPrice(0);
                   }}
                   style={{
                     padding: 20,
@@ -6159,6 +6170,10 @@ if (mode === "booking") {
                   onClick={() => {
                     setServiceCategory("Нарощення");
                     setServiceSub("Нарощення");
+                    setSizeCategory("");
+                    setDesignCategory("Однотонний");
+                    setMattingCategory("Глянцеве");
+                    setPrice(0);
                   }}
                   style={{
                     padding: 20,
@@ -6185,6 +6200,10 @@ if (mode === "booking") {
                     onClick={() => {
                       setServiceCategory("Ремонт");
                       setServiceSub("Ремонт");
+                      setSizeCategory("");
+                      setDesignCategory("");
+                      setMattingCategory("");
+                      setPrice(0);
                     }}
                     style={{
                       padding: 20,
@@ -6210,7 +6229,10 @@ if (mode === "booking") {
                 <div
                   onClick={() => {
                     setServiceCategory("Чоловічий манікюр");
-                    setServiceSub("Чоловічий манікюр (80 zł)");
+                    setServiceSub("Чоловічий манікюр");
+                    setSizeCategory("");
+                    setDesignCategory("");
+                    setMattingCategory("");
                     setPrice(80);
                   }}
                   style={{
@@ -6394,14 +6416,17 @@ if (mode === "booking") {
                         ? { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[item.size]
                         : { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[item.size];
                       
-                      const isSelected = length === item.size;
+                      const isSelected = sizeCategory === item.size;
                       
                       return (
                         <button
                           key={item.size}
                           onClick={() => {
-                            setLength(item.size);
-                            setPrice(basePrice);
+                            setSizeCategory(item.size);
+                            // Calculate full price
+                            const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[designCategory] || 0;
+                            const mattingPrice = mattingCategory === 'Матове' ? 30 : 0;
+                            setPrice(basePrice + designPrice + mattingPrice);
                           }}
                           style={{
                             padding: 15,
@@ -6436,25 +6461,22 @@ if (mode === "booking") {
                       { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
                       { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
                     ].map(item => {
-                      const isSelected = design === item.value;
+                      const isSelected = designCategory === item.value;
                       return (
                         <button
                           key={item.value}
                           onClick={() => {
-                            setDesign(item.value);
+                            setDesignCategory(item.value);
                             // Recalculate price
-                            const currentType = type || 'Глянцеве';
-                            const mattingPrice = currentType === 'Матове' ? 30 : 0;
                             let basePrice = 80; // default for men's manicure
                             
-                            if (serviceCategory === 'Укріплення' && length) {
-                              basePrice = { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[length] || 100;
-                            } else if (serviceCategory === 'Нарощення' && length) {
-                              basePrice = { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[length] || 130;
-                            } else if (serviceCategory === 'Чоловічий манікюр') {
-                              basePrice = 80;
+                            if (serviceCategory === 'Укріплення' && sizeCategory) {
+                              basePrice = { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[sizeCategory] || 100;
+                            } else if (serviceCategory === 'Нарощення' && sizeCategory) {
+                              basePrice = { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[sizeCategory] || 130;
                             }
                             
+                            const mattingPrice = mattingCategory === 'Матове' ? 30 : 0;
                             setPrice(basePrice + item.price + mattingPrice);
                           }}
                           style={{
@@ -6488,23 +6510,20 @@ if (mode === "booking") {
                       { value: 'Глянцеве', price: 0 },
                       { value: 'Матове', price: 30 }
                     ].map(item => {
-                      const isSelected = type === item.value;
+                      const isSelected = mattingCategory === item.value;
                       return (
                         <button
                           key={item.value}
                           onClick={() => {
-                            setType(item.value);
+                            setMattingCategory(item.value);
                             // Recalculate price
-                            const currentDesign = design || 'Однотонний';
-                            const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[currentDesign] || 0;
+                            const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[designCategory] || 0;
                             let basePrice = 80;
                             
-                            if (serviceCategory === 'Укріплення' && length) {
-                              basePrice = { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[length] || 100;
-                            } else if (serviceCategory === 'Нарощення' && length) {
-                              basePrice = { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[length] || 130;
-                            } else if (serviceCategory === 'Чоловічий манікюр') {
-                              basePrice = 80;
+                            if (serviceCategory === 'Укріплення' && sizeCategory) {
+                              basePrice = { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[sizeCategory] || 100;
+                            } else if (serviceCategory === 'Нарощення' && sizeCategory) {
+                              basePrice = { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[sizeCategory] || 130;
                             }
                             
                             setPrice(basePrice + designPrice + item.price);
@@ -6731,36 +6750,36 @@ if (mode === "booking") {
                     <div style={{ fontSize: 18, fontWeight: 'bold' }}>{selectedSlot?.date} о {selectedSlot?.time}</div>
                   </div>
 
-                  {length && (
+                  {sizeCategory && (
                     <div style={{ 
                       background: 'rgba(255,255,255,0.15)',
                       borderRadius: 12,
                       padding: 15
                     }}>
                       <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 5 }}>Розмір</div>
-                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{length}</div>
+                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{sizeCategory}</div>
                     </div>
                   )}
 
-                  {design && (
+                  {designCategory && designCategory !== "Однотонний" && (
                     <div style={{ 
                       background: 'rgba(255,255,255,0.15)',
                       borderRadius: 12,
                       padding: 15
                     }}>
                       <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 5 }}>Дизайн</div>
-                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{design}</div>
+                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{designCategory}</div>
                     </div>
                   )}
 
-                  {type && (
+                  {mattingCategory && mattingCategory !== "Глянцеве" && (
                     <div style={{ 
                       background: 'rgba(255,255,255,0.15)',
                       borderRadius: 12,
                       padding: 15
                     }}>
                       <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 5 }}>Покриття</div>
-                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{type}</div>
+                      <div style={{ fontSize: 18, fontWeight: 'bold' }}>{mattingCategory}</div>
                     </div>
                   )}
 
