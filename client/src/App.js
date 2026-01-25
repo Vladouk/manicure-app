@@ -266,6 +266,11 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     return basePrice + designPrice + mattingPrice;
   };
   
+  // Clear size when service changes
+  useEffect(() => {
+    setSizeCategory('');
+  }, [serviceCategory]);
+  
   // Fallback for non-Telegram (web) users
   // eslint-disable-next-line no-unused-vars
   const [_manualName, _setManualName] = useState("");
@@ -6412,11 +6417,6 @@ if (mode === "booking") {
             </div>
 
             <div style={{ display: 'grid', gap: 25 }}>
-              
-              {/* DEBUG */}
-              <div style={{ padding: 10, background: '#f0f0f0', borderRadius: 8, fontSize: 12, color: '#666' }}>
-                DEBUG: serviceCategory = "{serviceCategory}" | sizeCategory = "{sizeCategory}"
-              </div>
 
               {/* Size Selection - УКРІПЛЕННЯ */}
               {serviceCategory.includes("Укріплення") && (
