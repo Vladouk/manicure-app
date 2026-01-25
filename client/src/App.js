@@ -56,8 +56,6 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     const [hasReferralDiscount, setHasReferralDiscount] = useState(false);
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
-  const _isFirstTime = isFirstTime;
-  const _setIsFirstTime = setIsFirstTime;
   const [bonusPointsToUse, setBonusPointsToUse] = useState(0);
   const [selectedBonusReward, setSelectedBonusReward] = useState(null);
   const [analyticsHours, setAnalyticsHours] = useState([]);
@@ -305,7 +303,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       .then(r => r.json())
         .then(data => {
           setBonusPoints(data.points || 0);
-          _setIsFirstTime(data.is_first_time || false);
+          setIsFirstTime(data.is_first_time || false);
           setHasReferralDiscount(data.referral_discount_available || false);
         })
       .catch(() => setBonusPoints(0));
@@ -364,7 +362,7 @@ fetch(`${API}/api/appointment`, {
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, _manualName, _manualTgId]);
+  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, _manualName, _manualTgId, setIsFirstTime]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
@@ -372,12 +370,12 @@ fetch(`${API}/api/appointment`, {
         .then(r => r.json())
           .then(data => {
             setBonusPoints(data.points || 0);
-            _setIsFirstTime(data.is_first_time || false);
+            setIsFirstTime(data.is_first_time || false);
             setHasReferralDiscount(data.referral_discount_available || false);
           })
         .catch(() => setBonusPoints(0));
     }
-  }, [mode, tgUser?.id]);
+  }, [mode, tgUser?.id, setIsFirstTime]);
 
   useEffect(() => {
     setPrice(calculatePrice(serviceSub));
@@ -6931,7 +6929,7 @@ if (mode === "booking") {
                   )}
 
                     {(() => {
-                      const firstTimeDiscountAmount = _isFirstTime ? Math.round(price * 0.2) : 0;
+                      const firstTimeDiscountAmount = isFirstTime ? Math.round(price * 0.2) : 0;
                       const referralDiscountAmount = hasReferralDiscount ? Math.round(price * 0.2) : 0;
                       const bestDiscount = Math.max(firstTimeDiscountAmount, referralDiscountAmount);
                       const finalAfterDiscount = price - bestDiscount;
