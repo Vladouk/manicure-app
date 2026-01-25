@@ -250,7 +250,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     if (category === 'Укріплення' && size) {
       basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
     } else if (category === 'Нарощення' && size) {
-      basePrice = { 'Нульова': 130, S: 140, M: 160, L: 180, XL: 200, '2XL': 220, '3XL': 240 }[size] || 0;
+      basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
     } else if (category === 'Чоловічий манікюр') {
       basePrice = 80;
     } else if (category === 'Ремонт') {
@@ -6431,7 +6431,7 @@ if (mode === "booking") {
                     ].map(item => {
                       const basePrice = serviceCategory === "Укріплення" 
                         ? { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[item.size]
-                        : { 'Нульова': 130, S: 140, M: 160, L: 180, XL: 200, '2XL': 220, '3XL': 240 }[item.size];
+                        : { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[item.size];
                       
                       const isSelected = sizeCategory === item.size;
                       
