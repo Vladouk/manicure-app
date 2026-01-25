@@ -242,6 +242,30 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [mattingCategory, setMattingCategory] = useState("Глянцеве"); // Глянцеве, Матове
   const [price, setPrice] = useState(0);
   
+  // Centralized price calculation function
+  const calculatePrice = (category, size, design, matting) => {
+    let basePrice = 0;
+    
+    // Get base price from size
+    if (category === 'Укріплення' && size) {
+      basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
+    } else if (category === 'Нарощення' && size) {
+      basePrice = { 'Нульова': 130, S: 140, M: 160, L: 180, XL: 200, '2XL': 220, '3XL': 240 }[size] || 0;
+    } else if (category === 'Чоловічий манікюр') {
+      basePrice = 80;
+    } else if (category === 'Ремонт') {
+      basePrice = 0; // Ремонт - за домовленістю
+    }
+    
+    // Add design price
+    const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[design] || 0;
+    
+    // Add matting price
+    const mattingPrice = matting === 'Матове' ? 30 : 0;
+    
+    return basePrice + designPrice + mattingPrice;
+  };
+  
   // Fallback for non-Telegram (web) users
   // eslint-disable-next-line no-unused-vars
   const [_manualName, _setManualName] = useState("");
@@ -347,7 +371,7 @@ fetch(`${API}/api/appointment`, {
     }
   }, [mode, tgUser?.id]);
 
-  const calculatePrice = (sub) => {
+  const calculatePriceFromServiceSub = (sub) => {
     if (!sub) return 0;
     
     // Extract price from the serviceSub string (format: "Service Name (price zł ...)")
@@ -6405,6 +6429,7 @@ if (mode === "booking") {
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
                     {[
+                      { size: 'Нульова', length: 'Нульова довжина' },
                       { size: 'S', length: '±1-1.5cm' },
                       { size: 'M', length: '±1.5-2cm' },
                       { size: 'L', length: '±2-2.5cm' },
@@ -6413,8 +6438,8 @@ if (mode === "booking") {
                       { size: '3XL', length: '±3.5cm' }
                     ].map(item => {
                       const basePrice = serviceCategory === "Укріплення" 
-                        ? { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[item.size]
-                        : { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[item.size];
+                        ? { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[item.size]
+                        : { 'Нульова': 130, S: 140, M: 160, L: 180, XL: 200, '2XL': 220, '3XL': 240 }[item.size];
                       
                       const isSelected = sizeCategory === item.size;
                       
@@ -6423,10 +6448,7 @@ if (mode === "booking") {
                           key={item.size}
                           onClick={() => {
                             setSizeCategory(item.size);
-                            // Calculate full price
-                            const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[designCategory] || 0;
-                            const mattingPrice = mattingCategory === 'Матове' ? 30 : 0;
-                            setPrice(basePrice + designPrice + mattingPrice);
+                            setPrice(calculatePrice(serviceCategory, item.size, designCategory, mattingCategory));
                           }}
                           style={{
                             padding: 15,
@@ -6467,17 +6489,7 @@ if (mode === "booking") {
                           key={item.value}
                           onClick={() => {
                             setDesignCategory(item.value);
-                            // Recalculate price
-                            let basePrice = 80; // default for men's manicure
-                            
-                            if (serviceCategory === 'Укріплення' && sizeCategory) {
-                              basePrice = { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[sizeCategory] || 100;
-                            } else if (serviceCategory === 'Нарощення' && sizeCategory) {
-                              basePrice = { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[sizeCategory] || 130;
-                            }
-                            
-                            const mattingPrice = mattingCategory === 'Матове' ? 30 : 0;
-                            setPrice(basePrice + item.price + mattingPrice);
+                            setPrice(calculatePrice(serviceCategory, sizeCategory, item.value, mattingCategory));
                           }}
                           style={{
                             padding: 12,
@@ -6516,17 +6528,7 @@ if (mode === "booking") {
                           key={item.value}
                           onClick={() => {
                             setMattingCategory(item.value);
-                            // Recalculate price
-                            const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[designCategory] || 0;
-                            let basePrice = 80;
-                            
-                            if (serviceCategory === 'Укріплення' && sizeCategory) {
-                              basePrice = { S: 100, M: 110, L: 120, XL: 140, '2XL': 150, '3XL': 160 }[sizeCategory] || 100;
-                            } else if (serviceCategory === 'Нарощення' && sizeCategory) {
-                              basePrice = { S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[sizeCategory] || 130;
-                            }
-                            
-                            setPrice(basePrice + designPrice + item.price);
+                            setPrice(calculatePrice(serviceCategory, sizeCategory, designCategory, item.value));
                           }}
                           style={{
                             padding: 12,
