@@ -6333,8 +6333,8 @@ if (mode === "booking") {
               </p>
             </div>
 
-            {/* Active Discounts Display */}
-            {(isFirstTime || hasReferralDiscount || bonusPoints > 0) && (
+            {/* Available Discounts Display (informational only) */}
+            {(isFirstTime || hasReferralDiscount || bonusPoints >= 5) && (
               <div style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 borderRadius: 16,
@@ -6342,7 +6342,8 @@ if (mode === "booking") {
                 marginBottom: 25,
                 color: 'white'
               }}>
-                <h3 style={{ margin: '0 0 15px 0', fontSize: 18 }}>🎉 Ваші активні знижки</h3>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: 18 }}>🎁 Доступні знижки та бонуси</h3>
+                <p style={{ margin: '0 0 15px 0', opacity: 0.8, fontSize: 13 }}>Застосуєте на кроці підтвердження</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {isFirstTime && (
                     <div style={{ background: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 10 }}>
@@ -6867,77 +6868,17 @@ if (mode === "booking") {
               </div>
               )}
 
-              {/* Bonus Points Selection */}
+              {/* Bonus info only; selection happens on confirmation step */}
               {bonusPoints > 0 && (
                 <div style={{
-                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                  padding: '15px',
+                  background: 'rgba(240, 147, 251, 0.15)',
+                  padding: '12px 15px',
                   borderRadius: '12px',
-                  color: 'white',
-                  marginBottom: '15px'
+                  color: '#c44569',
+                  marginBottom: '15px',
+                  border: '1px dashed rgba(244, 114, 182, 0.5)'
                 }}>
-                  <label style={{ display: 'block', marginBottom: 12, fontWeight: 'bold', fontSize: '1rem' }}>
-                    🎁 Використати бонусні бали ({bonusPoints} балів):
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '10px' }}>
-                    <button
-                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 5 ? 0 : 5); setSelectedBonusReward(bonusPointsToUse === 5 ? null : 'free_design'); }}
-                      style={{
-                        padding: '10px',
-                        background: bonusPointsToUse === 5 ? '#fff' : 'rgba(255,255,255,0.3)',
-                        color: bonusPointsToUse === 5 ? '#f5576c' : '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: bonusPoints >= 5 ? 'pointer' : 'not-allowed',
-                        fontWeight: 'bold',
-                        opacity: bonusPoints >= 5 ? 1 : 0.5
-                      }}
-                      disabled={bonusPoints < 5}
-                    >
-                      5 балів 🎨
-                    </button>
-                    <button
-                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 10 ? 0 : 10); setSelectedBonusReward(bonusPointsToUse === 10 ? null : 'discount_50'); }}
-                      style={{
-                        padding: '10px',
-                        background: bonusPointsToUse === 10 ? '#fff' : 'rgba(255,255,255,0.3)',
-                        color: bonusPointsToUse === 10 ? '#f5576c' : '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: bonusPoints >= 10 ? 'pointer' : 'not-allowed',
-                        fontWeight: 'bold',
-                        opacity: bonusPoints >= 10 ? 1 : 0.5
-                      }}
-                      disabled={bonusPoints < 10}
-                    >
-                      10 балів 💰
-                    </button>
-                    <button
-                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 14 ? 0 : 14); setSelectedBonusReward(bonusPointsToUse === 14 ? null : 'free_manicure'); }}
-                      style={{
-                        padding: '10px',
-                        background: bonusPointsToUse === 14 ? '#fff' : 'rgba(255,255,255,0.3)',
-                        color: bonusPointsToUse === 14 ? '#f5576c' : '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: bonusPoints >= 14 ? 'pointer' : 'not-allowed',
-                        fontWeight: 'bold',
-                        opacity: bonusPoints >= 14 ? 1 : 0.5
-                      }}
-                      disabled={bonusPoints < 14}
-                    >
-                      14 балів 💅
-                    </button>
-                  </div>
-                  {bonusPointsToUse > 0 && (
-                    <div style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.9 }}>
-                      ✅ Активовано: {
-                        bonusPointsToUse === 5 ? 'Безкоштовний дизайн 🎨' :
-                        bonusPointsToUse === 10 ? 'Знижка 50% 💰' :
-                        bonusPointsToUse === 14 ? 'Повний манікюр безкоштовно 💅' : ''
-                      } ({bonusPointsToUse} балів)
-                    </div>
-                  )}
+                  🎁 У вас {bonusPoints} бонусних балів. Оберіть винагороду на кроці підтвердження.
                 </div>
               )}
 
@@ -7111,29 +7052,42 @@ if (mode === "booking") {
                   )}
 
                     {(() => {
-                      const firstTimeDiscountAmount = isFirstTime ? Math.round(price * 0.2) : 0;
-                      const referralDiscountAmount = hasReferralDiscount ? Math.round(price * 0.2) : 0;
+                      const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[designCategory] || 0;
+                      const mattingPrice = mattingCategory === 'Матове' ? 30 : 0;
+                      let basePrice = 0;
+                      if (serviceCategory === 'Укріплення' && sizeCategory) {
+                        basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[sizeCategory] || 0;
+                      } else if (serviceCategory === 'Нарощення' && sizeCategory) {
+                        basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[sizeCategory] || 0;
+                      } else if (serviceCategory === 'Гігієнічний') {
+                        basePrice = 80;
+                      } else if (serviceCategory === 'Ремонт') {
+                        basePrice = 0;
+                      } else {
+                        basePrice = Math.max(price - designPrice - mattingPrice, 0);
+                      }
+                      const rawPrice = price || (basePrice + designPrice + mattingPrice);
+
+                      const firstTimeDiscountAmount = isFirstTime ? Math.round(rawPrice * 0.2) : 0;
+                      const referralDiscountAmount = hasReferralDiscount ? Math.round(rawPrice * 0.2) : 0;
                       const bestDiscount = Math.max(firstTimeDiscountAmount, referralDiscountAmount);
                       
-                      // Bonus discount calculation
                       let bonusDiscount = 0;
                       let bonusLabel = '';
                       if (bonusPointsToUse === 5) {
                         bonusLabel = 'Безкоштовний дизайн 🎨';
-                        bonusDiscount = 0; // Free design doesn't reduce price in our calc
+                        bonusDiscount = designPrice;
                       } else if (bonusPointsToUse === 10) {
                         bonusLabel = 'Знижка 50% 💰';
-                        bonusDiscount = Math.round(price * 0.5);
+                        bonusDiscount = Math.round(rawPrice * 0.5);
                       } else if (bonusPointsToUse === 14) {
                         bonusLabel = 'Повний манікюр безкоштовно 💅';
-                        bonusDiscount = price;
+                        bonusDiscount = rawPrice;
                       }
 
                       const appliedLabel = bestDiscount === 0 ? null : (bestDiscount === referralDiscountAmount ? 'Реферальна знижка' : 'Знижка за перший запис');
-                      
-                      // If bonus used, it overrides regular discounts
                       const effectiveDiscount = bonusPointsToUse > 0 ? bonusDiscount : bestDiscount;
-                      const finalAfterDiscount = price - effectiveDiscount;
+                      const finalAfterDiscount = Math.max(rawPrice - effectiveDiscount, 0);
 
                       return (
                         <div style={{ 
@@ -7144,7 +7098,6 @@ if (mode === "booking") {
                         }}>
                           <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 12 }}>📊 Розбір вартості</div>
                           
-                          {/* Base price */}
                           <div style={{ 
                             fontSize: 13, 
                             opacity: 0.9, 
@@ -7154,25 +7107,10 @@ if (mode === "booking") {
                             paddingBottom: 8,
                             borderBottom: '1px solid rgba(255,255,255,0.2)'
                           }}>
-                            <span>Базова послуга ({serviceCategory})</span>
-                            <span style={{ fontWeight: 'bold' }}>базова ціна</span>
+                            <span>Базова послуга ({serviceCategory}{sizeCategory ? `, ${sizeCategory}` : ''})</span>
+                            <span style={{ fontWeight: 'bold' }}>{basePrice} zł</span>
                           </div>
 
-                          {/* Size markup */}
-                          {sizeCategory && (
-                            <div style={{ 
-                              fontSize: 13, 
-                              opacity: 0.9, 
-                              marginBottom: 8,
-                              display: 'flex',
-                              justifyContent: 'space-between'
-                            }}>
-                              <span>+ {sizeCategory}</span>
-                              <span style={{ fontWeight: 'bold', color: '#FFD700' }}>+змінна за розміром</span>
-                            </div>
-                          )}
-
-                          {/* Design markup */}
                           {designCategory && designCategory !== "Однотонний" && (
                             <div style={{ 
                               fontSize: 13, 
@@ -7182,11 +7120,10 @@ if (mode === "booking") {
                               justifyContent: 'space-between'
                             }}>
                               <span>+ Дизайн: {designCategory}</span>
-                              <span style={{ fontWeight: 'bold', color: '#FFD700' }}>+змінна за дизайном</span>
+                              <span style={{ fontWeight: 'bold', color: '#FFD700' }}>+{designPrice} zł</span>
                             </div>
                           )}
 
-                          {/* Matting markup */}
                           {mattingCategory && mattingCategory !== "Глянцеве" && (
                             <div style={{ 
                               fontSize: 13, 
@@ -7198,11 +7135,10 @@ if (mode === "booking") {
                               borderBottom: '1px solid rgba(255,255,255,0.2)'
                             }}>
                               <span>+ {mattingCategory} покриття</span>
-                              <span style={{ fontWeight: 'bold', color: '#FFD700' }}>+30 zł</span>
+                              <span style={{ fontWeight: 'bold', color: '#FFD700' }}>+{mattingPrice} zł</span>
                             </div>
                           )}
 
-                          {/* Total without discounts */}
                           <div style={{ 
                             fontSize: 16, 
                             fontWeight: 'bold',
@@ -7213,10 +7149,9 @@ if (mode === "booking") {
                             borderBottom: '1px solid rgba(255,255,255,0.2)'
                           }}>
                             <span>Загальна вартість:</span>
-                            <span>{price} zł</span>
+                            <span>{rawPrice} zł</span>
                           </div>
 
-                          {/* Discount section */}
                           {(bestDiscount > 0 || bonusPointsToUse > 0) && (
                             <div style={{ marginBottom: 12 }}>
                               {bonusPointsToUse > 0 ? (
@@ -7231,8 +7166,13 @@ if (mode === "booking") {
                                       display: 'flex',
                                       justifyContent: 'space-between'
                                     }}>
-                                      <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>Результат зі знижкою:</span>
-                                      <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{price} zł</span>
+                                      <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>Результат до винагороди:</span>
+                                      <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{rawPrice} zł</span>
+                                    </div>
+                                  )}
+                                  {bonusDiscount > 0 && (
+                                    <div style={{ fontSize: 13, marginBottom: 4 }}>
+                                      ✅ Віднімаємо: -{bonusDiscount} zł
                                     </div>
                                   )}
                                 </div>
@@ -7254,7 +7194,6 @@ if (mode === "booking") {
                             </div>
                           )}
 
-                          {/* Final price */}
                           <div style={{ 
                             fontSize: 24, 
                             fontWeight: 'bold',
@@ -7269,7 +7208,6 @@ if (mode === "booking") {
                             <span>{finalAfterDiscount} zł</span>
                           </div>
 
-                          {/* Bonus selection */}
                           {bonusPoints > 0 && (
                             <div style={{ marginTop: 20, paddingTop: 20, borderTop: '2px solid rgba(255,255,255,0.2)' }}>
                               <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 12, fontWeight: 'bold' }}>
@@ -7343,6 +7281,11 @@ if (mode === "booking") {
                                     {bonusPointsToUse === 14 ? '✅' : ''} 14 балів
                                   </button>
                                 )}
+                              </div>
+                              <div style={{ fontSize: 12, opacity: 0.8, marginTop: 8 }}>
+                                • 5 балів — безкоштовний дизайн (знімає вартість дизайну)
+                                <br />• 10 балів — знижка 50% на манікюр
+                                <br />• 14 балів — манікюр безкоштовно
                               </div>
                             </div>
                           )}
