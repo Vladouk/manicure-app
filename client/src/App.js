@@ -153,25 +153,6 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     }
   };
 
-  const spendPoints = async (points) => {
-    if (bonusPoints < points) return;
-    try {
-      const response = await fetch(`${API}/api/client/spend-points`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tg_id: tgUser?.id, points_to_spend: points }),
-      });
-      if (response.ok) {
-        setBonusPoints(bonusPoints - points);
-        alert('Винагорода активована!');
-      } else {
-        alert('Помилка активації');
-      }
-    } catch (error) {
-      alert('Помилка активації');
-    }
-  };
-
   const modal = modalImage ? (
     <div
       style={{
@@ -2323,24 +2304,6 @@ if (mode === "clientPromotions") {
               <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '12px', lineHeight: '1.3' }}>
                 Безкоштовний дизайн
               </div>
-              <button
-                className="primary-btn"
-                disabled={bonusPoints < 5}
-                onClick={() => spendPoints(5)}
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '6px 12px',
-                  backgroundColor: bonusPoints < 10 ? '#ccc' : '#27ae60',
-                  backgroundImage: bonusPoints < 10 ? 'none' : 'linear-gradient(135deg, #27ae60, #2ecc71)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: 'white',
-                  cursor: bonusPoints < 10 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Використати
-              </button>
             </div>
 
             <div style={{
@@ -2356,24 +2319,6 @@ if (mode === "clientPromotions") {
               <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '12px', lineHeight: '1.3' }}>
                 Знижка 50%
               </div>
-              <button
-                className="primary-btn"
-                disabled={bonusPoints < 10}
-                onClick={() => spendPoints(10)}
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '6px 12px',
-                  backgroundColor: bonusPoints < 20 ? '#ccc' : '#27ae60',
-                  backgroundImage: bonusPoints < 20 ? 'none' : 'linear-gradient(135deg, #27ae60, #2ecc71)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: 'white',
-                  cursor: bonusPoints < 20 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Використати
-              </button>
             </div>
 
             <div style={{
@@ -2389,25 +2334,23 @@ if (mode === "clientPromotions") {
               <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '12px', lineHeight: '1.3' }}>
                 Повний манікюр безкоштовно
               </div>
-              <button
-                className="primary-btn"
-                disabled={bonusPoints < 14}
-                onClick={() => spendPoints(14)}
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '6px 12px',
-                  backgroundColor: bonusPoints < 30 ? '#ccc' : '#27ae60',
-                  backgroundImage: bonusPoints < 30 ? 'none' : 'linear-gradient(135deg, #27ae60, #2ecc71)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: 'white',
-                  cursor: bonusPoints < 30 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Використати
-              </button>
             </div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+            borderRadius: '12px',
+            padding: '20px',
+            marginTop: '20px',
+            color: 'white',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '10px' }}>
+              💡 Активуйте винагороду при бронюванні
+            </div>
+            <p style={{ margin: '0', fontSize: '0.9rem', opacity: 0.9 }}>
+              Оберіть винагороду на останньому кроці (крок 4) під час оформлення запису
+            </p>
           </div>
         </div>
       </div>
@@ -7171,8 +7114,26 @@ if (mode === "booking") {
                       const firstTimeDiscountAmount = isFirstTime ? Math.round(price * 0.2) : 0;
                       const referralDiscountAmount = hasReferralDiscount ? Math.round(price * 0.2) : 0;
                       const bestDiscount = Math.max(firstTimeDiscountAmount, referralDiscountAmount);
-                      const finalAfterDiscount = price - bestDiscount;
+                      
+                      // Bonus discount calculation
+                      let bonusDiscount = 0;
+                      let bonusLabel = '';
+                      if (bonusPointsToUse === 5) {
+                        bonusLabel = 'Безкоштовний дизайн 🎨';
+                        bonusDiscount = 0; // Free design doesn't reduce price in our calc
+                      } else if (bonusPointsToUse === 10) {
+                        bonusLabel = 'Знижка 50% 💰';
+                        bonusDiscount = Math.round(price * 0.5);
+                      } else if (bonusPointsToUse === 14) {
+                        bonusLabel = 'Повний манікюр безкоштовно 💅';
+                        bonusDiscount = price;
+                      }
+
                       const appliedLabel = bestDiscount === 0 ? null : (bestDiscount === referralDiscountAmount ? 'Реферальна знижка' : 'Знижка за перший запис');
+                      
+                      // If bonus used, it overrides regular discounts
+                      const effectiveDiscount = bonusPointsToUse > 0 ? bonusDiscount : bestDiscount;
+                      const finalAfterDiscount = price - effectiveDiscount;
 
                       return (
                         <div style={{ 
@@ -7181,23 +7142,207 @@ if (mode === "booking") {
                           padding: 20,
                           marginTop: 10
                         }}>
-                          <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 8 }}>Загальна вартість</div>
-                          <div style={{ fontSize: 32, fontWeight: 'bold', letterSpacing: '1px' }}>{price} zł</div>
-                          {(firstTimeDiscountAmount > 0 || referralDiscountAmount > 0) && (
-                            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.3)' }}>
-                              <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 6 }}>Активні знижки (не сумуються)</div>
-                              {firstTimeDiscountAmount > 0 && (
-                                <div style={{ fontSize: 16, marginBottom: 4, color: appliedLabel === 'Знижка за перший запис' ? '#fff' : '#e0e0e0' }}>
-                                  💸 Знижка за перший запис: -{firstTimeDiscountAmount} zł {appliedLabel === 'Знижка за перший запис' ? '(застосовано)' : ''}
+                          <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 12 }}>📊 Розбір вартості</div>
+                          
+                          {/* Base price */}
+                          <div style={{ 
+                            fontSize: 13, 
+                            opacity: 0.9, 
+                            marginBottom: 8,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            paddingBottom: 8,
+                            borderBottom: '1px solid rgba(255,255,255,0.2)'
+                          }}>
+                            <span>Базова послуга ({serviceCategory})</span>
+                            <span style={{ fontWeight: 'bold' }}>базова ціна</span>
+                          </div>
+
+                          {/* Size markup */}
+                          {sizeCategory && (
+                            <div style={{ 
+                              fontSize: 13, 
+                              opacity: 0.9, 
+                              marginBottom: 8,
+                              display: 'flex',
+                              justifyContent: 'space-between'
+                            }}>
+                              <span>+ {sizeCategory}</span>
+                              <span style={{ fontWeight: 'bold', color: '#FFD700' }}>+змінна за розміром</span>
+                            </div>
+                          )}
+
+                          {/* Design markup */}
+                          {designCategory && designCategory !== "Однотонний" && (
+                            <div style={{ 
+                              fontSize: 13, 
+                              opacity: 0.9, 
+                              marginBottom: 8,
+                              display: 'flex',
+                              justifyContent: 'space-between'
+                            }}>
+                              <span>+ Дизайн: {designCategory}</span>
+                              <span style={{ fontWeight: 'bold', color: '#FFD700' }}>+змінна за дизайном</span>
+                            </div>
+                          )}
+
+                          {/* Matting markup */}
+                          {mattingCategory && mattingCategory !== "Глянцеве" && (
+                            <div style={{ 
+                              fontSize: 13, 
+                              opacity: 0.9, 
+                              marginBottom: 12,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              paddingBottom: 12,
+                              borderBottom: '1px solid rgba(255,255,255,0.2)'
+                            }}>
+                              <span>+ {mattingCategory} покриття</span>
+                              <span style={{ fontWeight: 'bold', color: '#FFD700' }}>+30 zł</span>
+                            </div>
+                          )}
+
+                          {/* Total without discounts */}
+                          <div style={{ 
+                            fontSize: 16, 
+                            fontWeight: 'bold',
+                            marginBottom: 12,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            paddingBottom: 12,
+                            borderBottom: '1px solid rgba(255,255,255,0.2)'
+                          }}>
+                            <span>Загальна вартість:</span>
+                            <span>{price} zł</span>
+                          </div>
+
+                          {/* Discount section */}
+                          {(bestDiscount > 0 || bonusPointsToUse > 0) && (
+                            <div style={{ marginBottom: 12 }}>
+                              {bonusPointsToUse > 0 ? (
+                                <div>
+                                  <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 6, color: '#FFD700' }}>
+                                    🎁 Активована винагорода: {bonusLabel}
+                                  </div>
+                                  {bonusDiscount > 0 && (
+                                    <div style={{ 
+                                      fontSize: 14, 
+                                      marginBottom: 8,
+                                      display: 'flex',
+                                      justifyContent: 'space-between'
+                                    }}>
+                                      <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>Результат зі знижкою:</span>
+                                      <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{price} zł</span>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 6 }}>Активні знижки (не сумуються)</div>
+                                  {firstTimeDiscountAmount > 0 && (
+                                    <div style={{ fontSize: 13, marginBottom: 4, opacity: appliedLabel === 'Знижка за перший запис' ? 1 : 0.5 }}>
+                                      💸 Знижка за перший запис: -{firstTimeDiscountAmount} zł {appliedLabel === 'Знижка за перший запис' ? '(застосовано)' : ''}
+                                    </div>
+                                  )}
+                                  {referralDiscountAmount > 0 && (
+                                    <div style={{ fontSize: 13, marginBottom: 8, opacity: appliedLabel === 'Реферальна знижка' ? 1 : 0.5 }}>
+                                      🎁 Реферальна знижка: -{referralDiscountAmount} zł {appliedLabel === 'Реферальна знижка' ? '(застосовано)' : ''}
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                              {referralDiscountAmount > 0 && (
-                                <div style={{ fontSize: 16, marginBottom: 4, color: appliedLabel === 'Реферальна знижка' ? '#fff' : '#e0e0e0' }}>
-                                  🎁 Реферальна знижка: -{referralDiscountAmount} zł {appliedLabel === 'Реферальна знижка' ? '(застосовано)' : ''}
-                                </div>
-                              )}
-                              <div style={{ fontSize: 18, fontWeight: 'bold', marginTop: 8 }}>
-                                Разом після знижок: {finalAfterDiscount} zł
+                            </div>
+                          )}
+
+                          {/* Final price */}
+                          <div style={{ 
+                            fontSize: 24, 
+                            fontWeight: 'bold',
+                            color: effectiveDiscount > 0 ? '#FFD700' : '#fff',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            paddingTop: 12,
+                            borderTop: '2px solid rgba(255,255,255,0.3)'
+                          }}>
+                            <span>Остаточна вартість:</span>
+                            <span>{finalAfterDiscount} zł</span>
+                          </div>
+
+                          {/* Bonus selection */}
+                          {bonusPoints > 0 && (
+                            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '2px solid rgba(255,255,255,0.2)' }}>
+                              <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 12, fontWeight: 'bold' }}>
+                                🎁 У вас є {bonusPoints} балів
+                              </div>
+                              <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                                gap: '10px'
+                              }}>
+                                {bonusPoints >= 5 && (
+                                  <button
+                                    onClick={() => {
+                                      setBonusPointsToUse(bonusPointsToUse === 5 ? 0 : 5);
+                                      setSelectedBonusReward(bonusPointsToUse === 5 ? null : 'free_design');
+                                    }}
+                                    style={{
+                                      padding: '12px 16px',
+                                      borderRadius: '10px',
+                                      border: bonusPointsToUse === 5 ? '3px solid #FFD700' : '2px solid rgba(255,255,255,0.3)',
+                                      background: bonusPointsToUse === 5 ? 'rgba(255,215,0,0.2)' : 'rgba(255,255,255,0.1)',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      fontSize: '13px',
+                                      fontWeight: '600',
+                                      transition: 'all 0.3s'
+                                    }}
+                                  >
+                                    {bonusPointsToUse === 5 ? '✅' : ''} 5 балів
+                                  </button>
+                                )}
+                                {bonusPoints >= 10 && (
+                                  <button
+                                    onClick={() => {
+                                      setBonusPointsToUse(bonusPointsToUse === 10 ? 0 : 10);
+                                      setSelectedBonusReward(bonusPointsToUse === 10 ? null : 'discount_50');
+                                    }}
+                                    style={{
+                                      padding: '12px 16px',
+                                      borderRadius: '10px',
+                                      border: bonusPointsToUse === 10 ? '3px solid #FFD700' : '2px solid rgba(255,255,255,0.3)',
+                                      background: bonusPointsToUse === 10 ? 'rgba(255,215,0,0.2)' : 'rgba(255,255,255,0.1)',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      fontSize: '13px',
+                                      fontWeight: '600',
+                                      transition: 'all 0.3s'
+                                    }}
+                                  >
+                                    {bonusPointsToUse === 10 ? '✅' : ''} 10 балів
+                                  </button>
+                                )}
+                                {bonusPoints >= 14 && (
+                                  <button
+                                    onClick={() => {
+                                      setBonusPointsToUse(bonusPointsToUse === 14 ? 0 : 14);
+                                      setSelectedBonusReward(bonusPointsToUse === 14 ? null : 'free_manicure');
+                                    }}
+                                    style={{
+                                      padding: '12px 16px',
+                                      borderRadius: '10px',
+                                      border: bonusPointsToUse === 14 ? '3px solid #FFD700' : '2px solid rgba(255,255,255,0.3)',
+                                      background: bonusPointsToUse === 14 ? 'rgba(255,215,0,0.2)' : 'rgba(255,255,255,0.1)',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      fontSize: '13px',
+                                      fontWeight: '600',
+                                      transition: 'all 0.3s'
+                                    }}
+                                  >
+                                    {bonusPointsToUse === 14 ? '✅' : ''} 14 балів
+                                  </button>
+                                )}
                               </div>
                             </div>
                           )}
