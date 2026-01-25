@@ -56,7 +56,6 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     const [hasReferralDiscount, setHasReferralDiscount] = useState(false);
   const [hasUsedReferralCode, setHasUsedReferralCode] = useState(false);
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
-  const [isFirstTime, setIsFirstTime] = useState(false);
   const [bonusPointsToUse, setBonusPointsToUse] = useState(0);
   const [selectedBonusReward, setSelectedBonusReward] = useState(null);
   const [analyticsHours, setAnalyticsHours] = useState([]);
@@ -291,7 +290,6 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       .then(r => r.json())
         .then(data => {
           setBonusPoints(data.points || 0);
-          setIsFirstTime(data.is_first_time || false);
           setHasReferralDiscount(data.referral_discount_available || false);
           setHasUsedReferralCode(data.has_used_referral || false);
         })
@@ -351,7 +349,7 @@ fetch(`${API}/api/appointment`, {
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, _manualName, _manualTgId, setIsFirstTime]);
+  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, _manualName, _manualTgId]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
@@ -359,13 +357,12 @@ fetch(`${API}/api/appointment`, {
         .then(r => r.json())
           .then(data => {
             setBonusPoints(data.points || 0);
-            setIsFirstTime(data.is_first_time || false);
             setHasReferralDiscount(data.referral_discount_available || false);
             setHasUsedReferralCode(data.has_used_referral || false);
           })
         .catch(() => setBonusPoints(0));
     }
-  }, [mode, tgUser?.id, setIsFirstTime]);
+  }, [mode, tgUser?.id]);
 
   // Refresh bonuses when starting booking flow so points are available without opening promotions
   useEffect(() => {
@@ -374,13 +371,12 @@ fetch(`${API}/api/appointment`, {
         .then(r => r.json())
         .then(data => {
           setBonusPoints(data.points || 0);
-          setIsFirstTime(data.is_first_time || false);
           setHasReferralDiscount(data.referral_discount_available || false);
           setHasUsedReferralCode(data.has_used_referral || false);
         })
         .catch(() => setBonusPoints(0));
     }
-  }, [mode, tgUser?.id, setIsFirstTime]);
+  }, [mode, tgUser?.id]);
 
   useEffect(() => {
     setPrice(calculatePrice(serviceSub));
@@ -396,14 +392,6 @@ fetch(`${API}/api/appointment`, {
     }
   }, [mode]);
 
-  useEffect(() => {
-    if (tgUser?.id) {
-      fetch(`${API}/api/client/first-time?tg_id=${tgUser.id}`)
-        .then(r => r.json())
-        .then(data => setIsFirstTime(data.first_time))
-        .catch(() => setIsFirstTime(false));
-    }
-  }, [tgUser?.id]);
 
   const groupedSlots = slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
@@ -6305,20 +6293,6 @@ if (mode === "booking") {
               </p>
             </div>
 
-            {/* Available Discounts Display (informational only) */}
-            {isFirstTime && (
-              <div style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: 16,
-                padding: 20,
-                marginBottom: 25,
-                color: 'white'
-              }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: 18 }}>🎁 Знижка за перший запис</h3>
-                <p style={{ margin: 0, opacity: 0.85, fontSize: 14 }}>20% застосуємо на кроці підтвердження</p>
-              </div>
-            )}
-
             <div style={{ marginBottom: 30 }}>
               <h3 style={{ color: '#333', marginBottom: 20, textAlign: 'center' }}>Оберіть послугу</h3>
 
@@ -7029,9 +7003,8 @@ if (mode === "booking") {
                       }
                       const rawPrice = price || (basePrice + designPrice + mattingPrice);
 
-                      const firstTimeDiscountAmount = isFirstTime ? Math.round(rawPrice * 0.2) : 0;
                       const referralDiscountAmount = hasReferralDiscount ? Math.round(rawPrice * 0.2) : 0;
-                      const bestDiscount = Math.max(firstTimeDiscountAmount, referralDiscountAmount);
+                      const bestDiscount = referralDiscountAmount;
                       
                       let bonusDiscount = 0;
                       let bonusLabel = '';
@@ -7046,7 +7019,7 @@ if (mode === "booking") {
                         bonusDiscount = rawPrice;
                       }
 
-                      const appliedLabel = bestDiscount === 0 ? null : (bestDiscount === referralDiscountAmount ? 'Реферальна знижка' : 'Знижка за перший запис');
+                      const appliedLabel = bestDiscount === 0 ? null : 'Реферальна знижка';
                       const effectiveDiscount = bonusPointsToUse > 0 ? bonusDiscount : bestDiscount;
                       const finalAfterDiscount = Math.max(rawPrice - effectiveDiscount, 0);
 
@@ -7140,11 +7113,6 @@ if (mode === "booking") {
                               ) : (
                                 <div>
                                   <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 6 }}>Активні знижки (не сумуються)</div>
-                                  {firstTimeDiscountAmount > 0 && (
-                                    <div style={{ fontSize: 13, marginBottom: 4, opacity: appliedLabel === 'Знижка за перший запис' ? 1 : 0.5 }}>
-                                      💸 Знижка за перший запис: -{firstTimeDiscountAmount} zł {appliedLabel === 'Знижка за перший запис' ? '(застосовано)' : ''}
-                                    </div>
-                                  )}
                                   {referralDiscountAmount > 0 && (
                                     <div style={{ fontSize: 13, marginBottom: 8, opacity: appliedLabel === 'Реферальна знижка' ? 1 : 0.5 }}>
                                       🎁 Реферальна знижка: -{referralDiscountAmount} zł {appliedLabel === 'Реферальна знижка' ? '(застосовано)' : ''}

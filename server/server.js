@@ -495,10 +495,17 @@ app.post(
     req.body.slot_id = slotIdNum;
     req.body.tg_id = tgIdNum;
 
-    // Check if first-time client for 20% discount
-    pool.query(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = $1 AND status != 'canceled'`, [tgIdNum])
-      .then(result => {
-        const firstTimeRow = result.rows[0];
+    // Check for active promotions
+    pool.query(`
+      SELECT id, discount_type, discount_value 
+      FROM promotions 
+      WHERE is_active = true 
+      AND (valid_from IS NULL OR valid_from <= NOW()) 
+      AND (valid_until IS NULL OR valid_until > NOW())
+      ORDER BY discount_value DESC
+      LIMIT 1
+    `)
+      .then(promoResult => {
         let finalPrice = price;
         let discountApplied = 0;
         let bonusApplied = false;
@@ -506,32 +513,18 @@ app.post(
         let referralInfo = null;
         let promotionDiscount = 0;
 
-        const firstTimeDiscount = firstTimeRow.count === 0 ? Math.round(price * 0.2) : 0;
+        if (promoResult.rows.length > 0) {
+          const promo = promoResult.rows[0];
+          if (promo.discount_type === 'percentage') {
+            promotionDiscount = Math.round(price * (promo.discount_value / 100));
+          } else if (promo.discount_type === 'fixed') {
+            promotionDiscount = promo.discount_value;
+          }
+          console.log(`✅ Applied promotion: ${promo.discount_value}${promo.discount_type === 'percentage' ? '%' : ' zł'} discount`);
+        }
 
-        // Check for active promotions
-        return pool.query(`
-          SELECT id, discount_type, discount_value 
-          FROM promotions 
-          WHERE is_active = true 
-          AND (valid_from IS NULL OR valid_from <= NOW()) 
-          AND (valid_until IS NULL OR valid_until > NOW())
-          ORDER BY discount_value DESC
-          LIMIT 1
-        `)
-          .then(promoResult => {
-            if (promoResult.rows.length > 0) {
-              const promo = promoResult.rows[0];
-              if (promo.discount_type === 'percentage') {
-                promotionDiscount = Math.round(price * (promo.discount_value / 100));
-              } else if (promo.discount_type === 'fixed') {
-                promotionDiscount = promo.discount_value;
-              }
-              console.log(`✅ Applied promotion: ${promo.discount_value}${promo.discount_type === 'percentage' ? '%' : ' zł'} discount`);
-            }
-
-            // Check for referral discount available (applies only to the referrer, not stacking)
-            return pool.query(`SELECT referral_discount_available, points FROM client_points WHERE tg_id = $1`, [tgIdNum]);
-          })
+        // Check for referral discount available (applies only to the referrer, not stacking)
+        return pool.query(`SELECT referral_discount_available, points FROM client_points WHERE tg_id = $1`, [tgIdNum])
           .then(result => {
             const referralRow = result.rows[0];
             const referralAvailableDiscount = (referralRow && referralRow.referral_discount_available) ? Math.round(price * 0.2) : 0;
@@ -559,8 +552,8 @@ app.post(
               discountApplied = bestDiscount;
               finalPrice = price - bestDiscount;
             } else {
-              // Pick the best single discount (first-time, referral, or promotion)
-              let bestNonBonusDiscount = Math.max(firstTimeDiscount, referralAvailableDiscount, promotionDiscount);
+              // Pick the best single discount (referral or promotion)
+              let bestNonBonusDiscount = Math.max(referralAvailableDiscount, promotionDiscount);
               discountApplied = bestNonBonusDiscount;
               finalPrice = price - bestNonBonusDiscount;
 
@@ -971,21 +964,17 @@ app.post(
                 // New client - check if they have any appointments to determine first-time status
                 return pool.query(`SELECT EXISTS(SELECT 1 FROM appointments WHERE tg_id = $1 AND status != 'canceled') as has_appointments`, [tg_id])
                   .then(r => {
-                    const isFirstTime = !r.rows[0].has_appointments;
                     return res.json({ 
                       points: 0, 
                       referral_discount_available: false, 
-                      has_used_referral: false,
-                      is_first_time: isFirstTime
+                      has_used_referral: false
                     });
                   });
               }
-              const isFirstTime = !row.has_appointments;
               res.json({ 
                 points: row.points || 0, 
                 referral_discount_available: row.referral_discount_available || false,
-                has_used_referral: row.has_used_referral || false,
-                is_first_time: isFirstTime
+                has_used_referral: row.has_used_referral || false
               });
             })
             .catch(err => res.status(500).json({ error: 'DB error' }));
@@ -1740,20 +1729,6 @@ ORDER BY ws.date, ws.time
             .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
-        // Check if user is first-time client
-        app.get('/api/client/first-time', (req, res) => {
-          const tg_id = req.query.tg_id;
-
-          if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
-
-          pool.query(`SELECT COUNT(*) as count FROM appointments WHERE tg_id = $1 AND status != 'canceled'`, [tg_id])
-            .then(result => {
-              const row = result.rows[0];
-              res.json({ is_first_time: row.count === 0 });
-            })
-            .catch(err => res.status(500).json({ error: 'DB error' }));
-        });
-
         // =============== ANALYTICS ENDPOINTS ===============
         // 1. Most popular hours (найпопулярніші години)
         app.get('/api/admin/analytics/hours', (req, res) => {
@@ -2077,4 +2052,5 @@ ORDER BY ws.date, ws.time
         // =============== START SERVER ===============
         const PORT = process.env.PORT || 3000;
         app.listen(PORT, () =>
-          console.log(`🔥 SERVER ON PORT ${PORT}`))
+          console.log(`🔥 SERVER ON PORT ${PORT}`)
+        );
