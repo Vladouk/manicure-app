@@ -6413,51 +6413,82 @@ if (mode === "booking") {
 
             <div style={{ display: 'grid', gap: 25 }}>
 
-              {/* Size Selection - for Укріплення and Нарощення */}
-              {(serviceCategory === "Укріплення" || serviceCategory === "Нарощення") && (
+              {/* Size Selection - УКРІПЛЕННЯ */}
+              {serviceCategory === "Укріплення" && (
                 <div>
                   <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                     Довжина нігтів:
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
                     {[
-                      { size: 'Нульова', length: 'Нульова довжина' },
-                      { size: 'S', length: '±1-1.5cm' },
-                      { size: 'M', length: '±1.5-2cm' },
-                      { size: 'L', length: '±2-2.5cm' },
-                      { size: 'XL', length: '±2.5-3cm' },
-                      { size: '2XL', length: '±3-3.5cm' },
-                      { size: '3XL', length: '±3.5cm' }
-                    ].map(item => {
-                      const basePrice = serviceCategory === "Укріплення" 
-                        ? { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[item.size]
-                        : { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[item.size];
-                      
-                      const isSelected = sizeCategory === item.size;
-                      
-                      return (
-                        <button
-                          key={item.size}
-                          onClick={() => {
-                            setSizeCategory(item.size);
-                            setPrice(calculatePrice(serviceCategory, item.size, designCategory, mattingCategory));
-                          }}
-                          style={{
-                            padding: 15,
-                            borderRadius: 12,
-                            border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                            background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            textAlign: 'center'
-                          }}
-                        >
-                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                          <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
-                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{basePrice} zł</div>
-                        </button>
-                      );
-                    })}
+                      { size: 'Нульова', price: 100 },
+                      { size: 'S', price: 110 },
+                      { size: 'M', price: 120 },
+                      { size: 'L', price: 130 },
+                      { size: 'XL', price: 140 },
+                      { size: '2XL', price: 150 },
+                      { size: '3XL', price: 160 }
+                    ].map(item => (
+                      <button
+                        key={item.size}
+                        onClick={() => {
+                          setSizeCategory(item.size);
+                          setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
+                        }}
+                        style={{
+                          padding: 15,
+                          borderRadius: 12,
+                          border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                          background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                        <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Size Selection - НАРОЩЕННЯ */}
+              {serviceCategory === "Нарощення" && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                    Довжина нігтів:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+                    {[
+                      { size: 'S', length: '±1cm', price: 130 },
+                      { size: 'M', length: '±1.5cm', price: 150 },
+                      { size: 'L', length: '±2cm', price: 170 },
+                      { size: 'XL', length: '±2.5cm', price: 190 },
+                      { size: '2XL', length: '±3cm', price: 210 },
+                      { size: '3XL', length: '±3.5cm', price: 230 }
+                    ].map(item => (
+                      <button
+                        key={item.size}
+                        onClick={() => {
+                          setSizeCategory(item.size);
+                          setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
+                        }}
+                        style={{
+                          padding: 15,
+                          borderRadius: 12,
+                          border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                          background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                        <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
+                        <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
