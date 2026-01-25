@@ -375,6 +375,12 @@ fetch(`${API}/api/appointment`, {
           setHasUsedReferralCode(data.has_used_referral || false);
         })
         .catch(() => setBonusPoints(0));
+      
+      // Load active promotions
+      fetch(`${API}/api/promotions`)
+        .then(r => r.json())
+        .then(data => setPromotions(data))
+        .catch(() => setPromotions([]));
     }
   }, [mode, tgUser?.id]);
 
@@ -7004,7 +7010,19 @@ if (mode === "booking") {
                       const rawPrice = price || (basePrice + designPrice + mattingPrice);
 
                       const referralDiscountAmount = hasReferralDiscount ? Math.round(rawPrice * 0.2) : 0;
-                      const bestDiscount = referralDiscountAmount;
+                      
+                      // Calculate promotion discount from active promotions
+                      let promotionDiscountAmount = 0;
+                      if (promotions.length > 0) {
+                        const activePromo = promotions[0]; // Take first (highest priority)
+                        if (activePromo.discount_type === 'percentage') {
+                          promotionDiscountAmount = Math.round(rawPrice * (activePromo.discount_value / 100));
+                        } else if (activePromo.discount_type === 'fixed') {
+                          promotionDiscountAmount = activePromo.discount_value;
+                        }
+                      }
+                      
+                      const bestDiscount = Math.max(referralDiscountAmount, promotionDiscountAmount);
                       
                       let bonusDiscount = 0;
                       let bonusLabel = '';
@@ -7019,7 +7037,7 @@ if (mode === "booking") {
                         bonusDiscount = rawPrice;
                       }
 
-                      const appliedLabel = bestDiscount === 0 ? null : 'Реферальна знижка';
+                      const appliedLabel = bestDiscount === 0 ? null : (bestDiscount === referralDiscountAmount ? 'Реферальна знижка' : 'Акційна знижка');
                       const effectiveDiscount = bonusPointsToUse > 0 ? bonusDiscount : bestDiscount;
                       const finalAfterDiscount = Math.max(rawPrice - effectiveDiscount, 0);
 
@@ -7113,6 +7131,11 @@ if (mode === "booking") {
                               ) : (
                                 <div>
                                   <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 6 }}>Активні знижки (не сумуються)</div>
+                                  {promotionDiscountAmount > 0 && (
+                                    <div style={{ fontSize: 13, marginBottom: 4, opacity: appliedLabel === 'Акційна знижка' ? 1 : 0.5 }}>
+                                      🔥 Акційна знижка: -{promotionDiscountAmount} zł {appliedLabel === 'Акційна знижка' ? '(застосовано)' : ''}
+                                    </div>
+                                  )}
                                   {referralDiscountAmount > 0 && (
                                     <div style={{ fontSize: 13, marginBottom: 8, opacity: appliedLabel === 'Реферальна знижка' ? 1 : 0.5 }}>
                                       🎁 Реферальна знижка: -{referralDiscountAmount} zł {appliedLabel === 'Реферальна знижка' ? '(застосовано)' : ''}
