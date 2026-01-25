@@ -4817,14 +4817,21 @@ if (mode === "prices") {
                 headers: { "Content-Type": "application/json", "x-init-data": WebApp.initData },
                 body: JSON.stringify({ name, is_active: true })
               })
-                .then(r => r.json())
-                .then(() => {
-                  document.getElementById("newCategoryName").value = "";
-                  fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
-                    .then(r => r.json())
-                    .then(setPriceList);
+                .then(r => {
+                  if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                  return r.json();
                 })
-                .catch(() => alert("❌ Помилка додавання категорії"));
+                .then(() => {
+                  alert("✅ Категорію додано!");
+                  document.getElementById("newCategoryName").value = "";
+                  return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
+                })
+                .then(r => r.json())
+                .then(setPriceList)
+                .catch(err => {
+                  console.error('❌ Помилка додавання категорії:', err);
+                  alert(`❌ Помилка: ${err.message}`);
+                });
             }}
             style={{
               background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
@@ -4912,9 +4919,20 @@ if (mode === "prices") {
                           is_active: category.is_active
                         })
                       })
-                        .then(() => fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } }))
+                        .then(r => {
+                          if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                          return r.json();
+                        })
+                        .then(() => {
+                          alert("✅ Категорію оновлено!");
+                          return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
+                        })
                         .then(r => r.json())
-                        .then(setPriceList);
+                        .then(setPriceList)
+                        .catch(err => {
+                          console.error('❌ Помилка оновлення категорії:', err);
+                          alert(`❌ Помилка: ${err.message}`);
+                        });
                     }
                   }}
                   style={{
@@ -4937,9 +4955,20 @@ if (mode === "prices") {
                         method: "DELETE",
                         headers: { "x-init-data": WebApp.initData }
                       })
-                        .then(() => fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } }))
+                        .then(r => {
+                          if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                          return r.json();
+                        })
+                        .then(() => {
+                          alert("✅ Категорію видалено!");
+                          return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
+                        })
                         .then(r => r.json())
-                        .then(setPriceList);
+                        .then(setPriceList)
+                        .catch(err => {
+                          console.error('❌ Помилка видалення категорії:', err);
+                          alert(`❌ Помилка: ${err.message}`);
+                        });
                     }
                   }}
                   style={{
@@ -5053,8 +5082,12 @@ if (mode === "prices") {
                         is_active: true
                       })
                     })
-                      .then(r => r.json())
+                      .then(r => {
+                        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                        return r.json();
+                      })
                       .then(() => {
+                        alert("✅ Послугу додано!");
                         document.getElementById(`serviceName-${category.id}`).value = "";
                         document.getElementById(`serviceDesc-${category.id}`).value = "";
                         document.getElementById(`servicePrice-${category.id}`).value = "";
@@ -5064,7 +5097,10 @@ if (mode === "prices") {
                       })
                       .then(r => r.json())
                       .then(setPriceList)
-                      .catch(() => alert("❌ Не вдалося додати послугу"));
+                      .catch(err => {
+                        console.error('❌ Помилка додавання послуги:', err);
+                        alert(`❌ Помилка: ${err.message}`);
+                      });
                   }}
                   style={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -5155,9 +5191,20 @@ if (mode === "prices") {
                               is_active: service.is_active
                             })
                           })
-                            .then(() => fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } }))
+                            .then(r => {
+                              if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                              return r.json();
+                            })
+                            .then(() => {
+                              alert("✅ Послугу оновлено!");
+                              return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
+                            })
                             .then(r => r.json())
-                            .then(setPriceList);
+                            .then(setPriceList)
+                            .catch(err => {
+                              console.error('❌ Помилка оновлення послуги:', err);
+                              alert(`❌ Помилка: ${err.message}`);
+                            });
                         }
                       }}
                       style={{
@@ -5180,9 +5227,20 @@ if (mode === "prices") {
                             method: "DELETE",
                             headers: { "x-init-data": WebApp.initData }
                           })
-                            .then(() => fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } }))
+                            .then(r => {
+                              if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                              return r.json();
+                            })
+                            .then(() => {
+                              alert("✅ Послугу видалено!");
+                              return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
+                            })
                             .then(r => r.json())
-                            .then(setPriceList);
+                            .then(setPriceList)
+                            .catch(err => {
+                              console.error('❌ Помилка видалення послуги:', err);
+                              alert(`❌ Помилка: ${err.message}`);
+                            });
                         }
                       }}
                       style={{
@@ -5525,20 +5583,27 @@ if (mode === "promotions") {
                   valid_until: valid_until || null
                 })
               })
-                .then(r => r.json())
+                .then(r => {
+                  if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                  return r.json();
+                })
                 .then(() => {
-                  alert("Акцію додано!");
+                  alert("✅ Акцію додано!");
                   document.getElementById("newPromoName").value = "";
                   document.getElementById("newPromoDesc").value = "";
                   document.getElementById("newPromoValue").value = "";
                   document.getElementById("newPromoValidFrom").value = "";
                   document.getElementById("newPromoValidUntil").value = "";
                   // Reload promotions
-                  fetch(`${API}/api/admin/promotions`, {
+                  return fetch(`${API}/api/admin/promotions`, {
                     headers: { "x-init-data": WebApp.initData }
-                  })
-                    .then(r => r.json())
-                    .then(setPromotions);
+                  });
+                })
+                .then(r => r.json())
+                .then(setPromotions)
+                .catch(err => {
+                  console.error('❌ Помилка додавання акції:', err);
+                  alert(`❌ Помилка: ${err.message}`);
                 });
             }}
             style={{
@@ -5651,13 +5716,22 @@ if (mode === "promotions") {
                         valid_until: promo.valid_until
                       })
                     })
+                      .then(r => {
+                        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                        return r.json();
+                      })
                       .then(() => {
+                        alert("✅ Акцію оновлено!");
                         // Reload promotions
-                        fetch(`${API}/api/admin/promotions`, {
+                        return fetch(`${API}/api/admin/promotions`, {
                           headers: { "x-init-data": WebApp.initData }
-                        })
-                          .then(r => r.json())
-                          .then(setPromotions);
+                        });
+                      })
+                      .then(r => r.json())
+                      .then(setPromotions)
+                      .catch(err => {
+                        console.error('❌ Помилка оновлення акції:', err);
+                        alert(`❌ Помилка: ${err.message}`);
                       });
                   }
                 }}
@@ -5691,13 +5765,22 @@ if (mode === "promotions") {
                       method: "DELETE",
                       headers: { "x-init-data": WebApp.initData }
                     })
+                      .then(r => {
+                        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                        return r.json();
+                      })
                       .then(() => {
+                        alert("✅ Акцію видалено!");
                         // Reload promotions
-                        fetch(`${API}/api/admin/promotions`, {
+                        return fetch(`${API}/api/admin/promotions`, {
                           headers: { "x-init-data": WebApp.initData }
-                        })
-                          .then(r => r.json())
-                          .then(setPromotions);
+                        });
+                      })
+                      .then(r => r.json())
+                      .then(setPromotions)
+                      .catch(err => {
+                        console.error('❌ Помилка видалення акції:', err);
+                        alert(`❌ Помилка: ${err.message}`);
                       });
                   }
                 }}
