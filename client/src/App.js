@@ -244,7 +244,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     } else if (category === 'Нарощення' && size) {
       basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
     } else if (category === 'Гігієнічний') {
-      basePrice = 80;
+      basePrice = 70;
     } else if (category === 'Ремонт') {
       basePrice = 0; // Ремонт - за домовленістю
     }
@@ -1763,7 +1763,7 @@ if (mode === "priceList") {
             fontSize: '1.5rem',
             fontWeight: '600',
             textAlign: 'center'
-          }}>Укріплення</h3>
+          }}>Укріплення 💅</h3>
 
           {/* Size Prices */}
           <div style={{
@@ -1952,7 +1952,7 @@ if (mode === "priceList") {
             fontSize: '1.5rem',
             fontWeight: '600',
             textAlign: 'center'
-          }}>Гігієнічний манікюр</h3>
+          }}>Гігієнічний манікюр 💅</h3>
 
           <div style={{
             background: 'rgba(255,255,255,0.9)',
@@ -4658,189 +4658,229 @@ if (mode === "slotsCalendar") {
 if (mode === "prices") {
   return (
     <div className="app-container">
-      {/* Simple Header */}
-      <div style={{
+      {/* Header */}
+      <div className="card" style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
         textAlign: 'center',
-        padding: '20px',
-        marginBottom: '20px',
-        borderRadius: '14px',
-        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+        padding: '26px 20px',
+        marginBottom: '18px',
+        borderRadius: '18px',
+        boxShadow: '0 10px 28px rgba(102, 126, 234, 0.35)',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <h2 style={{ fontSize: '1.8rem', margin: '0', fontWeight: '700' }}>
-          💰 Прайс-лист
-        </h2>
-        <p style={{ fontSize: '0.85rem', margin: '5px 0 0 0', opacity: 0.9 }}>
-          Редагуйте послуги та ціни
+        <div style={{
+          position: 'absolute',
+          top: '-40%',
+          left: '-40%',
+          width: '180%',
+          height: '180%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 60%)'
+        }} />
+        <h2 style={{ fontSize: '2.2rem', margin: '0 0 6px 0', fontWeight: '750', position: 'relative' }}>💰 Прайс та послуги</h2>
+        <p style={{ fontSize: '1rem', margin: 0, opacity: 0.92, position: 'relative' }}>
+          Керуйте категоріями, послугами та акційними цінами
         </p>
       </div>
 
-      {/* Back Button */}
-      <div style={{ textAlign: 'center', margin: '20px 0' }}>
+      {/* Top actions */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 18 }}>
         <button
           className="primary-btn"
           onClick={() => setMode("adminMenu")}
           style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             border: 'none',
-            borderRadius: '12px',
-            padding: '15px 30px',
-            fontSize: '1rem',
-            fontWeight: '600',
+            borderRadius: 12,
+            padding: '12px 18px',
+            fontSize: '0.95rem',
+            fontWeight: 700,
             color: 'white',
             cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+            boxShadow: '0 6px 18px rgba(102, 126, 234, 0.28)'
           }}
         >
           ← Назад в адмінку
         </button>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            className="primary-btn"
+            onClick={() => {
+              fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
+                .then(r => r.json())
+                .then(setPriceList);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              border: 'none',
+              borderRadius: 12,
+              padding: '12px 18px',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              color: '#0b3d2f',
+              cursor: 'pointer',
+              boxShadow: '0 6px 16px rgba(56, 249, 215, 0.25)'
+            }}
+          >
+            ↻ Оновити
+          </button>
+
+          <button
+            className="primary-btn"
+            onClick={() => {
+              fetch(`${API}/api/admin/promotions`, { headers: { "x-init-data": WebApp.initData } })
+                .then(r => r.json())
+                .then(setPromotions);
+              setMode("promotions");
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+              border: 'none',
+              borderRadius: 12,
+              padding: '12px 18px',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              color: '#5f1b1b',
+              cursor: 'pointer',
+              boxShadow: '0 6px 16px rgba(255, 154, 158, 0.25)'
+            }}
+          >
+            🎉 Акції
+          </button>
+        </div>
       </div>
 
-      {/* Add Category Section */}
-      <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '20px'
+      {/* Add category */}
+      <div className="card" style={{
+        background: '#f7f8ff',
+        borderRadius: 14,
+        padding: 18,
+        boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
+        marginBottom: 18,
+        border: '1px solid #eef0ff'
       }}>
-        <h3 style={{ margin: '0 0 15px 0', fontSize: '1.2rem', fontWeight: '600' }}>
-          ➕ Нова категорія
-        </h3>
-        <input
-          id="newCategoryName"
-          placeholder="Назва категорії (напр. Гібридний манікюр)"
-          style={{
-            width: '100%',
-            padding: '12px',
-            borderRadius: '8px',
-            border: 'none',
-            marginBottom: '10px',
-            fontSize: '0.95rem',
-            boxSizing: 'border-box'
-          }}
-        />
-        <button
-          className="primary-btn"
-          onClick={() => {
-            const name = document.getElementById("newCategoryName").value.trim();
-            if (!name) return alert("Введіть назву категорії");
-
-            fetch(`${API}/api/admin/category`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "x-init-data": WebApp.initData },
-              body: JSON.stringify({ name, is_active: true })
-            })
-              .then(r => r.json())
-              .then(() => {
-                alert("✅ Категорію додано!");
-                document.getElementById("newCategoryName").value = "";
-                fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
-                  .then(r => r.json())
-                  .then(setPriceList);
-              })
-              .catch(() => alert("❌ Помилка!"));
-          }}
-          style={{
-            width: '100%',
-            background: 'rgba(255,255,255,0.2)',
-            border: '2px solid white',
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{
+            width: 42,
+            height: 42,
+            borderRadius: 12,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'grid',
+            placeItems: 'center',
             color: 'white',
-            padding: '12px',
-            borderRadius: '8px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            transition: 'all 0.3s'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = 'rgba(255,255,255,0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = 'rgba(255,255,255,0.2)';
-          }}
-        >
-          + Додати
-        </button>
+            fontSize: '1.2rem',
+            fontWeight: 700
+          }}>+</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#2c3e50' }}>Нова категорія</div>
+            <div style={{ fontSize: '0.9rem', color: '#6c7a89' }}>Групуйте послуги за типом</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: 10, alignItems: 'center' }}>
+          <input
+            id="newCategoryName"
+            placeholder="Назва категорії (напр. Гібридний манікюр)"
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: 10,
+              border: '1px solid #dde1f1',
+              fontSize: '0.95rem',
+              boxSizing: 'border-box'
+            }}
+          />
+          <button
+            className="primary-btn"
+            onClick={() => {
+              const name = document.getElementById("newCategoryName").value.trim();
+              if (!name) return alert("Введіть назву категорії");
+
+              fetch(`${API}/api/admin/category`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "x-init-data": WebApp.initData },
+                body: JSON.stringify({ name, is_active: true })
+              })
+                .then(r => r.json())
+                .then(() => {
+                  document.getElementById("newCategoryName").value = "";
+                  fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
+                    .then(r => r.json())
+                    .then(setPriceList);
+                })
+                .catch(() => alert("❌ Помилка додавання категорії"));
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              border: 'none',
+              borderRadius: 12,
+              padding: '12px 18px',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              color: '#0b3d2f',
+              cursor: 'pointer',
+              boxShadow: '0 6px 16px rgba(56, 249, 215, 0.2)'
+            }}
+          >
+            ➕ Додати
+          </button>
+        </div>
       </div>
 
-      {/* Categories List */}
-      <div style={{ display: 'grid', gap: '15px', marginBottom: '20px' }}>
+      {/* Categories list */}
+      <div style={{ display: 'grid', gap: 16, marginBottom: 24 }}>
         {priceList.length === 0 && (
-          <div style={{
+          <div className="card" style={{
             textAlign: 'center',
-            padding: '40px 20px',
-            background: 'rgba(255,255,255,0.95)',
-            borderRadius: '12px',
-            border: '2px dashed #ddd'
+            padding: '36px 18px',
+            background: '#fafbff',
+            borderRadius: 14,
+            border: '1px dashed #d6dbff',
+            color: '#7b8bb2'
           }}>
-            <p style={{ fontSize: '1.2rem', color: '#95a5a6', margin: 0 }}>
-              📋 Категорій ще немає
-            </p>
-            <p style={{ fontSize: '0.9rem', color: '#bdc3c7', marginTop: '10px' }}>
-              Додайте першу категорію вище
-            </p>
+            <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>Категорій ще немає</div>
+            <div style={{ fontSize: '0.95rem' }}>Додайте першу категорію вище</div>
           </div>
         )}
-        
+
         {priceList.map(category => (
           <div
             key={category.id}
-            className="menu-card"
+            className="card"
             style={{
-              background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-              borderRadius: '16px',
-              padding: '25px',
-              boxShadow: '0 8px 25px rgba(168, 237, 234, 0.3)',
-              border: 'none',
-              position: 'relative',
-              overflow: 'hidden'
+              background: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)',
+              borderRadius: 16,
+              padding: 20,
+              boxShadow: '0 10px 26px rgba(0,0,0,0.06)',
+              border: '1px solid #e9ecf3'
             }}
           >
-            {/* Category Header */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '20px',
-              paddingBottom: '15px',
-              borderBottom: '2px solid rgba(255,255,255,0.3)'
-            }}>
-              <div>
-                <h3 style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 'bold',
+            {/* Category header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                  display: 'grid',
+                  placeItems: 'center',
                   color: 'white',
-                  margin: '0 0 5px 0',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}>
-                  📁 {category.name}
-                </h3>
-                {category.description && (
-                  <p style={{
-                    fontSize: '0.9rem',
-                    color: 'white',
-                    margin: '0',
-                    opacity: 0.8
-                  }}>
-                    {category.description}
-                  </p>
-                )}
+                  fontSize: '1.2rem',
+                  fontWeight: 800
+                }}>📁</div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#273142' }}>{category.name}</div>
+                  {category.description && (
+                    <div style={{ fontSize: '0.9rem', color: '#5f6b7c' }}>{category.description}</div>
+                  )}
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button
-                  className="btn-small"
+                  className="primary-btn"
                   onClick={() => {
                     const newName = prompt("Нова назва категорії:", category.name);
                     if (newName && newName.trim()) {
@@ -4857,199 +4897,104 @@ if (mode === "prices") {
                           is_active: category.is_active
                         })
                       })
-                        .then(() => {
-                          // Reload prices
-                          fetch(`${API}/api/admin/prices`, {
-                            headers: { "x-init-data": WebApp.initData }
-                          })
-                            .then(r => r.json())
-                            .then(setPriceList);
-                        });
+                        .then(() => fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } }))
+                        .then(r => r.json())
+                        .then(setPriceList);
                     }
                   }}
                   style={{
-                    background: 'rgba(255,255,255,0.9)',
-                    border: 'none',
-                    borderRadius: '8px',
+                    background: '#eef2ff',
+                    color: '#4c51bf',
+                    border: '1px solid #d9ddff',
+                    borderRadius: 10,
                     padding: '8px 12px',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    color: '#f39c12',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.05)';
-                    e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                    e.target.style.boxShadow = 'none';
+                    fontWeight: 700,
+                    cursor: 'pointer'
                   }}
                 >
-                  ✏️
+                  ✏️ Редагувати
                 </button>
                 <button
-                  className="btn-small btn-cancel"
+                  className="primary-btn"
                   onClick={() => {
                     if (window.confirm(`Видалити категорію "${category.name}" та всі її послуги?`)) {
                       fetch(`${API}/api/admin/category/${category.id}`, {
                         method: "DELETE",
                         headers: { "x-init-data": WebApp.initData }
                       })
-                        .then(() => {
-                          // Reload prices
-                          fetch(`${API}/api/admin/prices`, {
-                            headers: { "x-init-data": WebApp.initData }
-                          })
-                            .then(r => r.json())
-                            .then(setPriceList);
-                        });
+                        .then(() => fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } }))
+                        .then(r => r.json())
+                        .then(setPriceList);
                     }
                   }}
                   style={{
-                    background: 'rgba(255,255,255,0.9)',
-                    border: 'none',
-                    borderRadius: '8px',
+                    background: '#fff0f0',
+                    color: '#c0392b',
+                    border: '1px solid #f8d7da',
+                    borderRadius: 10,
                     padding: '8px 12px',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    color: '#e74c3c',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.05)';
-                    e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                    e.target.style.boxShadow = 'none';
+                    fontWeight: 700,
+                    cursor: 'pointer'
                   }}
                 >
-                  🗑️
+                  🗑 Видалити
                 </button>
               </div>
             </div>
 
-            {/* Add Service Form */}
+            {/* Add service */}
             <div style={{
-              background: 'rgba(255,255,255,0.9)',
-              borderRadius: '12px',
-              padding: '20px',
-              marginBottom: '20px'
+              background: '#ffffff',
+              borderRadius: 12,
+              padding: 14,
+              border: '1px solid #edf0f5',
+              marginBottom: 14
             }}>
-              <h4 style={{
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                color: '#2c3e50',
-                margin: '0 0 15px 0'
-              }}>
-                ➕ Додати послугу
-              </h4>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: '15px',
-                marginBottom: '15px'
-              }}>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontWeight: '600',
-                    color: '#2c3e50',
-                    marginBottom: '5px',
-                    fontSize: '0.9rem'
-                  }}>
-                    💅 Назва послуги
-                  </label>
-                  <input
-                    id={`serviceName-${category.id}`}
-                    placeholder="Назва послуги"
-                    className="input"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '0.9rem'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontWeight: '600',
-                    color: '#2c3e50',
-                    marginBottom: '5px',
-                    fontSize: '0.9rem'
-                  }}>
-                    💰 Ціна (zł)
-                  </label>
-                  <input
-                    id={`servicePrice-${category.id}`}
-                    type="number"
-                    placeholder="Ціна"
-                    className="input"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '0.9rem'
-                    }}
-                  />
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ fontWeight: 800, color: '#273142' }}>Додати послугу</div>
+                <span style={{ fontSize: '0.9rem', color: '#6c7a89' }}>Акційні ціни теж тут</span>
               </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{
-                  display: 'block',
-                  fontWeight: '600',
-                  color: '#2c3e50',
-                  marginBottom: '5px',
-                  fontSize: '0.9rem'
-                }}>
-                  📝 Опис (необов'язково)
-                </label>
-                <textarea
-                  id={`serviceDesc-${category.id}`}
-                  placeholder="Опис послуги"
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))', gap: 10 }}>
+                <input
+                  id={`serviceName-${category.id}`}
+                  placeholder="Назва послуги"
                   className="input"
-                  rows="2"
                   style={{
                     width: '100%',
                     padding: '10px',
-                    borderRadius: '8px',
-                    border: '1px solid #ddd',
-                    fontSize: '0.9rem',
-                    resize: 'vertical'
+                    borderRadius: 10,
+                    border: '1px solid #dfe3eb',
+                    fontSize: '0.95rem'
                   }}
                 />
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '15px',
-                alignItems: 'end'
-              }}>
-                <div>
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontWeight: '600',
-                    color: '#2c3e50',
-                    marginBottom: '5px',
-                    fontSize: '0.9rem'
-                  }}>
-                    <input
-                      type="checkbox"
-                      id={`servicePromo-${category.id}`}
-                      style={{ marginRight: '8px' }}
-                    />
+                <input
+                  id={`servicePrice-${category.id}`}
+                  type="number"
+                  placeholder="Ціна (zł)"
+                  className="input"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: 10,
+                    border: '1px solid #dfe3eb',
+                    fontSize: '0.95rem'
+                  }}
+                />
+                <input
+                  id={`serviceDesc-${category.id}`}
+                  placeholder="Опис (необов'язково)"
+                  className="input"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: 10,
+                    border: '1px solid #dfe3eb',
+                    fontSize: '0.95rem'
+                  }}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'center' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#2c3e50' }}>
+                    <input type="checkbox" id={`servicePromo-${category.id}`} />
                     🔥 Акція
                   </label>
                   <input
@@ -5060,13 +5005,12 @@ if (mode === "prices") {
                     style={{
                       width: '100%',
                       padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '0.9rem'
+                      borderRadius: 10,
+                      border: '1px solid #dfe3eb',
+                      fontSize: '0.95rem'
                     }}
                   />
                 </div>
-
                 <button
                   className="primary-btn"
                   onClick={() => {
@@ -5074,6 +5018,7 @@ if (mode === "prices") {
                     const price = parseInt(document.getElementById(`servicePrice-${category.id}`).value);
                     const isPromo = document.getElementById(`servicePromo-${category.id}`).checked;
                     const discountPrice = isPromo ? parseInt(document.getElementById(`serviceDiscount-${category.id}`).value) : null;
+                    const description = document.getElementById(`serviceDesc-${category.id}`).value.trim();
 
                     if (!name || isNaN(price)) return alert("Введіть назву та ціну послуги");
 
@@ -5086,7 +5031,7 @@ if (mode === "prices") {
                       body: JSON.stringify({
                         category_id: category.id,
                         name,
-                        description: document.getElementById(`serviceDesc-${category.id}`).value.trim(),
+                        description,
                         price,
                         is_promotion: isPromo,
                         discount_price: discountPrice,
@@ -5095,39 +5040,27 @@ if (mode === "prices") {
                     })
                       .then(r => r.json())
                       .then(() => {
-                        alert("Послугу додано!");
                         document.getElementById(`serviceName-${category.id}`).value = "";
                         document.getElementById(`serviceDesc-${category.id}`).value = "";
                         document.getElementById(`servicePrice-${category.id}`).value = "";
                         document.getElementById(`servicePromo-${category.id}`).checked = false;
                         document.getElementById(`serviceDiscount-${category.id}`).value = "";
-                        // Reload prices
-                        fetch(`${API}/api/admin/prices`, {
-                          headers: { "x-init-data": WebApp.initData }
-                        })
-                          .then(r => r.json())
-                          .then(setPriceList);
-                      });
+                        return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
+                      })
+                      .then(r => r.json())
+                      .then(setPriceList)
+                      .catch(() => alert("❌ Не вдалося додати послугу"));
                   }}
                   style={{
-                    background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     border: 'none',
-                    borderRadius: '10px',
-                    padding: '12px 20px',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
+                    borderRadius: 12,
+                    padding: '12px 16px',
+                    fontSize: '0.95rem',
+                    fontWeight: 750,
                     color: 'white',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 15px rgba(67, 233, 123, 0.3)',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 6px 20px rgba(67, 233, 123, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 15px rgba(67, 233, 123, 0.3)';
+                    boxShadow: '0 6px 18px rgba(102, 126, 234, 0.25)'
                   }}
                 >
                   ➕ Додати послугу
@@ -5135,76 +5068,47 @@ if (mode === "prices") {
               </div>
             </div>
 
-            {/* Services List */}
-            <div style={{ display: 'grid', gap: '10px' }}>
+            {/* Services list */}
+            <div style={{ display: 'grid', gap: 10 }}>
               {category.services.map(service => (
                 <div
                   key={service.id}
                   style={{
-                    padding: '15px',
-                    background: service.is_promotion ? 'linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%)' : 'rgba(255,255,255,0.9)',
-                    borderRadius: '10px',
+                    padding: 14,
+                    borderRadius: 12,
+                    background: service.is_promotion ? 'linear-gradient(135deg, #fff5e6 0%, #ffe4d9 100%)' : '#ffffff',
+                    border: '1px solid #edf0f5',
                     display: 'flex',
                     justifyContent: 'space-between',
+                    gap: 12,
                     alignItems: 'center',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateX(5px)';
-                    e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateX(0)';
-                    e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    boxShadow: '0 6px 16px rgba(0,0,0,0.04)'
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold',
-                      color: service.is_promotion ? '#d63031' : '#2c3e50',
-                      marginBottom: '5px'
-                    }}>
-                      💅 {service.name}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#273142' }}>💅 {service.name}</span>
+                      {service.is_promotion && (
+                        <span style={{
+                          background: '#ffefc6',
+                          color: '#c27b00',
+                          padding: '4px 8px',
+                          borderRadius: 10,
+                          fontSize: '0.8rem',
+                          fontWeight: 800
+                        }}>
+                          🔥 Акція
+                        </span>
+                      )}
                     </div>
                     {service.description && (
-                      <div style={{
-                        fontSize: '0.9rem',
-                        color: service.is_promotion ? '#636e72' : '#7f8c8d',
-                        marginBottom: '8px'
-                      }}>
-                        {service.description}
-                      </div>
+                      <div style={{ fontSize: '0.93rem', color: '#55606f', marginBottom: 6 }}>{service.description}</div>
                     )}
-                    <div style={{
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      color: service.is_promotion ? '#e17055' : '#27ae60'
-                    }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1f9d55' }}>
                       {service.is_promotion ? (
                         <>
-                          <span style={{
-                            textDecoration: 'line-through',
-                            color: '#d63031',
-                            marginRight: '8px'
-                          }}>
-                            {service.price} zł
-                          </span>
-                          <span style={{ color: '#00b894' }}>
-                            {service.discount_price} zł
-                          </span>
-                          <span style={{
-                            background: '#fdcb6e',
-                            color: '#d63031',
-                            padding: '2px 8px',
-                            borderRadius: '10px',
-                            fontSize: '0.8rem',
-                            marginLeft: '8px',
-                            fontWeight: 'bold'
-                          }}>
-                            🔥 Акція
-                          </span>
+                          <span style={{ textDecoration: 'line-through', color: '#c0392b', marginRight: 8 }}>{service.price} zł</span>
+                          <span style={{ color: '#0b8f6a' }}>{service.discount_price} zł</span>
                         </>
                       ) : (
                         <span>{service.price} zł</span>
@@ -5212,9 +5116,9 @@ if (mode === "prices") {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
-                      className="btn-small"
+                      className="primary-btn"
                       onClick={() => {
                         const newName = prompt("Нова назва послуги:", service.name);
                         const newPrice = prompt("Нова ціна:", service.price);
@@ -5236,77 +5140,47 @@ if (mode === "prices") {
                               is_active: service.is_active
                             })
                           })
-                            .then(() => {
-                              // Reload prices
-                              fetch(`${API}/api/admin/prices`, {
-                                headers: { "x-init-data": WebApp.initData }
-                              })
-                                .then(r => r.json())
-                                .then(setPriceList);
-                            });
+                            .then(() => fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } }))
+                            .then(r => r.json())
+                            .then(setPriceList);
                         }
                       }}
                       style={{
-                        background: 'rgba(52, 152, 219, 0.9)',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        color: 'white',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.1)';
-                        e.target.style.boxShadow = '0 2px 8px rgba(52, 152, 219, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)';
-                        e.target.style.boxShadow = 'none';
+                        background: '#eef2ff',
+                        color: '#4c51bf',
+                        border: '1px solid #d9ddff',
+                        borderRadius: 10,
+                        padding: '8px 10px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
                       }}
                     >
                       ✏️
                     </button>
                     <button
-                      className="btn-small btn-cancel"
+                      className="primary-btn"
                       onClick={() => {
                         if (window.confirm(`Видалити послугу "${service.name}"?`)) {
                           fetch(`${API}/api/admin/service/${service.id}`, {
                             method: "DELETE",
                             headers: { "x-init-data": WebApp.initData }
                           })
-                            .then(() => {
-                              // Reload prices
-                              fetch(`${API}/api/admin/prices`, {
-                                headers: { "x-init-data": WebApp.initData }
-                              })
-                                .then(r => r.json())
-                                .then(setPriceList);
-                            });
+                            .then(() => fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } }))
+                            .then(r => r.json())
+                            .then(setPriceList);
                         }
                       }}
                       style={{
-                        background: 'rgba(231, 76, 60, 0.9)',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        color: 'white',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.1)';
-                        e.target.style.boxShadow = '0 2px 8px rgba(231, 76, 60, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)';
-                        e.target.style.boxShadow = 'none';
+                        background: '#fff0f0',
+                        color: '#c0392b',
+                        border: '1px solid #f8d7da',
+                        borderRadius: 10,
+                        padding: '8px 10px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
                       }}
                     >
-                      🗑️
+                      🗑
                     </button>
                   </div>
                 </div>
@@ -6396,7 +6270,7 @@ if (mode === "booking") {
                 >
                   <div style={{ fontSize: 32, marginBottom: 10 }}>💪</div>
                   <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                    Укріплення
+                    Укріплення 💅
                   </div>
                   <div style={{ color: '#666', fontSize: 13 }}>
                     від 100 zł
@@ -6471,7 +6345,7 @@ if (mode === "booking") {
                     setSizeCategory("");
                     setDesignCategory("");
                     setMattingCategory("");
-                    setPrice(80);
+                    setPrice(70);
                   }}
                   style={{
                     padding: 20,
@@ -6485,10 +6359,10 @@ if (mode === "booking") {
                 >
                   <div style={{ fontSize: 32, marginBottom: 10 }}>👔</div>
                   <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                    Гігієнічний
+                    Гігієнічний 💅
                   </div>
                   <div style={{ color: '#667eea', fontWeight: 'bold', fontSize: 14 }}>
-                    80 zł
+                    70 zł
                   </div>
                 </div>
               </div>
@@ -6947,7 +6821,18 @@ if (mode === "booking") {
               </button>
 
               <button
-                onClick={nextStep}
+                onClick={() => {
+                  const needsSize = serviceCategory.includes('Укріплення') || serviceCategory.includes('Нарощення');
+                  if (needsSize && !sizeCategory) {
+                    alert('❗ Оберіть довжину перед продовженням');
+                    return;
+                  }
+                  if (needsSize && !designCategory) {
+                    alert('❗ Оберіть дизайн перед продовженням');
+                    return;
+                  }
+                  nextStep();
+                }}
                 style={{
                   padding: '12px 24px',
                   borderRadius: 25,
@@ -7060,7 +6945,7 @@ if (mode === "booking") {
                       } else if (serviceCategory === 'Нарощення' && sizeCategory) {
                         basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[sizeCategory] || 0;
                       } else if (serviceCategory === 'Гігієнічний') {
-                        basePrice = 80;
+                        basePrice = 70;
                       } else if (serviceCategory === 'Ремонт') {
                         basePrice = 0;
                       } else {
