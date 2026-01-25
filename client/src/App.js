@@ -2,14 +2,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
-        >
-          1 Назад до меню
+ 
 const ADMIN_TG_IDS = [1342762796];
-        >
-          ← Назад до меню
-        >
-          ← Назад до меню
-        </button>
+
+const API = process.env.REACT_APP_API_URL || '';
+const getSlotLabel = (dateStr) => {
   const today = new Date();
   const slotDate = new Date(dateStr);
 
