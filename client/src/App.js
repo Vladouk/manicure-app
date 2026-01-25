@@ -2209,6 +2209,16 @@ if (mode === "clientPromotions") {
             fontWeight: '600',
             color: 'white'
           }}>Перший запис</h3>
+          <p style={{
+            fontSize: '0.95rem',
+            lineHeight: '1.5',
+            margin: '10px 0 0 0',
+            color: 'white',
+            opacity: '0.95',
+            textAlign: 'center'
+          }}>
+            За кожного приведеного друга <strong>ви отримаєте 2 бонусних бали 🎁</strong>
+          </p>
           <div style={{
             fontSize: '2.5rem',
             borderRadius: '12px',

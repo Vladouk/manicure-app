@@ -652,16 +652,16 @@ app.post(
                     pool.query(`UPDATE referral_codes SET used_count = used_count + 1 WHERE id = $1`, [referralInfo.code_id])
                       .catch(err => console.error("Referral code update error:", err));
 
-                    // Give referrer 1 bonus point for successful referral (equivalent to ~10 zl value)
+                    // Give referrer 2 bonus points for successful referral
                     pool.query(`INSERT INTO client_points (tg_id, points) VALUES ($1, 0) ON CONFLICT (tg_id) DO NOTHING`, [referralInfo.referrer_tg_id])
-                      .then(() => pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [referralInfo.referrer_tg_id]))
+                      .then(() => pool.query(`UPDATE client_points SET points = points + 2 WHERE tg_id = $1`, [referralInfo.referrer_tg_id]))
                       .then(() => {
-                        bot.sendMessage(referralInfo.referrer_tg_id, `🎉 *Реферальний бонус!*\n\nКлієнт використав твій код. Ти отримав 1 балл за реферала 🎁`, { parse_mode: "Markdown" })
+                        bot.sendMessage(referralInfo.referrer_tg_id, `🎉 *Реферальний бонус!*\n\nКлієнт використав твій код. Ти отримав 2 бали за реферала 🎁`, { parse_mode: "Markdown" })
                           .catch(err => console.error("Referrer bonus notify error:", err));
                       })
                       .catch(err => console.error("Referral points update error:", err));
 
-                    console.log(`✅ Referral bonus: ${referralInfo.referrer_tg_id} gets 1 point for referring ${tgIdNum}`);
+                    console.log(`✅ Referral bonus: ${referralInfo.referrer_tg_id} gets 2 points for referring ${tgIdNum}`);
                   }
                 }
               )
