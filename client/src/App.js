@@ -54,6 +54,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [referralCode, setReferralCode] = useState(null);
   const [enteredReferralCode, setEnteredReferralCode] = useState("");
     const [hasReferralDiscount, setHasReferralDiscount] = useState(false);
+  const [hasUsedReferralCode, setHasUsedReferralCode] = useState(false);
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
   const [bonusPointsToUse, setBonusPointsToUse] = useState(0);
@@ -305,6 +306,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
           setBonusPoints(data.points || 0);
           setIsFirstTime(data.is_first_time || false);
           setHasReferralDiscount(data.referral_discount_available || false);
+          setHasUsedReferralCode(data.has_used_referral || false);
         })
       .catch(() => setBonusPoints(0));
 
@@ -372,6 +374,7 @@ fetch(`${API}/api/appointment`, {
             setBonusPoints(data.points || 0);
             setIsFirstTime(data.is_first_time || false);
             setHasReferralDiscount(data.referral_discount_available || false);
+            setHasUsedReferralCode(data.has_used_referral || false);
           })
         .catch(() => setBonusPoints(0));
     }
@@ -839,6 +842,48 @@ if (effectiveMode === "clientHistory") {
               {avgPrice} zł
             </div>
           </div>
+        </div>
+
+        {/* Add Bonus Points Button for Admin */}
+        <div style={{ marginTop: '15px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <button
+            onClick={() => {
+              const points = prompt('Скільки балів додати клієнту?');
+              if (points && !isNaN(points) && parseInt(points) > 0) {
+                fetch(`${API}/api/admin/add-points`, {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'x-init-data': WebApp.initData
+                  },
+                  body: JSON.stringify({ tg_id: selectedClient.tg_id, points: parseInt(points) })
+                })
+                .then(r => r.json())
+                .then(data => {
+                  if (data.ok) {
+                    alert(`✅ Додано ${points} балів! Новий баланс: ${data.newPoints}`);
+                  } else {
+                    alert('❌ Помилка: ' + (data.error || 'Невідома помилка'));
+                  }
+                })
+                .catch(() => alert('❌ Помилка підключення'));
+              }
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.25)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              color: 'white',
+              fontSize: '0.95rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            🎁 Додати бонусні бали
+          </button>
         </div>
       </div>
 
@@ -6192,6 +6237,41 @@ if (mode === "booking") {
               </p>
             </div>
 
+            {/* Active Discounts Display */}
+            {(isFirstTime || hasReferralDiscount || bonusPoints > 0) && (
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: 16,
+                padding: 20,
+                marginBottom: 25,
+                color: 'white'
+              }}>
+                <h3 style={{ margin: '0 0 15px 0', fontSize: 18 }}>🎉 Ваші активні знижки</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {isFirstTime && (
+                    <div style={{ background: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 10 }}>
+                      💸 <strong>Перший запис:</strong> знижка 20%
+                    </div>
+                  )}
+                  {hasReferralDiscount && (
+                    <div style={{ background: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 10 }}>
+                      🎁 <strong>Реферальна знижка:</strong> 20% доступна
+                    </div>
+                  )}
+                  {bonusPoints >= 5 && (
+                    <div style={{ background: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 10 }}>
+                      ⭐ <strong>Бонусні бали:</strong> {bonusPoints} балів
+                      <div style={{ fontSize: 13, marginTop: 5, opacity: 0.9 }}>
+                        {bonusPoints >= 14 && '• 14 балів = Повний манікюр безкоштовно 💅'}
+                        {bonusPoints >= 10 && bonusPoints < 14 && '• 10 балів = Знижка 50% 💰'}
+                        {bonusPoints >= 5 && bonusPoints < 10 && '• 5 балів = Безкоштовний дизайн 🎨'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div style={{ marginBottom: 30 }}>
               <h3 style={{ color: '#333', marginBottom: 20, textAlign: 'center' }}>Оберіть послугу</h3>
 
@@ -6670,6 +6750,7 @@ if (mode === "booking") {
               </div>
 
               {/* Referral Code */}
+              {!hasUsedReferralCode && (
               <div>
                 <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                   Реферальний код (необов'язково):
@@ -6688,6 +6769,7 @@ if (mode === "booking") {
                   }}
                 />
               </div>
+              )}
 
               {/* Bonus Points Selection */}
               {bonusPoints > 0 && (
@@ -6703,7 +6785,23 @@ if (mode === "booking") {
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '10px' }}>
                     <button
-                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 10 ? 0 : 10); setSelectedBonusReward(bonusPointsToUse === 10 ? null : 'free_design'); }}
+                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 5 ? 0 : 5); setSelectedBonusReward(bonusPointsToUse === 5 ? null : 'free_design'); }}
+                      style={{
+                        padding: '10px',
+                        background: bonusPointsToUse === 5 ? '#fff' : 'rgba(255,255,255,0.3)',
+                        color: bonusPointsToUse === 5 ? '#f5576c' : '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: bonusPoints >= 5 ? 'pointer' : 'not-allowed',
+                        fontWeight: 'bold',
+                        opacity: bonusPoints >= 5 ? 1 : 0.5
+                      }}
+                      disabled={bonusPoints < 5}
+                    >
+                      5 балів 🎨
+                    </button>
+                    <button
+                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 10 ? 0 : 10); setSelectedBonusReward(bonusPointsToUse === 10 ? null : 'discount_50'); }}
                       style={{
                         padding: '10px',
                         background: bonusPointsToUse === 10 ? '#fff' : 'rgba(255,255,255,0.3)',
@@ -6716,44 +6814,32 @@ if (mode === "booking") {
                       }}
                       disabled={bonusPoints < 10}
                     >
-                      10 балів 🎨
+                      10 балів 💰
                     </button>
                     <button
-                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 20 ? 0 : 20); setSelectedBonusReward(bonusPointsToUse === 20 ? null : 'discount_30'); }}
+                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 14 ? 0 : 14); setSelectedBonusReward(bonusPointsToUse === 14 ? null : 'free_manicure'); }}
                       style={{
                         padding: '10px',
-                        background: bonusPointsToUse === 20 ? '#fff' : 'rgba(255,255,255,0.3)',
-                        color: bonusPointsToUse === 20 ? '#f5576c' : '#fff',
+                        background: bonusPointsToUse === 14 ? '#fff' : 'rgba(255,255,255,0.3)',
+                        color: bonusPointsToUse === 14 ? '#f5576c' : '#fff',
                         border: 'none',
                         borderRadius: '8px',
-                        cursor: bonusPoints >= 20 ? 'pointer' : 'not-allowed',
+                        cursor: bonusPoints >= 14 ? 'pointer' : 'not-allowed',
                         fontWeight: 'bold',
-                        opacity: bonusPoints >= 20 ? 1 : 0.5
+                        opacity: bonusPoints >= 14 ? 1 : 0.5
                       }}
-                      disabled={bonusPoints < 20}
+                      disabled={bonusPoints < 14}
                     >
-                      20 балів 💰
-                    </button>
-                    <button
-                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 30 ? 0 : 30); setSelectedBonusReward(bonusPointsToUse === 30 ? null : 'free_manicure'); }}
-                      style={{
-                        padding: '10px',
-                        background: bonusPointsToUse === 30 ? '#fff' : 'rgba(255,255,255,0.3)',
-                        color: bonusPointsToUse === 30 ? '#f5576c' : '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: bonusPoints >= 30 ? 'pointer' : 'not-allowed',
-                        fontWeight: 'bold',
-                        opacity: bonusPoints >= 30 ? 1 : 0.5
-                      }}
-                      disabled={bonusPoints < 30}
-                    >
-                      30 балів 💅
+                      14 балів 💅
                     </button>
                   </div>
                   {bonusPointsToUse > 0 && (
                     <div style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.9 }}>
-                      ✅ Вибрано: {bonusPointsToUse} балів буде витрачено
+                      ✅ Активовано: {
+                        bonusPointsToUse === 5 ? 'Безкоштовний дизайн 🎨' :
+                        bonusPointsToUse === 10 ? 'Знижка 50% 💰' :
+                        bonusPointsToUse === 14 ? 'Повний манікюр безкоштовно 💅' : ''
+                      } ({bonusPointsToUse} балів)
                     </div>
                   )}
                 </div>

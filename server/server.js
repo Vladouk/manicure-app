@@ -485,7 +485,7 @@ app.post(
 
     // Validate bonus points if provided
     if (bonusPointsToUse > 0) {
-      const validBonusAmounts = [10, 20, 30];
+      const validBonusAmounts = [5, 10, 14];
       if (!validBonusAmounts.includes(bonusPointsToUse)) {
         return res.status(400).json({ error: "Invalid bonus points amount" });
       }
@@ -521,26 +521,31 @@ app.post(
               }
               bonusPointsSpent = bonusPointsToUse;
               bonusApplied = true;
-              // Bonus points will be deducted after appointment is created
-            }
-
-            // Pick the best single discount (ONLY ONE CAN BE APPLIED: first-time, referral, or bonus)
-            // Bonus takes priority if applied, then referral, then first-time
-            let bestDiscount = 0;
-            if (bonusApplied) {
-              // Bonus is already applied, don't stack with other discounts
-              bestDiscount = 0;
+              
+              // Calculate bonus discount based on reward type
+              if (bonus_reward_type === 'free_design') {
+                // 5 points = free design (no discount, but mark it)
+                bestDiscount = 0;
+              } else if (bonus_reward_type === 'discount_50') {
+                // 10 points = 50% discount
+                bestDiscount = Math.round(price * 0.5);
+              } else if (bonus_reward_type === 'free_manicure') {
+                // 14 points = free manicure (100% discount)
+                bestDiscount = price;
+              }
+              discountApplied = bestDiscount;
+              finalPrice = price - bestDiscount;
             } else {
-              bestDiscount = Math.max(firstTimeDiscount, referralAvailableDiscount);
-            }
-            
-            discountApplied = bestDiscount;
-            finalPrice = price - bestDiscount;
+              // Pick the best single discount (first-time or referral)
+              let bestNonBonusDiscount = Math.max(firstTimeDiscount, referralAvailableDiscount);
+              discountApplied = bestNonBonusDiscount;
+              finalPrice = price - bestNonBonusDiscount;
 
-            // Consume referral discount only if it was used
-            if (bestDiscount === referralAvailableDiscount && referralAvailableDiscount > 0) {
-              pool.query(`UPDATE client_points SET referral_discount_available = 0 WHERE tg_id = $1`, [tg_id])
-                .catch(err => console.error('Error resetting referral discount:', err));
+              // Consume referral discount only if it was used
+              if (bestNonBonusDiscount === referralAvailableDiscount && referralAvailableDiscount > 0) {
+                pool.query(`UPDATE client_points SET referral_discount_available = 0 WHERE tg_id = $1`, [tg_id])
+                  .catch(err => console.error('Error resetting referral discount:', err));
+              }
             }
 
             // Handle referral code if provided (gives future discount to referrer, no immediate discount here)
@@ -681,7 +686,17 @@ app.post(
 
 💰 Ціна: ${finalPrice} zł`;
 
-            if (discountApplied > 0) {
+            if (bonusPointsSpent > 0) {
+              let bonusText = '';
+              if (bonusRewardType === 'free_design') {
+                bonusText = 'Безкоштовний дизайн 🎨';
+              } else if (bonusRewardType === 'discount_50') {
+                bonusText = 'Знижка 50% 💰';
+              } else if (bonusRewardType === 'free_manicure') {
+                bonusText = 'Повний манікюр безкоштовно 💅';
+              }
+              clientMessage += `\n🎁 Бонус: ${bonusText} (-${bonusPointsSpent} балів)`;
+            } else if (discountApplied > 0) {
               clientMessage += `\n💸 Знижка: ${discountApplied} zł`;
             }
 
@@ -714,7 +729,17 @@ app.post(
 💼 Послуга: *${service}*
 💰 Ціна: *${finalPrice} zł*`;
 
-            if (discountApplied > 0) {
+            if (bonusPointsSpent > 0) {
+              let bonusText = '';
+              if (bonusRewardType === 'free_design') {
+                bonusText = 'Безкоштовний дизайн 🎨';
+              } else if (bonusRewardType === 'discount_50') {
+                bonusText = 'Знижка 50% 💰';
+              } else if (bonusRewardType === 'free_manicure') {
+                bonusText = 'Повний манікюр безкоштовно 💅';
+              }
+              adminMessage += `\n🎁 *Бонус:* ${bonusText} (-${bonusPointsSpent} балів)`;
+            } else if (discountApplied > 0) {
               adminMessage += `\n💸 Знижка: *${discountApplied} zł*`;
             }
 
@@ -831,10 +856,38 @@ app.post(
 
           if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
-          pool.query(`SELECT points, referral_discount_available FROM client_points WHERE tg_id = $1`, [tg_id])
+          // Check if client already used a referral code
+          pool.query(`
+            SELECT 
+              cp.points, 
+              cp.referral_discount_available,
+              EXISTS(SELECT 1 FROM referral_uses WHERE used_by_tg_id = $1) as has_used_referral,
+              EXISTS(SELECT 1 FROM appointments WHERE tg_id = $1 AND status != 'canceled') as has_appointments
+            FROM client_points cp
+            WHERE cp.tg_id = $1
+          `, [tg_id])
             .then(result => {
               const row = result.rows[0];
-              res.json({ points: row ? row.points : 0, referral_discount_available: row ? row.referral_discount_available : false });
+              if (!row) {
+                // New client - check if they have any appointments to determine first-time status
+                return pool.query(`SELECT EXISTS(SELECT 1 FROM appointments WHERE tg_id = $1 AND status != 'canceled') as has_appointments`, [tg_id])
+                  .then(r => {
+                    const isFirstTime = !r.rows[0].has_appointments;
+                    return res.json({ 
+                      points: 0, 
+                      referral_discount_available: false, 
+                      has_used_referral: false,
+                      is_first_time: isFirstTime
+                    });
+                  });
+              }
+              const isFirstTime = !row.has_appointments;
+              res.json({ 
+                points: row.points || 0, 
+                referral_discount_available: row.referral_discount_available || false,
+                has_used_referral: row.has_used_referral || false,
+                is_first_time: isFirstTime
+              });
             })
             .catch(err => res.status(500).json({ error: 'DB error' }));
         });
@@ -855,9 +908,9 @@ app.post(
                 .then(() => {
                   // Відправити повідомлення клієнту
                   let rewardText = "";
-                  if (points_to_spend === 10) rewardText = "Безкоштовний дизайн активовано! 🎨";
-                  else if (points_to_spend === 20) rewardText = "Знижка 30% активована! 💰";
-                  else if (points_to_spend === 30) rewardText = "Повний манікюр безкоштовно активовано! 💅";
+                  if (points_to_spend === 5) rewardText = "Безкоштовний дизайн активовано! 🎨";
+                  else if (points_to_spend === 10) rewardText = "Знижка 50% активована! 💰";
+                  else if (points_to_spend === 14) rewardText = "Повний манікюр безкоштовно активовано! 💅";
 
                   bot.sendMessage(tg_id, `🎁 *Винагорода активована!*\n\n${rewardText}`, { parse_mode: "Markdown" });
 
@@ -983,6 +1036,38 @@ app.post(
             })
             .catch(err => res.status(500).json({ error: "DB error" }));
         });
+
+        // =============== ADMIN: ADD BONUS POINTS TO CLIENT ===============
+        app.post('/api/admin/add-points', (req, res) => {
+          const initData = req.headers['x-init-data'];
+          const { tg_id, points } = req.body;
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          if (!tg_id || !points || points <= 0) 
+            return res.status(400).json({ error: 'Invalid tg_id or points' });
+
+          pool.query(`INSERT INTO client_points (tg_id, points) VALUES ($1, 0) ON CONFLICT (tg_id) DO NOTHING`, [tg_id])
+            .then(() => pool.query(`UPDATE client_points SET points = points + $1 WHERE tg_id = $2 RETURNING points`, [points, tg_id]))
+            .then(result => {
+              const newPoints = result.rows[0]?.points || 0;
+              bot.sendMessage(tg_id, `🎁 Адміністратор нарахував вам ${points} бонусних балів!\n💰 Ваш баланс: ${newPoints} балів\n\n` +
+                `Використовуйте бали при записі:\n` +
+                `• 5 балів = Безкоштовний дизайн 🎨\n` +
+                `• 10 балів = Знижка 50% 💰\n` +
+                `• 14 балів = Повний манікюр безкоштовно 💅`
+              ).catch(err => console.error('Bot notification error:', err));
+              res.json({ ok: true, newPoints });
+            })
+            .catch(err => res.status(500).json({ error: 'DB error' }));
+        });
+
+        // =============== GET AVAILABLE SLOTS ===============
         app.get('/api/slots', (req, res) => {
           pool.query(`SELECT id, date, time, is_booked FROM work_slots ORDER BY date, time`, [])
             .then(result => {
