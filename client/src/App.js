@@ -233,28 +233,38 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [mattingCategory, setMattingCategory] = useState("Глянцеве"); // Глянцеве, Матове
   const [price, setPrice] = useState(0);
   
+  // Helper function to get service price from database by service name
+  const getServicePriceByName = (serviceName) => {
+    if (!priceList.length || !serviceName) return 0;
+    
+    for (const category of priceList) {
+      for (const service of category.services) {
+        if (service.name === serviceName) {
+          return service.price || 0;
+        }
+      }
+    }
+    return 0;
+  };
+  
   // Centralized price calculation function
-  const calculatePrice = (category, size, design, matting) => {
+  const calculatePrice = (serviceName, size, design, matting) => {
     let basePrice = 0;
     
-    // Try to get price from database first
-    if (priceList.length > 0 && category) {
-      const categoryData = priceList.find(cat => cat.name === category);
-      if (categoryData && categoryData.services.length > 0) {
-        const serviceData = categoryData.services[0]; // Get first service in category
-        basePrice = serviceData.price || 0;
-      }
+    // Try to get price from database first by service name
+    if (serviceName) {
+      basePrice = getServicePriceByName(serviceName);
     }
     
     // Fallback to hardcoded prices if not in DB
     if (basePrice === 0) {
-      if (category === 'Укріплення' && size) {
+      if (serviceName === 'Укріплення' && size) {
         basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
-      } else if (category === 'Нарощення' && size) {
+      } else if (serviceName === 'Нарощення' && size) {
         basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
-      } else if (category === 'Гігієнічний') {
+      } else if (serviceName === 'Гігієнічний') {
         basePrice = 70;
-      } else if (category === 'Ремонт') {
+      } else if (serviceName === 'Ремонт') {
         basePrice = 0; // Ремонт - за домовленістю
       }
     }
@@ -6592,35 +6602,64 @@ if (mode === "booking") {
                       Довжина нігтів:
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                      {[
-                        { size: 'Нульова', price: 100 },
-                        { size: 'S', price: 110 },
-                        { size: 'M', price: 120 },
-                        { size: 'L', price: 130 },
-                        { size: 'XL', price: 140 },
-                        { size: '2XL', price: 150 },
-                        { size: '3XL', price: 160 }
-                      ].map(item => (
-                        <button
-                          key={item.size}
-                          onClick={() => {
-                            setSizeCategory(item.size);
-                            setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
-                          }}
-                          style={{
-                            padding: 15,
-                            borderRadius: 12,
-                            border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                            background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            textAlign: 'center'
-                          }}
-                        >
-                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                        </button>
-                      ))}
+                      {(() => {
+                        // Get all services for this category from priceList
+                        const categoryData = priceList.find(cat => cat.name === 'Укріплення');
+                        if (!categoryData || !categoryData.services.length) {
+                          // Fallback to hardcoded sizes
+                          return [
+                            { size: 'Нульова', price: 100 },
+                            { size: 'S', price: 110 },
+                            { size: 'M', price: 120 },
+                            { size: 'L', price: 130 },
+                            { size: 'XL', price: 140 },
+                            { size: '2XL', price: 150 },
+                            { size: '3XL', price: 160 }
+                          ].map(item => (
+                            <button
+                              key={item.size}
+                              onClick={() => {
+                                setSizeCategory(item.size);
+                                setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
+                              }}
+                              style={{
+                                padding: 15,
+                                borderRadius: 12,
+                                border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                                background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                            </button>
+                          ));
+                        }
+                        // Show services from DB
+                        return categoryData.services.map(service => (
+                          <button
+                            key={service.id}
+                            onClick={() => {
+                              setSizeCategory(service.name);
+                              setPrice(calculatePrice(service.name, '', designCategory, mattingCategory));
+                            }}
+                            style={{
+                              padding: 15,
+                              borderRadius: 12,
+                              border: sizeCategory === service.name ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: sizeCategory === service.name ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{service.name}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{service.price} zł</div>
+                          </button>
+                        ));
+                      })()}
                     </div>
                   </div>
 
@@ -6674,35 +6713,64 @@ if (mode === "booking") {
                       Довжина нігтів:
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                      {[
-                        { size: 'S', length: '±1cm', price: 130 },
-                        { size: 'M', length: '±1.5cm', price: 150 },
-                        { size: 'L', length: '±2cm', price: 170 },
-                        { size: 'XL', length: '±2.5cm', price: 190 },
-                        { size: '2XL', length: '±3cm', price: 210 },
-                        { size: '3XL', length: '±3.5cm', price: 230 }
-                      ].map(item => (
-                        <button
-                          key={item.size}
-                          onClick={() => {
-                            setSizeCategory(item.size);
-                            setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
-                          }}
-                          style={{
-                            padding: 15,
-                            borderRadius: 12,
-                            border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                            background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            textAlign: 'center'
-                          }}
-                        >
-                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                          <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
-                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                        </button>
-                      ))}
+                      {(() => {
+                        // Get all services for this category from priceList
+                        const categoryData = priceList.find(cat => cat.name === 'Нарощення');
+                        if (!categoryData || !categoryData.services.length) {
+                          // Fallback to hardcoded sizes
+                          return [
+                            { size: 'S', length: '±1cm', price: 130 },
+                            { size: 'M', length: '±1.5cm', price: 150 },
+                            { size: 'L', length: '±2cm', price: 170 },
+                            { size: 'XL', length: '±2.5cm', price: 190 },
+                            { size: '2XL', length: '±3cm', price: 210 },
+                            { size: '3XL', length: '±3.5cm', price: 230 }
+                          ].map(item => (
+                            <button
+                              key={item.size}
+                              onClick={() => {
+                                setSizeCategory(item.size);
+                                setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
+                              }}
+                              style={{
+                                padding: 15,
+                                borderRadius: 12,
+                                border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                                background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                              <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
+                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                            </button>
+                          ));
+                        }
+                        // Show services from DB
+                        return categoryData.services.map(service => (
+                          <button
+                            key={service.id}
+                            onClick={() => {
+                              setSizeCategory(service.name);
+                              setPrice(calculatePrice(service.name, '', designCategory, mattingCategory));
+                            }}
+                            style={{
+                              padding: 15,
+                              borderRadius: 12,
+                              border: sizeCategory === service.name ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: sizeCategory === service.name ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{service.name}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{service.price} zł</div>
+                          </button>
+                        ));
+                      })()}
                     </div>
                   </div>
 
