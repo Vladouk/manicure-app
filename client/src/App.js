@@ -291,18 +291,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     .then(r => r.json())
     .then(data => {
       _setDynamicPrices(data);
-      // Set defaults based on first category and service
-      if (data.length > 0) {
-        const firstCategory = data[0];
-        setServiceCategory(firstCategory.name);
-        if (firstCategory.services.length > 0) {
-          const firstService = firstCategory.services[0];
-          const displayName = firstService.is_promotion 
-            ? `${firstService.name} (${firstService.discount_price} zł 🔥 Акція)`
-            : `${firstService.name} (${firstService.price} zł)`;
-          setServiceSub(displayName);
-        }
-      }
+      // Don't set defaults - let user choose manually
     });
 
   if (effectiveMode === "client") {
