@@ -625,6 +625,32 @@ fetch(`${API}/api/appointment`, {
                     📱 @{c.username} →
                   </a>
                 )}
+                {!c.username && c.tg_id && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      WebApp.openTelegramLink(`tg://user?id=${c.tg_id}`);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      color: '#0088cc',
+                      textDecoration: 'none',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                  >
+                    📱 Відкрити профіль →
+                  </button>
+                )}
               </div>
               <div style={{
                 background: 'rgba(102, 126, 234, 0.15)',
@@ -731,6 +757,23 @@ if (effectiveMode === "clientHistory") {
               >
                 @{selectedClient.username}
               </a>
+            )}
+            {!selectedClient?.username && selectedClient?.tg_id && (
+              <button
+                type="button"
+                onClick={() => WebApp.openTelegramLink(`tg://user?id=${selectedClient.tg_id}`)}
+                style={{
+                  background: 'none',
+                  border: '1px solid rgba(255,255,255,0.6)',
+                  borderRadius: '12px',
+                  padding: '6px 10px',
+                  color: 'rgba(255,255,255,0.9)',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                📱 Відкрити профіль
+              </button>
             )}
           </div>
         </div>
