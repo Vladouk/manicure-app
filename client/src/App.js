@@ -63,6 +63,9 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
   const [analyticsForecast, setAnalyticsForecast] = useState(null);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
+  const [editedPrices, setEditedPrices] = useState({});
+  const [editedDiscountPrices, setEditedDiscountPrices] = useState({});
+  const [editedPromotions, setEditedPromotions] = useState({});
   
   // RESCHEDULE APPOINTMENT
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
@@ -2631,7 +2634,7 @@ if (mode === "menu") {
             fontSize: '1.3rem',
             fontWeight: '600',
             color: 'white'
-          }}>Прайс</h3>
+          }}>Зміна прайсу</h3>
           <p style={{
             margin: '0',
             fontSize: '0.9rem',
@@ -4683,6 +4686,222 @@ if (mode === "slotsCalendar") {
 
 
 // (prices admin mode removed)
+
+// Admin Prices Management
+if (mode === "prices") {
+  return (
+    <div className="app-container">
+      {/* Header */}
+      <div className="card" style={{
+        background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '30px 20px',
+        marginBottom: '20px',
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(79, 172, 254, 0.3)'
+      }}>
+        <h2 style={{
+          fontSize: '2rem',
+          margin: 0,
+          fontWeight: 700
+        }}>💰 Зміна прайсу</h2>
+        <p style={{ margin: 0, opacity: 0.9 }}>Редагуйте ціни послуг та зберігайте зміни</p>
+      </div>
+
+      {/* Categories and services list */}
+      <div className="card" style={{ padding: '16px', borderRadius: '16px' }}>
+        {priceList && priceList.length > 0 ? (
+          priceList.map(cat => (
+            <div key={cat.id} style={{ marginBottom: '24px' }}>
+              <h3 style={{ margin: '0 0 10px 0' }}>{cat.name}</h3>
+              {cat.services && cat.services.length > 0 ? (
+                cat.services.map(svc => {
+                  const currentVal = editedPrices[svc.id] ?? svc.price ?? 0;
+                  const currentDiscount = editedDiscountPrices[svc.id] ?? (svc.discount_price ?? 0);
+                  const currentPromotion = editedPromotions[svc.id] ?? !!svc.is_promotion;
+                  const savePrice = async () => {
+                    try {
+                      const response = await fetch(`${API}/api/admin/service`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'x-init-data': WebApp.initData
+                        },
+                        body: JSON.stringify({
+                          id: svc.id,
+                          category_id: cat.id,
+                          name: svc.name,
+                          description: svc.description,
+                          price: Number(currentVal),
+                          is_promotion: Boolean(currentPromotion),
+                          discount_price: Number(currentDiscount) || null,
+                          order_index: svc.order_index || 0,
+                          is_active: svc.is_active
+                        })
+                      });
+                      if (!response.ok) throw new Error('Failed');
+                      // Update local state to reflect saved price
+                      setPriceList(prev => prev.map(c => (
+                        c.id === cat.id ? {
+                          ...c,
+                          services: c.services.map(s => s.id === svc.id ? { ...s, price: Number(currentVal), discount_price: Number(currentDiscount) || null, is_promotion: Boolean(currentPromotion) } : s)
+                        } : c
+                      )));
+                      alert('✅ Ціна збережена');
+                    } catch (e) {
+                      alert('❌ Помилка збереження');
+                    }
+                  };
+                  return (
+                    <div key={svc.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '10px 0',
+                      borderBottom: '1px solid #eee'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600 }}>{svc.name}</div>
+                        {svc.description && (
+                          <div style={{ fontSize: '0.85rem', color: '#666' }}>{svc.description}</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={currentVal}
+                          onChange={(e) => setEditedPrices(prev => ({ ...prev, [svc.id]: e.target.value }))}
+                          style={{
+                            width: '100px',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            border: '1px solid #ddd',
+                            fontSize: '1rem'
+                          }}
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="Знижка"
+                          value={currentDiscount}
+                          onChange={(e) => setEditedDiscountPrices(prev => ({ ...prev, [svc.id]: e.target.value }))}
+                          style={{
+                            width: '100px',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            border: '1px solid #ddd',
+                            fontSize: '1rem'
+                          }}
+                        />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <input
+                            type="checkbox"
+                            checked={currentPromotion}
+                            onChange={(e) => setEditedPromotions(prev => ({ ...prev, [svc.id]: e.target.checked }))}
+                          /> Акція
+                        </label>
+                        <button
+                          onClick={savePrice}
+                          style={{
+                            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '10px 16px',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            color: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >Зберегти</button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ color: '#999' }}>Немає сервісів у категорії</div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div style={{ color: '#999' }}>Прайс-лист порожній або не завантажений</div>
+        )}
+      </div>
+
+      {/* Save All */}
+      <div style={{ textAlign: 'center', marginTop: '12px' }}>
+        <button
+          onClick={async () => {
+            const services = priceList.flatMap(c => c.services || []);
+            try {
+              await Promise.all(services.map(svc => {
+                const priceVal = editedPrices[svc.id] ?? svc.price ?? 0;
+                const discountVal = editedDiscountPrices[svc.id] ?? (svc.discount_price ?? null);
+                const promoVal = editedPromotions[svc.id] ?? !!svc.is_promotion;
+                return fetch(`${API}/api/admin/service`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-init-data': WebApp.initData
+                  },
+                  body: JSON.stringify({
+                    id: svc.id,
+                    category_id: svc.category_id || (priceList.find(c => (c.services||[]).some(s => s.id === svc.id))?.id),
+                    name: svc.name,
+                    description: svc.description,
+                    price: Number(priceVal),
+                    is_promotion: Boolean(promoVal),
+                    discount_price: discountVal !== null ? Number(discountVal) : null,
+                    order_index: svc.order_index || 0,
+                    is_active: svc.is_active
+                  })
+                });
+              }));
+              // Refresh from server to ensure consistency
+              const r = await fetch(`${API}/api/admin/prices`, { headers: { 'x-init-data': WebApp.initData } });
+              const data = await r.json();
+              setPriceList(data);
+              alert('✅ Усі зміни збережено');
+            } catch (e) {
+              alert('❌ Помилка при збереженні всіх змін');
+            }
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '14px 24px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            color: 'white',
+            cursor: 'pointer'
+          }}
+        >Зберегти всі</button>
+      </div>
+
+      {/* Back Button */}
+      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+        <button
+          className="primary-btn"
+          onClick={() => setMode("adminMenu")}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px 30px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            color: 'white',
+            cursor: 'pointer'
+          }}
+        >← Назад в адмінку</button>
+      </div>
+
+      {modal}
+    </div>
+  );
+}
 
 if (mode === "promotions") {
   return (
