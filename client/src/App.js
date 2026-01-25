@@ -6419,7 +6419,7 @@ if (mode === "booking") {
               </div>
 
               {/* Size Selection - УКРІПЛЕННЯ */}
-              {serviceCategory === "Укріплення" && (
+              {serviceCategory.includes("Укріплення") && (
                 <div>
                   <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                     Довжина нігтів:
@@ -6459,7 +6459,7 @@ if (mode === "booking") {
               )}
 
               {/* Size Selection - НАРОЩЕННЯ */}
-              {serviceCategory === "Нарощення" && (
+              {serviceCategory.includes("Нарощення") && (
                 <div>
                   <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
                     Довжина нігтів:
