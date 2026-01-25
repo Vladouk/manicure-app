@@ -2,14 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
-
-
+        >
+          1 Назад до меню
 const ADMIN_TG_IDS = [1342762796];
-
-
-
-const API = process.env.REACT_APP_API_URL || '';
-const getSlotLabel = (dateStr) => {
+        >
+          ← Назад до меню
+        >
+          ← Назад до меню
+        </button>
   const today = new Date();
   const slotDate = new Date(dateStr);
 
@@ -2886,6 +2886,36 @@ if (mode === "adminMenu") {
         }}>
           Керування салоном краси
         </p>
+      </div>
+
+      {/* Back to client menu */}
+      <div style={{ textAlign: 'center', margin: '20px 0' }}>
+        <button
+          className="primary-btn"
+          onClick={() => setMode("menu")}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px 30px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          ← Назад до меню
+        </button>
       </div>
 
       {/* Admin Menu Grid */}
