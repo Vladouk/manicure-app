@@ -55,8 +55,9 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [enteredReferralCode, setEnteredReferralCode] = useState("");
     const [hasReferralDiscount, setHasReferralDiscount] = useState(false);
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
-  // eslint-disable-next-line no-unused-vars
-  const [_isFirstTime, _setIsFirstTime] = useState(false);
+  const [isFirstTime, setIsFirstTime] = useState(false);
+  const [bonusPointsToUse, setBonusPointsToUse] = useState(0);
+  const [selectedBonusReward, setSelectedBonusReward] = useState(null);
   const [analyticsHours, setAnalyticsHours] = useState([]);
   const [analyticsDays, setAnalyticsDays] = useState([]);
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
@@ -82,6 +83,8 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     setComment("");
     setReference([]);
     setCurrentHandsPhotos([]);
+    setBonusPointsToUse(0);
+    setSelectedBonusReward(null);
   };
 
   const submitBooking = async () => {
@@ -111,6 +114,8 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     formData.append("service_sub", serviceSub);
     formData.append("price", price);
     formData.append("referral_code", enteredReferralCode);
+    formData.append("bonus_points_to_use", bonusPointsToUse);
+    formData.append("bonus_reward_type", selectedBonusReward);
 
     // Add current hands photos
     currentHandsPhotos.forEach((photo, index) => {
@@ -250,7 +255,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
     } else if (category === 'Нарощення' && size) {
       basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
-    } else if (category === 'Чоловічий манікюр') {
+    } else if (category === 'Гігієнічний') {
       basePrice = 80;
     } else if (category === 'Ремонт') {
       basePrice = 0; // Ремонт - за домовленістю
@@ -298,7 +303,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       .then(r => r.json())
         .then(data => {
           setBonusPoints(data.points || 0);
-          _setIsFirstTime(data.is_first_time || false);
+          setIsFirstTime(data.is_first_time || false);
           setHasReferralDiscount(data.referral_discount_available || false);
         })
       .catch(() => setBonusPoints(0));
@@ -365,6 +370,7 @@ fetch(`${API}/api/appointment`, {
         .then(r => r.json())
           .then(data => {
             setBonusPoints(data.points || 0);
+            setIsFirstTime(data.is_first_time || false);
             setHasReferralDiscount(data.referral_discount_available || false);
           })
         .catch(() => setBonusPoints(0));
@@ -1938,7 +1944,7 @@ if (mode === "priceList") {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>Чоловічий манікюр</span>
+                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>Гігієнічний</span>
                   <div style={{
                     background: '#e67e22',
                     color: 'white',
@@ -6237,11 +6243,11 @@ if (mode === "booking") {
                   </div>
                 )}
 
-                {/* Чоловічий манікюр */}
+                {/* Гігієнічний */}
                 <div
                   onClick={() => {
-                    setServiceCategory("Чоловічий манікюр");
-                    setServiceSub("Чоловічий манікюр");
+                    setServiceCategory("Гігієнічний");
+                    setServiceSub("Гігієнічний");
                     setSizeCategory("");
                     setDesignCategory("");
                     setMattingCategory("");
@@ -6250,8 +6256,8 @@ if (mode === "booking") {
                   style={{
                     padding: 20,
                     borderRadius: 14,
-                    border: serviceCategory === "Чоловічий манікюр" ? '2px solid #667eea' : '2px solid #e0e0e0',
-                    background: serviceCategory === "Чоловічий манікюр" ? 'rgba(102, 126, 234, 0.1)' : 'white',
+                    border: serviceCategory === "Гігієнічний" ? '2px solid #667eea' : '2px solid #e0e0e0',
+                    background: serviceCategory === "Гігієнічний" ? 'rgba(102, 126, 234, 0.1)' : 'white',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     textAlign: 'center'
@@ -6259,7 +6265,7 @@ if (mode === "booking") {
                 >
                   <div style={{ fontSize: 32, marginBottom: 10 }}>👔</div>
                   <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                    Чоловічий манікюр
+                    Гігієнічний
                   </div>
                   <div style={{ color: '#667eea', fontWeight: 'bold', fontSize: 14 }}>
                     80 zł
@@ -6640,6 +6646,76 @@ if (mode === "booking") {
                 />
               </div>
 
+              {/* Bonus Points Selection */}
+              {bonusPoints > 0 && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  padding: '15px',
+                  borderRadius: '12px',
+                  color: 'white',
+                  marginBottom: '15px'
+                }}>
+                  <label style={{ display: 'block', marginBottom: 12, fontWeight: 'bold', fontSize: '1rem' }}>
+                    🎁 Використати бонусні бали ({bonusPoints} балів):
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '10px' }}>
+                    <button
+                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 10 ? 0 : 10); setSelectedBonusReward(bonusPointsToUse === 10 ? null : 'free_design'); }}
+                      style={{
+                        padding: '10px',
+                        background: bonusPointsToUse === 10 ? '#fff' : 'rgba(255,255,255,0.3)',
+                        color: bonusPointsToUse === 10 ? '#f5576c' : '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: bonusPoints >= 10 ? 'pointer' : 'not-allowed',
+                        fontWeight: 'bold',
+                        opacity: bonusPoints >= 10 ? 1 : 0.5
+                      }}
+                      disabled={bonusPoints < 10}
+                    >
+                      10 балів 🎨
+                    </button>
+                    <button
+                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 20 ? 0 : 20); setSelectedBonusReward(bonusPointsToUse === 20 ? null : 'discount_30'); }}
+                      style={{
+                        padding: '10px',
+                        background: bonusPointsToUse === 20 ? '#fff' : 'rgba(255,255,255,0.3)',
+                        color: bonusPointsToUse === 20 ? '#f5576c' : '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: bonusPoints >= 20 ? 'pointer' : 'not-allowed',
+                        fontWeight: 'bold',
+                        opacity: bonusPoints >= 20 ? 1 : 0.5
+                      }}
+                      disabled={bonusPoints < 20}
+                    >
+                      20 балів 💰
+                    </button>
+                    <button
+                      onClick={() => { setBonusPointsToUse(bonusPointsToUse === 30 ? 0 : 30); setSelectedBonusReward(bonusPointsToUse === 30 ? null : 'free_manicure'); }}
+                      style={{
+                        padding: '10px',
+                        background: bonusPointsToUse === 30 ? '#fff' : 'rgba(255,255,255,0.3)',
+                        color: bonusPointsToUse === 30 ? '#f5576c' : '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: bonusPoints >= 30 ? 'pointer' : 'not-allowed',
+                        fontWeight: 'bold',
+                        opacity: bonusPoints >= 30 ? 1 : 0.5
+                      }}
+                      disabled={bonusPoints < 30}
+                    >
+                      30 балів 💅
+                    </button>
+                  </div>
+                  {bonusPointsToUse > 0 && (
+                    <div style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.9 }}>
+                      ✅ Вибрано: {bonusPointsToUse} балів буде витрачено
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Comment */}
               <div>
                 <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
@@ -6810,7 +6886,7 @@ if (mode === "booking") {
                   )}
 
                     {(() => {
-                      const firstTimeDiscountAmount = _isFirstTime ? Math.round(price * 0.2) : 0;
+                      const firstTimeDiscountAmount = isFirstTime ? Math.round(price * 0.2) : 0;
                       const referralDiscountAmount = hasReferralDiscount ? Math.round(price * 0.2) : 0;
                       const bestDiscount = Math.max(firstTimeDiscountAmount, referralDiscountAmount);
                       const finalAfterDiscount = price - bestDiscount;

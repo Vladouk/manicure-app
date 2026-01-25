@@ -272,11 +272,32 @@ async function initializeDatabase() {
       )
     `);
 
+    // Create bonus_uses table to track when clients use their bonus points
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bonus_uses (
+        id SERIAL PRIMARY KEY,
+        tg_id BIGINT NOT NULL,
+        appointment_id INTEGER,
+        points_spent INTEGER,
+        reward_type TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+      )
+    `);
+
+    // Add bonus_points_spent column to appointments if not exists
+    await pool.query(`
+      ALTER TABLE appointments
+      ADD COLUMN IF NOT EXISTS bonus_points_spent INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS bonus_reward TEXT
+    `);
+
     // Migrate tg_id columns to BIGINT for larger Telegram IDs
     await pool.query(`ALTER TABLE appointments ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Appointments tg_id already BIGINT or error:', err.message));
     await pool.query(`ALTER TABLE client_points ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Client_points tg_id already BIGINT or error:', err.message));
     await pool.query(`ALTER TABLE referral_codes ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Referral_codes tg_id already BIGINT or error:', err.message));
     await pool.query(`ALTER TABLE referral_uses ALTER COLUMN used_by_tg_id TYPE BIGINT`).catch(err => console.log('Referral_uses used_by_tg_id already BIGINT or error:', err.message));
+    await pool.query(`ALTER TABLE bonus_uses ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Bonus_uses tg_id already BIGINT or error:', err.message));
 
     console.log('Database tables initialized successfully');
   } catch (err) {
@@ -430,7 +451,7 @@ app.post(
   ]),
   (req, res) => {
     // removed noisy request logging
-    const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code } = req.body;
+    const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code, bonus_points_to_use, bonus_reward_type } = req.body;
     
     // Handle multiple current hands photos
     const currentHandsImages = [];
@@ -450,15 +471,24 @@ app.post(
       }
     }
 
-    console.log('📩 /api/appointment payload', { client, slot_id, tg_id, username, service, price, currentHandsImages: currentHandsImages.length, referenceImages: referenceImages.length });
+    console.log('📩 /api/appointment payload', { client, slot_id, tg_id, username, service, price, bonus_points_to_use, currentHandsImages: currentHandsImages.length, referenceImages: referenceImages.length });
 
     // Basic validation and coercion
     const slotIdNum = parseInt(slot_id, 10);
     const tgIdNum = parseInt(tg_id, 10);
+    const bonusPointsToUse = parseInt(bonus_points_to_use || 0, 10);
 
     if (!client || isNaN(slotIdNum) || isNaN(tgIdNum)) {
       console.error("❌ Missing or invalid required fields:", { client: !!client, slot_id, tg_id });
       return res.status(400).json({ error: "Missing or invalid fields" });
+    }
+
+    // Validate bonus points if provided
+    if (bonusPointsToUse > 0) {
+      const validBonusAmounts = [10, 20, 30];
+      if (!validBonusAmounts.includes(bonusPointsToUse)) {
+        return res.status(400).json({ error: "Invalid bonus points amount" });
+      }
     }
 
     // Use numeric ids downstream
@@ -471,18 +501,39 @@ app.post(
         const firstTimeRow = result.rows[0];
         let finalPrice = price;
         let discountApplied = 0;
+        let bonusApplied = false;
+        let bonusPointsSpent = 0;
         let referralInfo = null;
 
         const firstTimeDiscount = firstTimeRow.count === 0 ? Math.round(price * 0.2) : 0;
 
         // Check for referral discount available (applies only to the referrer, not stacking)
-        return pool.query(`SELECT referral_discount_available FROM client_points WHERE tg_id = $1`, [tgIdNum])
+        return pool.query(`SELECT referral_discount_available, points FROM client_points WHERE tg_id = $1`, [tgIdNum])
           .then(result => {
             const referralRow = result.rows[0];
             const referralAvailableDiscount = (referralRow && referralRow.referral_discount_available) ? Math.round(price * 0.2) : 0;
+            const clientPoints = referralRow ? referralRow.points : 0;
 
-            // Pick the best single discount
-            const bestDiscount = Math.max(firstTimeDiscount, referralAvailableDiscount);
+            // Check if bonus points are valid and available
+            if (bonusPointsToUse > 0) {
+              if (clientPoints < bonusPointsToUse) {
+                return res.status(400).json({ error: "Not enough bonus points" });
+              }
+              bonusPointsSpent = bonusPointsToUse;
+              bonusApplied = true;
+              // Bonus points will be deducted after appointment is created
+            }
+
+            // Pick the best single discount (ONLY ONE CAN BE APPLIED: first-time, referral, or bonus)
+            // Bonus takes priority if applied, then referral, then first-time
+            let bestDiscount = 0;
+            if (bonusApplied) {
+              // Bonus is already applied, don't stack with other discounts
+              bestDiscount = 0;
+            } else {
+              bestDiscount = Math.max(firstTimeDiscount, referralAvailableDiscount);
+            }
+            
             discountApplied = bestDiscount;
             finalPrice = price - bestDiscount;
 
@@ -515,14 +566,14 @@ app.post(
                           };
                         }
 
-                        return createAppointment(finalPrice, discountApplied, referralInfo);
+                        return createAppointment(finalPrice, discountApplied, referralInfo, bonusPointsSpent, bonus_reward_type);
                       });
                   } else {
-                    return createAppointment(finalPrice, discountApplied, referralInfo);
+                    return createAppointment(finalPrice, discountApplied, referralInfo, bonusPointsSpent, bonus_reward_type);
                   }
                 });
             } else {
-              return createAppointment(finalPrice, discountApplied, referralInfo);
+              return createAppointment(finalPrice, discountApplied, referralInfo, bonusPointsSpent, bonus_reward_type);
             }
           });
       })
@@ -531,7 +582,7 @@ app.post(
         return res.status(500).json({ error: "DB error" });
       });
 
-    function createAppointment(finalPrice, discountApplied, referralInfo) {
+    function createAppointment(finalPrice, discountApplied, referralInfo, bonusPointsSpent, bonusRewardType) {
       console.log("🔍 Checking slot availability for slot_id:", slotIdNum);
       // Check slot availability
       pool.query(`SELECT date, time FROM work_slots WHERE id = $1 AND is_booked = false`, [slotIdNum])
@@ -546,8 +597,8 @@ app.post(
           // Insert appointment
           return pool.query(
             `INSERT INTO appointments
-            (client, date, time, design, length, type, service, price, comment, reference_image, current_hands_images, tg_id, username)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            (client, date, time, design, length, type, service, price, comment, reference_image, current_hands_images, tg_id, username, bonus_points_spent, bonus_reward)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING id`,
             [
               client,
@@ -562,12 +613,24 @@ app.post(
               JSON.stringify(referenceImages),
               JSON.stringify(currentHandsImages),
               tgIdNum,
-              username
+              username,
+              bonusPointsSpent || 0,
+              bonusRewardType || null
             ]
           )
           .then(result => {
             const appointmentId = result.rows[0].id;
             console.log("✅ Appointment inserted with id", appointmentId);
+
+            // Deduct bonus points if they were used
+            if (bonusPointsSpent > 0) {
+              pool.query(`UPDATE client_points SET points = points - $1 WHERE tg_id = $2`, [bonusPointsSpent, tgIdNum])
+                .then(() => {
+                  pool.query(`INSERT INTO bonus_uses (tg_id, appointment_id, points_spent, reward_type) VALUES ($1, $2, $3, $4)`, [tgIdNum, appointmentId, bonusPointsSpent, bonusRewardType])
+                    .catch(err => console.error("Bonus use record error:", err));
+                })
+                .catch(err => console.error("Bonus points deduction error:", err));
+            }
 
             // Insert reminder
             pool.query(`INSERT INTO reminders (appointment_id) VALUES ($1)`, [appointmentId])
@@ -584,9 +647,16 @@ app.post(
                     pool.query(`UPDATE referral_codes SET used_count = used_count + 1 WHERE id = $1`, [referralInfo.code_id])
                       .catch(err => console.error("Referral code update error:", err));
 
-                    // Give referrer 10zl bonus (add to points or notify)
-                    // For now, we'll just log it - can be extended to add points
-                    console.log(`Referral bonus: ${referralInfo.referrer_tg_id} gets 10zl for referring ${tgIdNum}`);
+                    // Give referrer 1 bonus point for successful referral (equivalent to ~10 zl value)
+                    pool.query(`INSERT INTO client_points (tg_id, points) VALUES ($1, 0) ON CONFLICT (tg_id) DO NOTHING`, [referralInfo.referrer_tg_id])
+                      .then(() => pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [referralInfo.referrer_tg_id]))
+                      .then(() => {
+                        bot.sendMessage(referralInfo.referrer_tg_id, `🎉 *Реферальний бонус!*\n\nКлієнт використав твій код. Ти отримав 1 балл за реферала 🎁`, { parse_mode: "Markdown" })
+                          .catch(err => console.error("Referrer bonus notify error:", err));
+                      })
+                      .catch(err => console.error("Referral points update error:", err));
+
+                    console.log(`✅ Referral bonus: ${referralInfo.referrer_tg_id} gets 1 point for referring ${tgIdNum}`);
                   }
                 }
               )
@@ -896,11 +966,17 @@ app.post(
                   .catch(err => console.error("Points update error:", err));
               }
 
-
-              // ❗ якщо скасовано — розблокувати слот
+              // ❗ якщо скасовано — розблокувати слот і повернути бали
               if (status === 'canceled') {
                 pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time])
                   .catch(err => console.error("Slot unbook error:", err));
+
+                // Return points if appointment was approved before cancellation
+                if (row.status === 'approved') {
+                  pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [row.tg_id])
+                    .then(() => bot.sendMessage(row.tg_id, `💰 Тобі повернувся 1 балл за скасований запис`, { parse_mode: "Markdown" }))
+                    .catch(err => console.error("Points return error:", err));
+                }
               }
 
               res.json({ ok: true });
