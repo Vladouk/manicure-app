@@ -2476,7 +2476,7 @@ if (mode === "menu") {
         {/* Booking Card */}
         <div
           className="menu-card"
-          onClick={() => setMode("client")}
+          onClick={() => setMode("booking")}
           style={{
             background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
             borderRadius: '16px',
