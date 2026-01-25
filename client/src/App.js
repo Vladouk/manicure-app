@@ -371,14 +371,6 @@ fetch(`${API}/api/appointment`, {
     }
   }, [mode, tgUser?.id]);
 
-  const calculatePriceFromServiceSub = (sub) => {
-    if (!sub) return 0;
-    
-    // Extract price from the serviceSub string (format: "Service Name (price zł ...)")
-    const priceMatch = sub.match(/\((\d+) zł/);
-    return priceMatch ? parseInt(priceMatch[1]) : 0;
-  };
-
   useEffect(() => {
     setPrice(calculatePrice(serviceSub));
   }, [serviceSub]);
