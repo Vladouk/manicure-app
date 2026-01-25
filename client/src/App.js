@@ -2164,15 +2164,15 @@ if (mode === "clientPromotions") {
             }}>
               <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🔸</div>
               <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#2c3e50', marginBottom: '8px' }}>
-                10 балів
+                5 балів
               </div>
               <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '12px', lineHeight: '1.3' }}>
                 Безкоштовний дизайн
               </div>
               <button
                 className="primary-btn"
-                disabled={bonusPoints < 10}
-                onClick={() => spendPoints(10)}
+                disabled={bonusPoints < 5}
+                onClick={() => spendPoints(5)}
                 style={{
                   fontSize: '0.8rem',
                   padding: '6px 12px',
@@ -2197,15 +2197,15 @@ if (mode === "clientPromotions") {
             }}>
               <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🔸</div>
               <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#2c3e50', marginBottom: '8px' }}>
-                20 балів
+                10 балів
               </div>
               <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '12px', lineHeight: '1.3' }}>
-                Знижка 30%
+                Знижка 50%
               </div>
               <button
                 className="primary-btn"
-                disabled={bonusPoints < 20}
-                onClick={() => spendPoints(20)}
+                disabled={bonusPoints < 10}
+                onClick={() => spendPoints(10)}
                 style={{
                   fontSize: '0.8rem',
                   padding: '6px 12px',
@@ -2230,15 +2230,15 @@ if (mode === "clientPromotions") {
             }}>
               <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🔸</div>
               <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#2c3e50', marginBottom: '8px' }}>
-                30 балів
+                14 балів
               </div>
               <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '12px', lineHeight: '1.3' }}>
-                Повний манікюр 0 zł
+                Повний манікюр безкоштовно
               </div>
               <button
                 className="primary-btn"
-                disabled={bonusPoints < 30}
-                onClick={() => spendPoints(30)}
+                disabled={bonusPoints < 14}
+                onClick={() => spendPoints(14)}
                 style={{
                   fontSize: '0.8rem',
                   padding: '6px 12px',
