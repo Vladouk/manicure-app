@@ -3,7 +3,7 @@ import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
  
-const ADMIN_TG_IDS = [1342762796];
+const ADMIN_TG_IDS = [1342762796, 602355992];
 
 const API = process.env.REACT_APP_API_URL || '';
 const getSlotLabel = (dateStr) => {
@@ -53,6 +53,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [promotions, setPromotions] = useState([]);
   const [referralCode, setReferralCode] = useState(null);
   const [enteredReferralCode, setEnteredReferralCode] = useState("");
+    const [hasReferralDiscount, setHasReferralDiscount] = useState(false);
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [_isFirstTime, _setIsFirstTime] = useState(false);
@@ -105,6 +106,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     formData.append("type", mattingCategory);
     formData.append("comment", comment);
     formData.append("tg_id", effectiveTgId);
+      formData.append("username", tgUser?.username || "");
     formData.append("service_category", serviceCategory);
     formData.append("service_sub", serviceSub);
     formData.append("price", price);
@@ -294,7 +296,11 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   if (effectiveMode === "client") {
     fetch(`${API}/api/client/points?tg_id=${tgUser?.id}`)
       .then(r => r.json())
-      .then(data => setBonusPoints(data.points || 0))
+        .then(data => {
+          setBonusPoints(data.points || 0);
+          _setIsFirstTime(data.is_first_time || false);
+          setHasReferralDiscount(data.referral_discount_available || false);
+        })
       .catch(() => setBonusPoints(0));
 
       const handleClick = () => {
@@ -357,7 +363,10 @@ fetch(`${API}/api/appointment`, {
     if (mode === "clientPromotions") {
       fetch(`${API}/api/client/points?tg_id=${tgUser?.id}`)
         .then(r => r.json())
-        .then(data => setBonusPoints(data.points || 0))
+          .then(data => {
+            setBonusPoints(data.points || 0);
+            setHasReferralDiscount(data.referral_discount_available || false);
+          })
         .catch(() => setBonusPoints(0));
     }
   }, [mode, tgUser?.id]);
@@ -2108,57 +2117,6 @@ if (mode === "clientPromotions") {
           }}>Перший запис</h3>
           <div style={{
             fontSize: '2.5rem',
-            fontWeight: 'bold',
-            margin: '15px 0',
-            color: 'white',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-          }}>20% OFF</div>
-          <p style={{
-            margin: '0',
-            fontSize: '0.9rem',
-            opacity: '0.9',
-            color: 'white'
-          }}>Знижка на перше відвідування</p>
-        </div>
-
-        {/* Referral system */}
-        <div
-          className="menu-card"
-          style={{
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            borderRadius: '16px',
-            padding: '25px',
-            textAlign: 'center',
-            boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
-            border: 'none',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          <div style={{
-            fontSize: '4rem',
-            marginBottom: '15px',
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-          }}>💖</div>
-          <h3 style={{
-            margin: '0 0 15px 0',
-            fontSize: '1.4rem',
-            fontWeight: '600',
-            color: 'white'
-          }}>Приведи подругу</h3>
-          <p style={{
-            margin: '0 0 20px 0',
-            fontSize: '0.9rem',
-            opacity: '0.9',
-            color: 'white',
-            lineHeight: '1.4'
-          }}>
-            Запроси подругу та отримай 20% знижку на наступний манікюр!
-          </p>
-
-          {/* Referral Code Section */}
-          <div style={{
-            background: 'rgba(255,255,255,0.2)',
             borderRadius: '12px',
             padding: '20px',
             marginTop: '15px'
@@ -6851,15 +6809,43 @@ if (mode === "booking") {
                     </div>
                   )}
 
-                  <div style={{ 
-                    background: 'rgba(255,255,255,0.25)',
-                    borderRadius: 12,
-                    padding: 20,
-                    marginTop: 10
-                  }}>
-                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 8 }}>Загальна вартість</div>
-                    <div style={{ fontSize: 32, fontWeight: 'bold', letterSpacing: '1px' }}>{price} zł</div>
-                  </div>
+                    {(() => {
+                      const firstTimeDiscountAmount = _isFirstTime ? Math.round(price * 0.2) : 0;
+                      const referralDiscountAmount = hasReferralDiscount ? Math.round(price * 0.2) : 0;
+                      const bestDiscount = Math.max(firstTimeDiscountAmount, referralDiscountAmount);
+                      const finalAfterDiscount = price - bestDiscount;
+                      const appliedLabel = bestDiscount === 0 ? null : (bestDiscount === referralDiscountAmount ? 'Реферальна знижка' : 'Знижка за перший запис');
+
+                      return (
+                        <div style={{ 
+                          background: 'rgba(255,255,255,0.25)',
+                          borderRadius: 12,
+                          padding: 20,
+                          marginTop: 10
+                        }}>
+                          <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 8 }}>Загальна вартість</div>
+                          <div style={{ fontSize: 32, fontWeight: 'bold', letterSpacing: '1px' }}>{price} zł</div>
+                          {(firstTimeDiscountAmount > 0 || referralDiscountAmount > 0) && (
+                            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.3)' }}>
+                              <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 6 }}>Активні знижки (не сумуються)</div>
+                              {firstTimeDiscountAmount > 0 && (
+                                <div style={{ fontSize: 16, marginBottom: 4, color: appliedLabel === 'Знижка за перший запис' ? '#fff' : '#e0e0e0' }}>
+                                  💸 Знижка за перший запис: -{firstTimeDiscountAmount} zł {appliedLabel === 'Знижка за перший запис' ? '(застосовано)' : ''}
+                                </div>
+                              )}
+                              {referralDiscountAmount > 0 && (
+                                <div style={{ fontSize: 16, marginBottom: 4, color: appliedLabel === 'Реферальна знижка' ? '#fff' : '#e0e0e0' }}>
+                                  🎁 Реферальна знижка: -{referralDiscountAmount} zł {appliedLabel === 'Реферальна знижка' ? '(застосовано)' : ''}
+                                </div>
+                              )}
+                              <div style={{ fontSize: 18, fontWeight: 'bold', marginTop: 8 }}>
+                                Разом після знижок: {finalAfterDiscount} zł
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                 </div>
               </div>
             </div>

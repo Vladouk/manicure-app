@@ -473,25 +473,26 @@ app.post(
         let discountApplied = 0;
         let referralInfo = null;
 
-        // Apply first-time discount (20%)
-        if (firstTimeRow.count === 0) {
-          discountApplied = Math.round(price * 0.2);
-          finalPrice = price - discountApplied;
-        }
+        const firstTimeDiscount = firstTimeRow.count === 0 ? Math.round(price * 0.2) : 0;
 
-        // Check for referral discount available
+        // Check for referral discount available (applies only to the referrer, not stacking)
         return pool.query(`SELECT referral_discount_available FROM client_points WHERE tg_id = $1`, [tgIdNum])
           .then(result => {
             const referralRow = result.rows[0];
-            if (referralRow && referralRow.referral_discount_available) {
-              const referralDiscount = Math.round(price * 0.2);
-              finalPrice = finalPrice - referralDiscount;
-              discountApplied += referralDiscount;
+            const referralAvailableDiscount = (referralRow && referralRow.referral_discount_available) ? Math.round(price * 0.2) : 0;
+
+            // Pick the best single discount
+            const bestDiscount = Math.max(firstTimeDiscount, referralAvailableDiscount);
+            discountApplied = bestDiscount;
+            finalPrice = price - bestDiscount;
+
+            // Consume referral discount only if it was used
+            if (bestDiscount === referralAvailableDiscount && referralAvailableDiscount > 0) {
               pool.query(`UPDATE client_points SET referral_discount_available = 0 WHERE tg_id = $1`, [tg_id])
                 .catch(err => console.error('Error resetting referral discount:', err));
             }
 
-            // Handle referral code if provided
+            // Handle referral code if provided (gives future discount to referrer, no immediate discount here)
             if (referral_code) {
               return pool.query(`SELECT id, tg_id as referrer_tg_id FROM referral_codes WHERE code = $1 AND is_active = true`, [referral_code])
                 .then(result => {
@@ -502,14 +503,15 @@ app.post(
                       .then(result => {
                         const useRow = result.rows[0];
                         if (!useRow) {
-                          // Give referral discount to the referrer
+                          // Give referral discount to the referrer for their future booking
                           pool.query(`UPDATE client_points SET referral_discount_available = 1 WHERE tg_id = $1`, [codeRow.referrer_tg_id])
                             .catch(err => console.error('Error updating referral discount:', err));
 
                           // Prepare referral info to be saved after appointment is created
                           referralInfo = {
                             code_id: codeRow.id,
-                            referrer_tg_id: codeRow.referrer_tg_id
+                            referrer_tg_id: codeRow.referrer_tg_id,
+                            referee_discount_applied: 0
                           };
                         }
 
@@ -575,7 +577,7 @@ app.post(
             if (referralInfo) {
               pool.query(
                 `INSERT INTO referral_uses (referral_code_id, used_by_tg_id, appointment_id, discount_applied) VALUES ($1, $2, $3, $4)`,
-                [referralInfo.code_id, tgIdNum, appointmentId, 0],  // Assuming discount_applied is 0 for now
+                [referralInfo.code_id, tgIdNum, appointmentId, referralInfo.referee_discount_applied || 0],
                 (err) => {
                   if (!err) {
                     // Update referral code usage count
@@ -759,12 +761,12 @@ app.post(
 
           if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
-          pool.query(`SELECT points FROM client_points WHERE tg_id = $1`, [tg_id])
+          pool.query(`SELECT points, referral_discount_available FROM client_points WHERE tg_id = $1`, [tg_id])
             .then(result => {
               const row = result.rows[0];
-              res.json({ points: row ? row.points : 0 });
+              res.json({ points: row ? row.points : 0, referral_discount_available: row ? row.referral_discount_available : false });
             })
-            .catch(err => res.status(500).json({ error: "DB error" }));
+            .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
         // =============== CLIENT: SPEND BONUS POINTS ===============
@@ -1014,7 +1016,8 @@ app.post(
   ws.time,
   ws.is_booked,
   a.client AS client_name,
-  a.username AS client_username
+  a.username AS client_username,
+  a.tg_id AS client_tg_id
 FROM work_slots ws
 LEFT JOIN appointments a
   ON ws.date = a.date AND ws.time = a.time AND a.status != 'canceled'
