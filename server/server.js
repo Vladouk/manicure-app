@@ -613,7 +613,7 @@ app.post(
               JSON.stringify(referenceImages),
               JSON.stringify(currentHandsImages),
               tgIdNum,
-              username,
+              username && username.trim() ? username.trim() : null,
               bonusPointsSpent || 0,
               bonusRewardType || null
             ]
@@ -1027,7 +1027,7 @@ app.post(
       WHERE status != 'canceled'
       GROUP BY COALESCE(tg_id::text, LOWER(client))
     )
-    SELECT tg_id, client, username, last_visit, total_visits
+    SELECT tg_id, client, NULLIF(username, '') as username, last_visit, total_visits
     FROM dedup
     ORDER BY last_visit DESC
     `,
