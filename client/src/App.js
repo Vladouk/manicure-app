@@ -1606,7 +1606,122 @@ if (mode === "priceList") {
         gap: '25px',
         padding: '0 10px'
       }}>
-        {/* ПОКРИТТЯ */}
+        {/* УКРІПЛЕННЯ */}
+        <div
+          className="menu-card"
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '16px',
+            padding: '25px',
+            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+            border: 'none',
+            color: 'white'
+          }}
+        >
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '15px',
+            textAlign: 'center'
+          }}>💪</div>
+          <h3 style={{
+            margin: '0 0 20px 0',
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            textAlign: 'center'
+          }}>Укріплення</h3>
+
+          {/* Size Prices */}
+          <div style={{
+            background: 'rgba(255,255,255,0.9)',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '15px',
+            color: '#2c3e50'
+          }}>
+            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+              Довжина нігтів
+            </h4>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {[
+                { size: 'Нульова', price: 100 },
+                { size: 'S', price: 110 },
+                { size: 'M', price: 120 },
+                { size: 'L', price: 130 },
+                { size: 'XL', price: 140 },
+                { size: '2XL', price: 150 },
+                { size: '3XL', price: 160 }
+              ].map(item => (
+                <div key={item.size} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '10px 15px',
+                  background: 'rgba(102, 126, 234, 0.1)',
+                  borderRadius: '8px'
+                }}>
+                  <span style={{ fontWeight: '500' }}>{item.size}</span>
+                  <span style={{ fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Design Options */}
+          <div style={{
+            background: 'rgba(255,255,255,0.9)',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '15px',
+            color: '#2c3e50'
+          }}>
+            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+              Дизайн (додатково)
+            </h4>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {[
+                { value: 'Однотонний', price: 0, desc: 'Без декору' },
+                { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+                { value: 'Середній', price: 25, desc: 'Френч, геометрія' },
+                { value: 'Складний', price: 35, desc: 'Детальні малюнки' }
+              ].map(item => (
+                <div key={item.value} style={{
+                  padding: '10px 15px',
+                  background: 'rgba(102, 126, 234, 0.1)',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <span style={{ fontWeight: '500' }}>{item.value}</span>
+                    <span style={{ fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#666' }}>{item.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Matting Option */}
+          <div style={{
+            background: 'rgba(255,255,255,0.9)',
+            borderRadius: '12px',
+            padding: '20px',
+            color: '#2c3e50'
+          }}>
+            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+              Покриття (додатково)
+            </h4>
+            <div style={{
+              padding: '10px 15px',
+              background: 'rgba(102, 126, 234, 0.1)',
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'space-between'
+            }}>
+              <span style={{ fontWeight: '500' }}>Матове покриття</span>
+              <span style={{ fontWeight: 'bold', color: '#667eea' }}>+30 zł</span>
+            </div>
+          </div>
+        </div>
+
+        {/* НАРОЩЕННЯ */}
         <div
           className="menu-card"
           style={{
@@ -1615,246 +1730,116 @@ if (mode === "priceList") {
             padding: '25px',
             boxShadow: '0 8px 25px rgba(255, 154, 158, 0.3)',
             border: 'none',
-            position: 'relative',
-            overflow: 'hidden'
+            color: 'white'
           }}
         >
           <div style={{
-            position: 'absolute',
-            top: '15px',
-            left: '15px',
-            background: 'rgba(255,255,255,0.9)',
-            color: '#ff6b6b',
-            padding: '5px 12px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
+            fontSize: '3rem',
+            marginBottom: '15px',
+            textAlign: 'center'
+          }}>✨</div>
+          <h3 style={{
+            margin: '0 0 20px 0',
+            fontSize: '1.5rem',
             fontWeight: '600',
-            textTransform: 'uppercase'
+            textAlign: 'center'
+          }}>Нарощення</h3>
+
+          {/* Size Prices */}
+          <div style={{
+            background: 'rgba(255,255,255,0.9)',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '15px',
+            color: '#2c3e50'
           }}>
-            💅 Покриття
+            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+              Довжина нігтів
+            </h4>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {[
+                { size: 'S', length: '±1cm', price: 130 },
+                { size: 'M', length: '±1.5cm', price: 150 },
+                { size: 'L', length: '±2cm', price: 170 },
+                { size: 'XL', length: '±2.5cm', price: 190 },
+                { size: '2XL', length: '±3cm', price: 210 },
+                { size: '3XL', length: '±3.5cm', price: 230 }
+              ].map(item => (
+                <div key={item.size} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 15px',
+                  background: 'rgba(255, 154, 158, 0.15)',
+                  borderRadius: '8px'
+                }}>
+                  <div>
+                    <span style={{ fontWeight: '500' }}>{item.size}</span>
+                    <span style={{ fontSize: '0.85rem', color: '#666', marginLeft: '8px' }}>({item.length})</span>
+                  </div>
+                  <span style={{ fontWeight: 'bold', color: '#ff6b6b' }}>{item.price} zł</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div style={{ paddingTop: '20px' }}>
-            {/* Service 1 */}
-            <div
-              style={{
-                background: 'rgba(255,255,255,0.9)',
-                borderRadius: '12px',
-                padding: '20px',
-                marginBottom: '15px',
-                transition: 'all 0.3s ease',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h4 style={{ margin: '0', color: '#2c3e50', fontSize: '1.1rem', fontWeight: '600' }}>
-                  Покриття «гель-лак»
-                </h4>
-                <div className="price-tag" style={{
-                  background: '#ff6b6b',
-                  color: 'white',
-                  padding: '5px 12px',
-                  borderRadius: '15px',
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  transition: 'all 0.3s ease'
+          {/* Design Options */}
+          <div style={{
+            background: 'rgba(255,255,255,0.9)',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '15px',
+            color: '#2c3e50'
+          }}>
+            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+              Дизайн (додатково)
+            </h4>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {[
+                { value: 'Однотонний', price: 0, desc: 'Без декору' },
+                { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+                { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+                { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+              ].map(item => (
+                <div key={item.value} style={{
+                  padding: '10px 15px',
+                  background: 'rgba(255, 154, 158, 0.15)',
+                  borderRadius: '8px'
                 }}>
-                  100 zł
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <span style={{ fontWeight: '500' }}>{item.value}</span>
+                    <span style={{ fontWeight: 'bold', color: '#ff6b6b' }}>+{item.price} zł</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#666' }}>{item.desc}</div>
                 </div>
-              </div>
-              <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: '8px' }}>
-                <strong style={{ color: '#2c3e50' }}>У вартість входить:</strong>
-                <ul style={{ margin: '8px 0', paddingLeft: '20px', color: '#666', fontSize: '0.9rem' }}>
-                  <li>Гігієнічний манікюр</li>
-                  <li>База</li>
-                  <li>Колір (однотонне покриття)</li>
-                  <li>Топ</li>
-                </ul>
-              </div>
-              <p style={{ fontSize: '0.85rem', color: '#e74c3c', fontStyle: 'italic', margin: '0' }}>
-                ⭐ Підходить тим, хто хоче акуратні та міцні нігті на 3–4 тижні.
-              </p>
+              ))}
             </div>
+          </div>
 
-            {/* Service 2 */}
-            <div
-              style={{
-                background: 'rgba(255,255,255,0.9)',
-                borderRadius: '12px',
-                padding: '20px',
-                transition: 'all 0.3s ease',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h4 style={{ margin: '0', color: '#2c3e50', fontSize: '1.1rem', fontWeight: '600' }}>
-                  Покриття з укріпленням
-                </h4>
-                <div className="price-tag" style={{
-                  background: '#ff6b6b',
-                  color: 'white',
-                  padding: '5px 12px',
-                  borderRadius: '15px',
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  transition: 'all 0.3s ease'
-                }}>
-                  120 zł
-                </div>
-              </div>
-              <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: '8px' }}>
-                <strong style={{ color: '#2c3e50' }}>У вартість входить:</strong>
-                <ul style={{ margin: '8px 0', paddingLeft: '20px', color: '#666', fontSize: '0.9rem' }}>
-                  <li>Гігієнічний манікюр</li>
-                  <li>База</li>
-                  <li>Гель для зміцнення нігтів</li>
-                  <li>Колір</li>
-                  <li>Топ</li>
-                </ul>
-              </div>
-              <p style={{ fontSize: '0.85rem', color: '#e74c3c', fontStyle: 'italic', margin: '0' }}>
-                ⭐ Рекомендую для слабких, ламких або м'яких нігтів.
-              </p>
+          {/* Matting Option */}
+          <div style={{
+            background: 'rgba(255,255,255,0.9)',
+            borderRadius: '12px',
+            padding: '20px',
+            color: '#2c3e50'
+          }}>
+            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+              Покриття (додатково)
+            </h4>
+            <div style={{
+              padding: '10px 15px',
+              background: 'rgba(255, 154, 158, 0.15)',
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'space-between'
+            }}>
+              <span style={{ fontWeight: '500' }}>Матове покриття</span>
+              <span style={{ fontWeight: 'bold', color: '#ff6b6b' }}>+30 zł</span>
             </div>
           </div>
         </div>
 
-        {/* НАРОЩЕННЯ НІГТІВ */}
-        <div
-          className="menu-card"
-          style={{
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            borderRadius: '16px',
-            padding: '25px',
-            boxShadow: '0 8px 25px rgba(79, 172, 254, 0.3)',
-            border: 'none',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          <div style={{
-            position: 'absolute',
-            top: '15px',
-            left: '15px',
-            background: 'rgba(255,255,255,0.9)',
-            color: '#3498db',
-            padding: '5px 12px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
-            fontWeight: '600',
-            textTransform: 'uppercase'
-          }}>
-            ✨ Нарощення
-          </div>
-
-          <div style={{ paddingTop: '20px' }}>
-            <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '20px', color: 'white' }}>
-              (Включає форму, довжину, моделювання матеріалом, опил, базове вирівнювання)
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-              {/* S Size */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div className="size-indicator" style={{
-                  fontSize: '2rem',
-                  marginBottom: '10px',
-                  transition: 'all 0.3s ease'
-                }}>S</div>
-                <div style={{
-                  background: '#3498db',
-                  color: 'white',
-                  padding: '5px 12px',
-                  borderRadius: '15px',
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  display: 'inline-block',
-                  marginBottom: '10px'
-                }}>
-                  130 zł
-                </div>
-                <p style={{ fontSize: '0.85rem', color: '#666', margin: '0', lineHeight: '1.4' }}>
-                  Коротка довжина, класична та найзручніша.
-                </p>
-              </div>
-
-              {/* M Size */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div className="size-indicator" style={{
-                  fontSize: '2rem',
-                  marginBottom: '10px',
-                  transition: 'all 0.3s ease'
-                }}>M</div>
-                <div style={{
-                  background: '#3498db',
-                  color: 'white',
-                  padding: '5px 12px',
-                  borderRadius: '15px',
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  display: 'inline-block',
-                  marginBottom: '10px'
-                }}>
-                  150 zł
-                </div>
-                <p style={{ fontSize: '0.85rem', color: '#666', margin: '0', lineHeight: '1.4' }}>
-                  Середня довжина — оптимальний варіант для дизайнів.
-                </p>
-              </div>
-
-              {/* L Size */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div className="size-indicator" style={{
-                  fontSize: '2rem',
-                  marginBottom: '10px',
-                  transition: 'all 0.3s ease'
-                }}>L</div>
-                <div style={{
-                  background: '#3498db',
-                  color: 'white',
-                  padding: '5px 12px',
-                  borderRadius: '15px',
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  display: 'inline-block',
-                  marginBottom: '10px'
-                }}>
-                  170 zł
-                </div>
-                <p style={{ fontSize: '0.85rem', color: '#666', margin: '0', lineHeight: '1.4' }}>
-                  Довгі нігті — для виразних форм і складних дизайнів.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ДОДАТКОВІ ПОСЛУГИ */}
+        {/* Гігієнічний манікюр */}
         <div
           className="menu-card"
           style={{
@@ -1863,234 +1848,44 @@ if (mode === "priceList") {
             padding: '25px',
             boxShadow: '0 8px 25px rgba(67, 233, 123, 0.3)',
             border: 'none',
-            position: 'relative',
-            overflow: 'hidden'
+            color: 'white'
           }}
         >
           <div style={{
-            position: 'absolute',
-            top: '15px',
-            left: '15px',
-            background: 'rgba(255,255,255,0.9)',
-            color: '#27ae60',
-            padding: '5px 12px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
+            fontSize: '3rem',
+            marginBottom: '15px',
+            textAlign: 'center'
+          }}>✨</div>
+          <h3 style={{
+            margin: '0 0 20px 0',
+            fontSize: '1.5rem',
             fontWeight: '600',
-            textTransform: 'uppercase'
-          }}>
-            🎨 Додаткові послуги
-          </div>
+            textAlign: 'center'
+          }}>Гігієнічний манікюр</h3>
 
-          <div style={{ paddingTop: '20px' }}>
-            <h4 style={{ color: 'white', marginBottom: '15px', fontSize: '1.1rem' }}>Дизайн</h4>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-              {/* 1-5 nails */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '15px',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>1–5 нігтів</span>
-                  <div style={{
-                    background: '#27ae60',
-                    color: 'white',
-                    padding: '3px 8px',
-                    borderRadius: '10px',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold'
-                  }}>
-                    20 zł
-                  </div>
-                </div>
-                <p style={{ fontSize: '0.8rem', color: '#666', margin: '0', lineHeight: '1.4' }}>
-                  (Малюнки, стемпінг, наклейки, френч, втирки тощо)
-                </p>
-              </div>
-
-              {/* All nails */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '15px',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>Дизайн на всі нігті</span>
-                  <div style={{
-                    background: '#27ae60',
-                    color: 'white',
-                    padding: '3px 8px',
-                    borderRadius: '10px',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold'
-                  }}>
-                    35 zł
-                  </div>
-                </div>
-                <p style={{ fontSize: '0.8rem', color: '#666', margin: '0', lineHeight: '1.4' }}>
-                  Повністю оформлені руки у будь-якому стилі.
-                </p>
-              </div>
-            </div>
-
-            {/* Figurki */}
-            <div style={{
-              background: 'rgba(255,255,255,0.9)',
-              borderRadius: '12px',
-              padding: '15px',
-              marginBottom: '15px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: '600', color: '#2c3e50' }}>Фігурки</span>
-                <div style={{
-                  background: '#27ae60',
-                  color: 'white',
-                  padding: '3px 8px',
-                  borderRadius: '10px',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold'
-                }}>
-                  3 zł / шт
-                </div>
-              </div>
-              <p style={{ fontSize: '0.8rem', color: '#666', margin: '5px 0 0 0', lineHeight: '1.4' }}>
-                Об'ємні декори, камінці, 3D-елементи.
-              </p>
-            </div>
-
-            {/* Removal */}
-            <div style={{
-              background: 'rgba(255,255,255,0.9)',
-              borderRadius: '12px',
-              padding: '15px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: '600', color: '#2c3e50' }}>Зняття + гігієнічний манікюр</span>
-                <div style={{
-                  background: '#e67e22',
-                  color: 'white',
-                  padding: '3px 8px',
-                  borderRadius: '10px',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold'
-                }}>
-                  40 zł
-                </div>
-              </div>
-              <p style={{ fontSize: '0.8rem', color: '#666', margin: '5px 0 0 0', lineHeight: '1.4' }}>
-                Повне акуратне зняття старого покриття + чистка нігтів і кутикули.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* ІНШІ ПОСЛУГИ */}
-        <div
-          className="menu-card"
-          style={{
-            background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-            borderRadius: '16px',
-            padding: '25px',
-            boxShadow: '0 8px 25px rgba(255, 236, 210, 0.3)',
-            border: 'none',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
           <div style={{
-            position: 'absolute',
-            top: '15px',
-            left: '15px',
             background: 'rgba(255,255,255,0.9)',
-            color: '#e67e22',
-            padding: '5px 12px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
-            fontWeight: '600',
-            textTransform: 'uppercase'
+            borderRadius: '12px',
+            padding: '20px',
+            color: '#2c3e50',
+            textAlign: 'center'
           }}>
-            💼 Інші послуги
-          </div>
-
-          <div style={{ paddingTop: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
-              {/* Men's manicure */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '15px',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>Гігієнічний</span>
-                  <div style={{
-                    background: '#e67e22',
-                    color: 'white',
-                    padding: '3px 8px',
-                    borderRadius: '10px',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold'
-                  }}>
-                    50 zł
-                  </div>
-                </div>
-                <p style={{ fontSize: '0.8rem', color: '#666', margin: '0', lineHeight: '1.4' }}>
-                  Обрізний чи комбінований, з вирівнюванням і наданням форми.
-                </p>
-              </div>
-
-              {/* Transparent matte */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '15px',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>Прозоре матове покриття</span>
-                  <div style={{
-                    background: '#e67e22',
-                    color: 'white',
-                    padding: '3px 8px',
-                    borderRadius: '10px',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold'
-                  }}>
-                    30 zł
-                  </div>
-                </div>
-                <p style={{ fontSize: '0.8rem', color: '#666', margin: '0', lineHeight: '1.4' }}>
-                  Ідеально для природного, «чистого» ефекту нігтів.
-                </p>
-              </div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#27ae60', marginBottom: '10px' }}>
+              70 zł
             </div>
-
-            {/* Note */}
-            <div style={{
-              background: 'rgba(255,255,255,0.9)',
-              borderRadius: '12px',
-              padding: '15px',
-              marginTop: '15px',
-              border: '1px solid #ddd'
-            }}>
-              <p style={{ fontSize: '0.85rem', margin: '0', fontStyle: 'italic', color: '#666' }}>
-                💅 <strong>Покриття «гель-лак» / дизайн за стандартним прайсом</strong>
-              </p>
-              <p style={{ fontSize: '0.8rem', margin: '8px 0 0 0', color: '#888' }}>
-                Тобто дизайн та декор розраховується відповідно до вказаних вище цін.
-              </p>
+            <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
+              <div style={{ marginBottom: '10px' }}>
+                <strong>У вартість входить:</strong>
+              </div>
+              <ul style={{ margin: '10px 0', paddingLeft: '20px', textAlign: 'left', color: '#555' }}>
+                <li>Обробка кутикули</li>
+                <li>Формування нігтів</li>
+                <li>Полірування</li>
+                <li>Зволоження шкіри рук</li>
+              </ul>
+              <div style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', marginTop: '15px' }}>
+                ⭐ Ідеально підходить для догляду без покриття
+              </div>
             </div>
           </div>
         </div>
