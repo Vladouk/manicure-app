@@ -367,6 +367,21 @@ fetch(`${API}/api/appointment`, {
     }
   }, [mode, tgUser?.id, setIsFirstTime]);
 
+  // Refresh bonuses when starting booking flow so points are available without opening promotions
+  useEffect(() => {
+    if (mode === "booking" && tgUser?.id) {
+      fetch(`${API}/api/client/points?tg_id=${tgUser.id}`)
+        .then(r => r.json())
+        .then(data => {
+          setBonusPoints(data.points || 0);
+          setIsFirstTime(data.is_first_time || false);
+          setHasReferralDiscount(data.referral_discount_available || false);
+          setHasUsedReferralCode(data.has_used_referral || false);
+        })
+        .catch(() => setBonusPoints(0));
+    }
+  }, [mode, tgUser?.id, setIsFirstTime]);
+
   useEffect(() => {
     setPrice(calculatePrice(serviceSub));
   }, [serviceSub]);
@@ -6208,7 +6223,7 @@ if (mode === "booking") {
             </div>
 
             {/* Available Discounts Display (informational only) */}
-            {(isFirstTime || hasReferralDiscount || bonusPoints >= 5) && (
+            {isFirstTime && (
               <div style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 borderRadius: 16,
@@ -6216,30 +6231,8 @@ if (mode === "booking") {
                 marginBottom: 25,
                 color: 'white'
               }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: 18 }}>🎁 Доступні знижки та бонуси</h3>
-                <p style={{ margin: '0 0 15px 0', opacity: 0.8, fontSize: 13 }}>Застосуєте на кроці підтвердження</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {isFirstTime && (
-                    <div style={{ background: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 10 }}>
-                      💸 <strong>Перший запис:</strong> знижка 20%
-                    </div>
-                  )}
-                  {hasReferralDiscount && (
-                    <div style={{ background: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 10 }}>
-                      🎁 <strong>Реферальна знижка:</strong> 20% доступна
-                    </div>
-                  )}
-                  {bonusPoints >= 5 && (
-                    <div style={{ background: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 10 }}>
-                      ⭐ <strong>Бонусні бали:</strong> {bonusPoints} балів
-                      <div style={{ fontSize: 13, marginTop: 5, opacity: 0.9 }}>
-                        {bonusPoints >= 14 && '• 14 балів = Повний манікюр безкоштовно 💅'}
-                        {bonusPoints >= 10 && bonusPoints < 14 && '• 10 балів = Знижка 50% 💰'}
-                        {bonusPoints >= 5 && bonusPoints < 10 && '• 5 балів = Безкоштовний дизайн 🎨'}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: 18 }}>🎁 Знижка за перший запис</h3>
+                <p style={{ margin: 0, opacity: 0.85, fontSize: 14 }}>20% застосуємо на кроці підтвердження</p>
               </div>
             )}
 
