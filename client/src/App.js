@@ -233,38 +233,28 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [mattingCategory, setMattingCategory] = useState("Глянцеве"); // Глянцеве, Матове
   const [price, setPrice] = useState(0);
   
-  // Helper function to get service price from database by service name
-  const getServicePriceByName = (serviceName) => {
-    if (!priceList.length || !serviceName) return 0;
-    
-    for (const category of priceList) {
-      for (const service of category.services) {
-        if (service.name === serviceName) {
-          return service.price || 0;
-        }
-      }
-    }
-    return 0;
-  };
-  
   // Centralized price calculation function
-  const calculatePrice = (serviceName, size, design, matting) => {
+  const calculatePrice = (category, size, design, matting) => {
     let basePrice = 0;
     
-    // Try to get price from database first by service name
-    if (serviceName) {
-      basePrice = getServicePriceByName(serviceName);
+    // Try to get price from database first
+    if (priceList.length > 0 && category) {
+      const categoryData = priceList.find(cat => cat.name === category);
+      if (categoryData && categoryData.services.length > 0) {
+        const serviceData = categoryData.services[0]; // Get first service in category
+        basePrice = serviceData.price || 0;
+      }
     }
     
     // Fallback to hardcoded prices if not in DB
     if (basePrice === 0) {
-      if (serviceName === 'Укріплення' && size) {
+      if (category === 'Укріплення' && size) {
         basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
-      } else if (serviceName === 'Нарощення' && size) {
+      } else if (category === 'Нарощення' && size) {
         basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
-      } else if (serviceName === 'Гігієнічний') {
+      } else if (category === 'Гігієнічний') {
         basePrice = 70;
-      } else if (serviceName === 'Ремонт') {
+      } else if (category === 'Ремонт') {
         basePrice = 0; // Ремонт - за домовленістю
       }
     }
@@ -3270,16 +3260,8 @@ if (mode === "adminMenu") {
             fetch(`${API}/api/admin/prices`, {
               headers: { "x-init-data": WebApp.initData }
             })
-              .then(r => {
-                if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                return r.json();
-              })
-              .then(setPriceList)
-              .catch(err => {
-                console.error('❌ Помилка завантаження прайсу:', err);
-                alert(`❌ Помилка завантаження прайсу: ${err.message}`);
-                setPriceList([]);
-              });
+              .then(r => r.json())
+              .then(setPriceList);
             setMode("prices");
           }}
           style={{
@@ -4700,603 +4682,7 @@ if (mode === "slotsCalendar") {
 }
 
 
-if (mode === "prices") {
-  return (
-    <div className="app-container">
-      {/* Header */}
-      <div className="card" style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        textAlign: 'center',
-        padding: '26px 20px',
-        marginBottom: '18px',
-        borderRadius: '18px',
-        boxShadow: '0 10px 28px rgba(102, 126, 234, 0.35)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: '-40%',
-          left: '-40%',
-          width: '180%',
-          height: '180%',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 60%)'
-        }} />
-        <h2 style={{ fontSize: '2.2rem', margin: '0 0 6px 0', fontWeight: '750', position: 'relative' }}>💰 Прайс та послуги</h2>
-        <p style={{ fontSize: '1rem', margin: 0, opacity: 0.92, position: 'relative' }}>
-          Керуйте категоріями, послугами та акційними цінами
-        </p>
-      </div>
-
-      {/* Top actions */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 18 }}>
-        <button
-          className="primary-btn"
-          onClick={() => setMode("adminMenu")}
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            border: 'none',
-            borderRadius: 12,
-            padding: '12px 18px',
-            fontSize: '0.95rem',
-            fontWeight: 700,
-            color: 'white',
-            cursor: 'pointer',
-            boxShadow: '0 6px 18px rgba(102, 126, 234, 0.28)'
-          }}
-        >
-          ← Назад в адмінку
-        </button>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            className="primary-btn"
-            onClick={() => {
-              fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } })
-                .then(r => r.json())
-                .then(setPriceList);
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-              border: 'none',
-              borderRadius: 12,
-              padding: '12px 18px',
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: '#0b3d2f',
-              cursor: 'pointer',
-              boxShadow: '0 6px 16px rgba(56, 249, 215, 0.25)'
-            }}
-          >
-            ↻ Оновити
-          </button>
-
-          <button
-            className="primary-btn"
-            onClick={() => {
-              fetch(`${API}/api/admin/promotions`, { headers: { "x-init-data": WebApp.initData } })
-                .then(r => r.json())
-                .then(setPromotions);
-              setMode("promotions");
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-              border: 'none',
-              borderRadius: 12,
-              padding: '12px 18px',
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: '#5f1b1b',
-              cursor: 'pointer',
-              boxShadow: '0 6px 16px rgba(255, 154, 158, 0.25)'
-            }}
-          >
-            🎉 Акції
-          </button>
-        </div>
-      </div>
-
-      {/* Add category */}
-      <div className="card" style={{
-        background: '#f7f8ff',
-        borderRadius: 14,
-        padding: 18,
-        boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
-        marginBottom: 18,
-        border: '1px solid #eef0ff'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-          <div style={{
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            display: 'grid',
-            placeItems: 'center',
-            color: 'white',
-            fontSize: '1.2rem',
-            fontWeight: 700
-          }}>+</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#2c3e50' }}>Нова категорія</div>
-            <div style={{ fontSize: '0.9rem', color: '#6c7a89' }}>Групуйте послуги за типом</div>
-          </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: 10, alignItems: 'center' }}>
-          <input
-            id="newCategoryName"
-            placeholder="Назва категорії (напр. Гібридний манікюр)"
-            style={{
-              width: '100%',
-              padding: '12px 14px',
-              borderRadius: 10,
-              border: '1px solid #dde1f1',
-              fontSize: '0.95rem',
-              boxSizing: 'border-box'
-            }}
-          />
-          <button
-            className="primary-btn"
-            onClick={() => {
-              const name = document.getElementById("newCategoryName").value.trim();
-              if (!name) return alert("Введіть назву категорії");
-
-              fetch(`${API}/api/admin/category`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "x-init-data": WebApp.initData },
-                body: JSON.stringify({ name, is_active: true })
-              })
-                .then(r => {
-                  if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                  return r.json();
-                })
-                .then(() => {
-                  alert("✅ Категорію додано!");
-                  document.getElementById("newCategoryName").value = "";
-                  return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
-                })
-                .then(r => r.json())
-                .then(setPriceList)
-                .catch(err => {
-                  console.error('❌ Помилка додавання категорії:', err);
-                  alert(`❌ Помилка: ${err.message}`);
-                });
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-              border: 'none',
-              borderRadius: 12,
-              padding: '12px 18px',
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: '#0b3d2f',
-              cursor: 'pointer',
-              boxShadow: '0 6px 16px rgba(56, 249, 215, 0.2)'
-            }}
-          >
-            ➕ Додати
-          </button>
-        </div>
-      </div>
-
-      {/* Categories list */}
-      <div style={{ display: 'grid', gap: 16, marginBottom: 24 }}>
-        {priceList.length === 0 && (
-          <div className="card" style={{
-            textAlign: 'center',
-            padding: '36px 18px',
-            background: '#fafbff',
-            borderRadius: 14,
-            border: '1px dashed #d6dbff',
-            color: '#7b8bb2'
-          }}>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>Категорій ще немає</div>
-            <div style={{ fontSize: '0.95rem' }}>Додайте першу категорію вище</div>
-          </div>
-        )}
-
-        {priceList.map(category => (
-          <div
-            key={category.id}
-            className="card"
-            style={{
-              background: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)',
-              borderRadius: 16,
-              padding: 20,
-              boxShadow: '0 10px 26px rgba(0,0,0,0.06)',
-              border: '1px solid #e9ecf3'
-            }}
-          >
-            {/* Category header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: 'white',
-                  fontSize: '1.2rem',
-                  fontWeight: 800
-                }}>📁</div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#273142' }}>{category.name}</div>
-                  {category.description && (
-                    <div style={{ fontSize: '0.9rem', color: '#5f6b7c' }}>{category.description}</div>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button
-                  className="primary-btn"
-                  onClick={() => {
-                    const newName = prompt("Нова назва категорії:", category.name);
-                    if (newName && newName.trim()) {
-                      fetch(`${API}/api/admin/category`, {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          "x-init-data": WebApp.initData
-                        },
-                        body: JSON.stringify({
-                          id: category.id,
-                          name: newName.trim(),
-                          description: category.description,
-                          is_active: category.is_active
-                        })
-                      })
-                        .then(r => {
-                          if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                          return r.json();
-                        })
-                        .then(() => {
-                          alert("✅ Категорію оновлено!");
-                          return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
-                        })
-                        .then(r => r.json())
-                        .then(setPriceList)
-                        .catch(err => {
-                          console.error('❌ Помилка оновлення категорії:', err);
-                          alert(`❌ Помилка: ${err.message}`);
-                        });
-                    }
-                  }}
-                  style={{
-                    background: '#eef2ff',
-                    color: '#4c51bf',
-                    border: '1px solid #d9ddff',
-                    borderRadius: 10,
-                    padding: '8px 12px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  ✏️ Редагувати
-                </button>
-                <button
-                  className="primary-btn"
-                  onClick={() => {
-                    if (window.confirm(`Видалити категорію "${category.name}" та всі її послуги?`)) {
-                      fetch(`${API}/api/admin/category/${category.id}`, {
-                        method: "DELETE",
-                        headers: { "x-init-data": WebApp.initData }
-                      })
-                        .then(r => {
-                          if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                          return r.json();
-                        })
-                        .then(() => {
-                          alert("✅ Категорію видалено!");
-                          return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
-                        })
-                        .then(r => r.json())
-                        .then(setPriceList)
-                        .catch(err => {
-                          console.error('❌ Помилка видалення категорії:', err);
-                          alert(`❌ Помилка: ${err.message}`);
-                        });
-                    }
-                  }}
-                  style={{
-                    background: '#fff0f0',
-                    color: '#c0392b',
-                    border: '1px solid #f8d7da',
-                    borderRadius: 10,
-                    padding: '8px 12px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  🗑 Видалити
-                </button>
-              </div>
-            </div>
-
-            {/* Add service */}
-            <div style={{
-              background: '#ffffff',
-              borderRadius: 12,
-              padding: 14,
-              border: '1px solid #edf0f5',
-              marginBottom: 14
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ fontWeight: 800, color: '#273142' }}>Додати послугу</div>
-                <span style={{ fontSize: '0.9rem', color: '#6c7a89' }}>Акційні ціни теж тут</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))', gap: 10 }}>
-                <input
-                  id={`serviceName-${category.id}`}
-                  placeholder="Назва послуги"
-                  className="input"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 10,
-                    border: '1px solid #dfe3eb',
-                    fontSize: '0.95rem'
-                  }}
-                />
-                <input
-                  id={`servicePrice-${category.id}`}
-                  type="number"
-                  placeholder="Ціна (zł)"
-                  className="input"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 10,
-                    border: '1px solid #dfe3eb',
-                    fontSize: '0.95rem'
-                  }}
-                />
-                <input
-                  id={`serviceDesc-${category.id}`}
-                  placeholder="Опис (необов'язково)"
-                  className="input"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 10,
-                    border: '1px solid #dfe3eb',
-                    fontSize: '0.95rem'
-                  }}
-                />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'center' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#2c3e50' }}>
-                    <input type="checkbox" id={`servicePromo-${category.id}`} />
-                    🔥 Акція
-                  </label>
-                  <input
-                    id={`serviceDiscount-${category.id}`}
-                    type="number"
-                    placeholder="Ціна зі знижкою"
-                    className="input"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: 10,
-                      border: '1px solid #dfe3eb',
-                      fontSize: '0.95rem'
-                    }}
-                  />
-                </div>
-                <button
-                  className="primary-btn"
-                  onClick={() => {
-                    const name = document.getElementById(`serviceName-${category.id}`).value.trim();
-                    const price = parseInt(document.getElementById(`servicePrice-${category.id}`).value);
-                    const isPromo = document.getElementById(`servicePromo-${category.id}`).checked;
-                    const discountPrice = isPromo ? parseInt(document.getElementById(`serviceDiscount-${category.id}`).value) : null;
-                    const description = document.getElementById(`serviceDesc-${category.id}`).value.trim();
-
-                    if (!name || isNaN(price)) return alert("Введіть назву та ціну послуги");
-
-                    fetch(`${API}/api/admin/service`, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        "x-init-data": WebApp.initData
-                      },
-                      body: JSON.stringify({
-                        category_id: category.id,
-                        name,
-                        description,
-                        price,
-                        is_promotion: isPromo,
-                        discount_price: discountPrice,
-                        is_active: true
-                      })
-                    })
-                      .then(r => {
-                        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                        return r.json();
-                      })
-                      .then(() => {
-                        alert("✅ Послугу додано!");
-                        document.getElementById(`serviceName-${category.id}`).value = "";
-                        document.getElementById(`serviceDesc-${category.id}`).value = "";
-                        document.getElementById(`servicePrice-${category.id}`).value = "";
-                        document.getElementById(`servicePromo-${category.id}`).checked = false;
-                        document.getElementById(`serviceDiscount-${category.id}`).value = "";
-                        return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
-                      })
-                      .then(r => r.json())
-                      .then(setPriceList)
-                      .catch(err => {
-                        console.error('❌ Помилка додавання послуги:', err);
-                        alert(`❌ Помилка: ${err.message}`);
-                      });
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    border: 'none',
-                    borderRadius: 12,
-                    padding: '12px 16px',
-                    fontSize: '0.95rem',
-                    fontWeight: 750,
-                    color: 'white',
-                    cursor: 'pointer',
-                    boxShadow: '0 6px 18px rgba(102, 126, 234, 0.25)'
-                  }}
-                >
-                  ➕ Додати послугу
-                </button>
-              </div>
-            </div>
-
-            {/* Services list */}
-            <div style={{ display: 'grid', gap: 10 }}>
-              {category.services.map(service => (
-                <div
-                  key={service.id}
-                  style={{
-                    padding: 14,
-                    borderRadius: 12,
-                    background: service.is_promotion ? 'linear-gradient(135deg, #fff5e6 0%, #ffe4d9 100%)' : '#ffffff',
-                    border: '1px solid #edf0f5',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    alignItems: 'center',
-                    boxShadow: '0 6px 16px rgba(0,0,0,0.04)'
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#273142' }}>💅 {service.name}</span>
-                      {service.is_promotion && (
-                        <span style={{
-                          background: '#ffefc6',
-                          color: '#c27b00',
-                          padding: '4px 8px',
-                          borderRadius: 10,
-                          fontSize: '0.8rem',
-                          fontWeight: 800
-                        }}>
-                          🔥 Акція
-                        </span>
-                      )}
-                    </div>
-                    {service.description && (
-                      <div style={{ fontSize: '0.93rem', color: '#55606f', marginBottom: 6 }}>{service.description}</div>
-                    )}
-                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1f9d55' }}>
-                      {service.is_promotion ? (
-                        <>
-                          <span style={{ textDecoration: 'line-through', color: '#c0392b', marginRight: 8 }}>{service.price} zł</span>
-                          <span style={{ color: '#0b8f6a' }}>{service.discount_price} zł</span>
-                        </>
-                      ) : (
-                        <span>{service.price} zł</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button
-                      className="primary-btn"
-                      onClick={() => {
-                        const newName = prompt("Нова назва послуги:", service.name);
-                        const newPrice = prompt("Нова ціна:", service.price);
-                        if (newName && newPrice && !isNaN(parseInt(newPrice))) {
-                          fetch(`${API}/api/admin/service`, {
-                            method: "POST",
-                            headers: {
-                              "Content-Type": "application/json",
-                              "x-init-data": WebApp.initData
-                            },
-                            body: JSON.stringify({
-                              id: service.id,
-                              category_id: category.id,
-                              name: newName.trim(),
-                              description: service.description,
-                              price: parseInt(newPrice),
-                              is_promotion: service.is_promotion,
-                              discount_price: service.discount_price,
-                              is_active: service.is_active
-                            })
-                          })
-                            .then(r => {
-                              if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                              return r.json();
-                            })
-                            .then(() => {
-                              alert("✅ Послугу оновлено!");
-                              return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
-                            })
-                            .then(r => r.json())
-                            .then(setPriceList)
-                            .catch(err => {
-                              console.error('❌ Помилка оновлення послуги:', err);
-                              alert(`❌ Помилка: ${err.message}`);
-                            });
-                        }
-                      }}
-                      style={{
-                        background: '#eef2ff',
-                        color: '#4c51bf',
-                        border: '1px solid #d9ddff',
-                        borderRadius: 10,
-                        padding: '8px 10px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="primary-btn"
-                      onClick={() => {
-                        if (window.confirm(`Видалити послугу "${service.name}"?`)) {
-                          fetch(`${API}/api/admin/service/${service.id}`, {
-                            method: "DELETE",
-                            headers: { "x-init-data": WebApp.initData }
-                          })
-                            .then(r => {
-                              if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                              return r.json();
-                            })
-                            .then(() => {
-                              alert("✅ Послугу видалено!");
-                              return fetch(`${API}/api/admin/prices`, { headers: { "x-init-data": WebApp.initData } });
-                            })
-                            .then(r => r.json())
-                            .then(setPriceList)
-                            .catch(err => {
-                              console.error('❌ Помилка видалення послуги:', err);
-                              alert(`❌ Помилка: ${err.message}`);
-                            });
-                        }
-                      }}
-                      style={{
-                        background: '#fff0f0',
-                        color: '#c0392b',
-                        border: '1px solid #f8d7da',
-                        borderRadius: 10,
-                        padding: '8px 10px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      🗑
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {modal}
-    </div>
-  );
-}
+// (prices admin mode removed)
 
 if (mode === "promotions") {
   return (
@@ -6610,64 +5996,35 @@ if (mode === "booking") {
                       Довжина нігтів:
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                      {(() => {
-                        // Get all services for this category from priceList
-                        const categoryData = priceList.find(cat => cat.name === 'Укріплення');
-                        if (!categoryData || !categoryData.services.length) {
-                          // Fallback to hardcoded sizes
-                          return [
-                            { size: 'Нульова', price: 100 },
-                            { size: 'S', price: 110 },
-                            { size: 'M', price: 120 },
-                            { size: 'L', price: 130 },
-                            { size: 'XL', price: 140 },
-                            { size: '2XL', price: 150 },
-                            { size: '3XL', price: 160 }
-                          ].map(item => (
-                            <button
-                              key={item.size}
-                              onClick={() => {
-                                setSizeCategory(item.size);
-                                setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
-                              }}
-                              style={{
-                                padding: 15,
-                                borderRadius: 12,
-                                border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                                background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                textAlign: 'center'
-                              }}
-                            >
-                              <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                            </button>
-                          ));
-                        }
-                        // Show services from DB
-                        return categoryData.services.map(service => (
-                          <button
-                            key={service.id}
-                            onClick={() => {
-                              setSizeCategory(service.name);
-                              setPrice(calculatePrice(service.name, '', designCategory, mattingCategory));
-                            }}
-                            style={{
-                              padding: 15,
-                              borderRadius: 12,
-                              border: sizeCategory === service.name ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                              background: sizeCategory === service.name ? 'rgba(255,107,157,0.1)' : 'white',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              textAlign: 'center'
-                            }}
-                          >
-                            <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{service.name}</div>
-                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{service.price} zł</div>
-                          </button>
-                        ));
-                      })()}
+                      {[
+                        { size: 'Нульова', price: 100 },
+                        { size: 'S', price: 110 },
+                        { size: 'M', price: 120 },
+                        { size: 'L', price: 130 },
+                        { size: 'XL', price: 140 },
+                        { size: '2XL', price: 150 },
+                        { size: '3XL', price: 160 }
+                      ].map(item => (
+                        <button
+                          key={item.size}
+                          onClick={() => {
+                            setSizeCategory(item.size);
+                            setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
+                          }}
+                          style={{
+                            padding: 15,
+                            borderRadius: 12,
+                            border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                            background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -6721,64 +6078,35 @@ if (mode === "booking") {
                       Довжина нігтів:
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                      {(() => {
-                        // Get all services for this category from priceList
-                        const categoryData = priceList.find(cat => cat.name === 'Нарощення');
-                        if (!categoryData || !categoryData.services.length) {
-                          // Fallback to hardcoded sizes
-                          return [
-                            { size: 'S', length: '±1cm', price: 130 },
-                            { size: 'M', length: '±1.5cm', price: 150 },
-                            { size: 'L', length: '±2cm', price: 170 },
-                            { size: 'XL', length: '±2.5cm', price: 190 },
-                            { size: '2XL', length: '±3cm', price: 210 },
-                            { size: '3XL', length: '±3.5cm', price: 230 }
-                          ].map(item => (
-                            <button
-                              key={item.size}
-                              onClick={() => {
-                                setSizeCategory(item.size);
-                                setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
-                              }}
-                              style={{
-                                padding: 15,
-                                borderRadius: 12,
-                                border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                                background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                textAlign: 'center'
-                              }}
-                            >
-                              <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                              <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
-                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                            </button>
-                          ));
-                        }
-                        // Show services from DB
-                        return categoryData.services.map(service => (
-                          <button
-                            key={service.id}
-                            onClick={() => {
-                              setSizeCategory(service.name);
-                              setPrice(calculatePrice(service.name, '', designCategory, mattingCategory));
-                            }}
-                            style={{
-                              padding: 15,
-                              borderRadius: 12,
-                              border: sizeCategory === service.name ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                              background: sizeCategory === service.name ? 'rgba(255,107,157,0.1)' : 'white',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              textAlign: 'center'
-                            }}
-                          >
-                            <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{service.name}</div>
-                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{service.price} zł</div>
-                          </button>
-                        ));
-                      })()}
+                      {[
+                        { size: 'S', length: '±1cm', price: 130 },
+                        { size: 'M', length: '±1.5cm', price: 150 },
+                        { size: 'L', length: '±2cm', price: 170 },
+                        { size: 'XL', length: '±2.5cm', price: 190 },
+                        { size: '2XL', length: '±3cm', price: 210 },
+                        { size: '3XL', length: '±3.5cm', price: 230 }
+                      ].map(item => (
+                        <button
+                          key={item.size}
+                          onClick={() => {
+                            setSizeCategory(item.size);
+                            setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
+                          }}
+                          style={{
+                            padding: 15,
+                            borderRadius: 12,
+                            border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                            background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                          <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
+                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                        </button>
+                      ))}
                     </div>
                   </div>
 

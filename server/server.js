@@ -1397,6 +1397,7 @@ ORDER BY ws.date, ws.time
       s.is_active as service_active
     FROM service_categories c
     LEFT JOIN services s ON c.id = s.category_id
+    WHERE c.is_active = true
     ORDER BY c.order_index, c.id, s.order_index, s.id
   `, [])
             .then(result => {
