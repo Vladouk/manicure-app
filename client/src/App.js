@@ -329,7 +329,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       
       return basePrice + designPrice + mattingPrice;
     };
-  }, [priceListServices, priceList];
+  }, [priceListServices, priceList]);
   
   // Clear size when service changes
   useEffect(() => {
@@ -350,7 +350,6 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     .then(r => r.json())
     .then(data => {
       setPriceListServices(data);
-      _setDynamicPrices(data);
       // Don't set defaults - let user choose manually
     })
     .catch(err => console.error('Client: Error fetching prices:', err));
@@ -2564,7 +2563,6 @@ if (mode === "menu") {
             fetch(`${API}/api/prices`)
               .then(r => r.json())
               .then(data => {
-                _setDynamicPrices(data);
                 setMode("priceList");
               });
           }}
@@ -7459,40 +7457,30 @@ if (mode === "admin") {
             </button>
 
             <button
-              onClick={() => setAdminCalendarView(!adminCalendarView)}
+              onClick={() => alert('📅 Календарний вид розробляється')}
               style={{
-                background: adminCalendarView ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255,255,255,0.9)',
+                background: 'rgba(255,255,255,0.9)',
                 border: 'none',
                 borderRadius: '12px',
                 padding: '15px 20px',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                color: adminCalendarView ? 'white' : '#667eea',
-                cursor: 'pointer',
+                color: '#999',
+                cursor: 'not-allowed',
                 transition: 'all 0.3s ease',
-                boxShadow: adminCalendarView 
-                  ? '0 6px 20px rgba(102, 126, 234, 0.3)' 
-                  : '0 2px 8px rgba(0,0,0,0.1)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                opacity: 0.6
               }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = adminCalendarView 
-                  ? '0 6px 20px rgba(102, 126, 234, 0.3)' 
-                  : '0 2px 8px rgba(0,0,0,0.1)';
-              }}
+              disabled
             >
-              📅 Календар
+              📅 Календар (розробка)
             </button>
           </div>
         </div>
       </div>
 
       {/* Calendar View or List View */}
-      {adminCalendarView ? (
+      {false ? (
         (() => {
           const formatDateForComparison = (dateStr) => {
             if (!dateStr) return '';

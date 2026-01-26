@@ -2015,8 +2015,6 @@ ORDER BY ws.date, ws.time
             .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
-        const cron = require('node-cron');
-
         // =============== DAILY REMINDERS (18:00) ===============
         cron.schedule('0 18 * * *', () => {
           console.log("⏰ Запускаю нагадування...");
