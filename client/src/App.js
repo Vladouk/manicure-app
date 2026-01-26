@@ -6,6 +6,74 @@ import "./styles/theme.css";
 const ADMIN_TG_IDS = [1342762796, 602355992,7058392354];
 
 const API = process.env.REACT_APP_API_URL || '';
+
+// Price List Services Data Structure
+const PRICE_LIST_SERVICES = [
+  {
+    id: 'reinforcement',
+    title: 'Укріплення',
+    emoji: '💪',
+    bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    shadowColor: 'rgba(102, 126, 234, 0.3)',
+    accentColor: '#667eea',
+    overlayColor: 'rgba(102, 126, 234, 0.1)',
+    lengthOptions: [
+      { size: 'Нульова', price: 100 },
+      { size: 'S', price: 110 },
+      { size: 'M', price: 120 },
+      { size: 'L', price: 130 },
+      { size: 'XL', price: 140 },
+      { size: '2XL', price: 150 },
+      { size: '3XL', price: 160 }
+    ],
+    designOptions: [
+      { value: 'Однотонний', price: 0, desc: 'Без декору' },
+      { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+      { value: 'Середній', price: 25, desc: 'Френч, геометрія' },
+      { value: 'Складний', price: 35, desc: 'Детальні малюнки' }
+    ]
+  },
+  {
+    id: 'extension',
+    title: 'Нарощення',
+    emoji: '✨',
+    bgGradient: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+    shadowColor: 'rgba(255, 154, 158, 0.3)',
+    accentColor: '#ff6b6b',
+    overlayColor: 'rgba(255, 154, 158, 0.15)',
+    lengthOptions: [
+      { size: 'S', length: '±1cm', price: 130 },
+      { size: 'M', length: '±1.5cm', price: 150 },
+      { size: 'L', length: '±2cm', price: 170 },
+      { size: 'XL', length: '±2.5cm', price: 190 },
+      { size: '2XL', length: '±3cm', price: 210 },
+      { size: '3XL', length: '±3.5cm', price: 230 }
+    ],
+    designOptions: [
+      { value: 'Однотонний', price: 0, desc: 'Без декору' },
+      { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+      { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+      { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+    ]
+  },
+  {
+    id: 'hygienic',
+    title: 'Гігієнічний манікюр 💅',
+    emoji: '✨',
+    bgGradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    shadowColor: 'rgba(67, 233, 123, 0.3)',
+    accentColor: '#27ae60',
+    fixedPrice: 70,
+    description: [
+      'Обробка кутикули',
+      'Формування нігтів',
+      'Полірування',
+      'Зволоження шкіри рук'
+    ],
+    note: '⭐ Ідеально підходить для догляду без покриття'
+  }
+];
+
 const getSlotLabel = (dateStr) => {
   const today = new Date();
   const slotDate = new Date(dateStr);
@@ -1721,7 +1789,7 @@ if (mode === "priceList") {
           zIndex: 1,
           position: 'relative'
         }}>
-          💅 ПРАЙС НА ПОСЛУГИ
+          💰 ПРАЙС НА ПОСЛУГИ
         </h2>
         <p style={{
           fontSize: '1rem',
@@ -1771,245 +1839,123 @@ if (mode === "priceList") {
         gap: '25px',
         padding: '0 10px'
       }}>
-        {/* УКРІПЛЕННЯ */}
-        <div
-          className="menu-card"
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '16px',
-            padding: '25px',
-            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
-            border: 'none',
-            color: 'white'
-          }}
-        >
-          <div style={{
-            fontSize: '3rem',
-            marginBottom: '15px',
-            textAlign: 'center'
-          }}>💪</div>
-          <h3 style={{
-            margin: '0 0 20px 0',
-            fontSize: '1.5rem',
-            fontWeight: '600',
-            textAlign: 'center'
-          }}>Укріплення </h3>
+        {PRICE_LIST_SERVICES.map(service => (
+          <div
+            key={service.id}
+            className="menu-card"
+            style={{
+              background: service.bgGradient,
+              borderRadius: '16px',
+              padding: '25px',
+              boxShadow: `0 8px 25px ${service.shadowColor}`,
+              border: 'none',
+              color: 'white'
+            }}
+          >
+            <div style={{
+              fontSize: '3rem',
+              marginBottom: '15px',
+              textAlign: 'center'
+            }}>{service.emoji}</div>
+            <h3 style={{
+              margin: '0 0 20px 0',
+              fontSize: '1.5rem',
+              fontWeight: '600',
+              textAlign: 'center'
+            }}>{service.title}</h3>
 
-          {/* Size Prices */}
-          <div style={{
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '15px',
-            color: '#2c3e50'
-          }}>
-            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
-              Довжина нігтів
-            </h4>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              {[
-                { size: 'Нульова', price: 100 },
-                { size: 'S', price: 110 },
-                { size: 'M', price: 120 },
-                { size: 'L', price: 130 },
-                { size: 'XL', price: 140 },
-                { size: '2XL', price: 150 },
-                { size: '3XL', price: 160 }
-              ].map(item => (
-                <div key={item.size} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '10px 15px',
-                  background: 'rgba(102, 126, 234, 0.1)',
-                  borderRadius: '8px'
-                }}>
-                  <span style={{ fontWeight: '500' }}>{item.size}</span>
-                  <span style={{ fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</span>
+            {/* Fixed Price Service (Hygienic) */}
+            {service.fixedPrice ? (
+              <div style={{
+                background: 'rgba(255,255,255,0.9)',
+                borderRadius: '12px',
+                padding: '20px',
+                color: '#2c3e50',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: service.accentColor, marginBottom: '10px' }}>
+                  {service.fixedPrice} zł
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Design Options */}
-          <div style={{
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '15px',
-            color: '#2c3e50'
-          }}>
-            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
-              Дизайн (додатково)
-            </h4>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              {[
-                { value: 'Однотонний', price: 0, desc: 'Без декору' },
-                { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-                { value: 'Середній', price: 25, desc: 'Френч, геометрія' },
-                { value: 'Складний', price: 35, desc: 'Детальні малюнки' }
-              ].map(item => (
-                <div key={item.value} style={{
-                  padding: '10px 15px',
-                  background: 'rgba(102, 126, 234, 0.1)',
-                  borderRadius: '8px'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span style={{ fontWeight: '500' }}>{item.value}</span>
-                    <span style={{ fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</span>
+                <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
+                  <div style={{ marginBottom: '10px' }}>
+                    <strong>У вартість входить:</strong>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#666' }}>{item.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* НАРОЩЕННЯ */}
-        <div
-          className="menu-card"
-          style={{
-            background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-            borderRadius: '16px',
-            padding: '25px',
-            boxShadow: '0 8px 25px rgba(255, 154, 158, 0.3)',
-            border: 'none',
-            color: 'white'
-          }}
-        >
-          <div style={{
-            fontSize: '3rem',
-            marginBottom: '15px',
-            textAlign: 'center'
-          }}>✨</div>
-          <h3 style={{
-            margin: '0 0 20px 0',
-            fontSize: '1.5rem',
-            fontWeight: '600',
-            textAlign: 'center'
-          }}>Нарощення</h3>
-
-          {/* Size Prices */}
-          <div style={{
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '15px',
-            color: '#2c3e50'
-          }}>
-            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
-              Довжина нігтів
-            </h4>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              {[
-                { size: 'S', length: '±1cm', price: 130 },
-                { size: 'M', length: '±1.5cm', price: 150 },
-                { size: 'L', length: '±2cm', price: 170 },
-                { size: 'XL', length: '±2.5cm', price: 190 },
-                { size: '2XL', length: '±3cm', price: 210 },
-                { size: '3XL', length: '±3.5cm', price: 230 }
-              ].map(item => (
-                <div key={item.size} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '10px 15px',
-                  background: 'rgba(255, 154, 158, 0.15)',
-                  borderRadius: '8px'
-                }}>
-                  <div>
-                    <span style={{ fontWeight: '500' }}>{item.size}</span>
-                    <span style={{ fontSize: '0.85rem', color: '#666', marginLeft: '8px' }}>({item.length})</span>
+                  <ul style={{ margin: '10px 0', paddingLeft: '20px', textAlign: 'left', color: '#555' }}>
+                    {service.description.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                  <div style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', marginTop: '15px' }}>
+                    {service.note}
                   </div>
-                  <span style={{ fontWeight: 'bold', color: '#ff6b6b' }}>{item.price} zł</span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Design Options */}
-          <div style={{
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '15px',
-            color: '#2c3e50'
-          }}>
-            <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
-              Дизайн (додатково)
-            </h4>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              {[
-                { value: 'Однотонний', price: 0, desc: 'Без декору' },
-                { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-                { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
-                { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
-              ].map(item => (
-                <div key={item.value} style={{
-                  padding: '10px 15px',
-                  background: 'rgba(255, 154, 158, 0.15)',
-                  borderRadius: '8px'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span style={{ fontWeight: '500' }}>{item.value}</span>
-                    <span style={{ fontWeight: 'bold', color: '#ff6b6b' }}>+{item.price} zł</span>
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: '#666' }}>{item.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Гігієнічний манікюр */}
-        <div
-          className="menu-card"
-          style={{
-            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-            borderRadius: '16px',
-            padding: '25px',
-            boxShadow: '0 8px 25px rgba(67, 233, 123, 0.3)',
-            border: 'none',
-            color: 'white'
-          }}
-        >
-          <div style={{
-            fontSize: '3rem',
-            marginBottom: '15px',
-            textAlign: 'center'
-          }}>✨</div>
-          <h3 style={{
-            margin: '0 0 20px 0',
-            fontSize: '1.5rem',
-            fontWeight: '600',
-            textAlign: 'center'
-          }}>Гігієнічний манікюр 💅</h3>
-
-          <div style={{
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: '12px',
-            padding: '20px',
-            color: '#2c3e50',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#27ae60', marginBottom: '10px' }}>
-              70 zł
-            </div>
-            <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
-              <div style={{ marginBottom: '10px' }}>
-                <strong>У вартість входить:</strong>
               </div>
-              <ul style={{ margin: '10px 0', paddingLeft: '20px', textAlign: 'left', color: '#555' }}>
-                <li>Обробка кутикули</li>
-                <li>Формування нігтів</li>
-                <li>Полірування</li>
-                <li>Зволоження шкіри рук</li>
-              </ul>
-              <div style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', marginTop: '15px' }}>
-                ⭐ Ідеально підходить для догляду без покриття
-              </div>
-            </div>
+            ) : (
+              <>
+                {/* Length Options */}
+                <div style={{
+                  background: 'rgba(255,255,255,0.9)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  marginBottom: '15px',
+                  color: '#2c3e50'
+                }}>
+                  <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+                    Довжина нігтів
+                  </h4>
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    {service.lengthOptions.map(item => (
+                      <div key={item.size} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 15px',
+                        background: service.overlayColor,
+                        borderRadius: '8px'
+                      }}>
+                        <div>
+                          <span style={{ fontWeight: '500' }}>{item.size}</span>
+                          {item.length && (
+                            <span style={{ fontSize: '0.85rem', color: '#666', marginLeft: '8px' }}>({item.length})</span>
+                          )}
+                        </div>
+                        <span style={{ fontWeight: 'bold', color: service.accentColor }}>{item.price} zł</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Design Options */}
+                <div style={{
+                  background: 'rgba(255,255,255,0.9)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  marginBottom: '15px',
+                  color: '#2c3e50'
+                }}>
+                  <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+                    Дизайн (додатково)
+                  </h4>
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    {service.designOptions.map(item => (
+                      <div key={item.value} style={{
+                        padding: '10px 15px',
+                        background: service.overlayColor,
+                        borderRadius: '8px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                          <span style={{ fontWeight: '500' }}>{item.value}</span>
+                          <span style={{ fontWeight: 'bold', color: service.accentColor }}>+{item.price} zł</span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#666' }}>{item.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        ))}
       </div>
 
       {modal}
