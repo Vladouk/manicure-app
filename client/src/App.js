@@ -4746,18 +4746,18 @@ if (mode === "prices") {
                     <div style={{ color: '#999', marginBottom: 8 }}>Немає варіантів</div>
                   )}
                   {service.lengthOptions.map((opt, idx) => (
-                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '100px 120px 90px auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                       <input
                         value={opt.size}
                         onChange={(e) => updateNestedList(service.id, 'lengthOptions', idx, 'size', e.target.value)}
                         placeholder="Розмір"
-                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd', width: '100%' }}
                       />
                       <input
                         value={opt.length || ''}
                         onChange={(e) => updateNestedList(service.id, 'lengthOptions', idx, 'length', e.target.value)}
                         placeholder="Довжина (опц.)"
-                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd', width: '100%', fontSize: '14px' }}
                       />
                       <input
                         type="number"
@@ -4765,7 +4765,7 @@ if (mode === "prices") {
                         value={opt.price}
                         onChange={(e) => updateNestedList(service.id, 'lengthOptions', idx, 'price', e.target.value)}
                         placeholder="Ціна"
-                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd', width: '100%' }}
                       />
                       <button
                         onClick={() => removeNestedItem(service.id, 'lengthOptions', idx)}
