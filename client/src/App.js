@@ -65,9 +65,9 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
   const [analyticsForecast, setAnalyticsForecast] = useState(null);
   const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
-  const [editedPrices, setEditedPrices] = useState({});
-  const [editedDiscountPrices, setEditedDiscountPrices] = useState({});
-  const [editedPromotions, setEditedPromotions] = useState({});
+  const [adminPricesDraft, setAdminPricesDraft] = useState([]);
+  const [isLoadingAdminPrices, setIsLoadingAdminPrices] = useState(false);
+  const [isSavingAdminPrices, setIsSavingAdminPrices] = useState(false);
   
   // RESCHEDULE APPOINTMENT
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
@@ -417,6 +417,24 @@ fetch(`${API}/api/appointment`, {
         .catch(() => setBonusPoints(0));
     }
   }, [mode, tgUser?.id]);
+
+  // Load full price structure for admin edit screen
+  useEffect(() => {
+    if (mode === "prices" && isAdmin) {
+      setIsLoadingAdminPrices(true);
+      fetch(`${API}/api/admin/prices-structure`, {
+        headers: { 'x-init-data': WebApp.initData }
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setAdminPricesDraft(data);
+          }
+        })
+        .catch(() => setAdminPricesDraft([]))
+        .finally(() => setIsLoadingAdminPrices(false));
+    }
+  }, [mode, isAdmin]);
 
   // Refresh bonuses when starting booking flow so points are available without opening promotions
   useEffect(() => {
@@ -4617,11 +4635,62 @@ if (mode === "slotsCalendar") {
 }
 
 
-// Admin Prices Management
+// Admin Prices Management (full price structure)
 if (mode === "prices") {
+  const updateServiceField = (serviceId, updater) => {
+    setAdminPricesDraft(prev => prev.map(s => s.id === serviceId ? updater(s) : s));
+  };
+
+  const updateNestedList = (serviceId, listKey, index, field, value) => {
+    updateServiceField(serviceId, (service) => {
+      const list = Array.isArray(service[listKey]) ? service[listKey] : [];
+      const updated = list.map((item, idx) => idx === index ? { ...item, [field]: field === 'price' ? Number(value) : value } : item);
+      return { ...service, [listKey]: updated };
+    });
+  };
+
+  const addNestedItem = (serviceId, listKey) => {
+    updateServiceField(serviceId, (service) => {
+      const list = Array.isArray(service[listKey]) ? service[listKey] : [];
+      const blank = listKey === 'lengthOptions' ? { size: '', length: '', price: 0 } : { value: '', price: 0, desc: '' };
+      return { ...service, [listKey]: [...list, blank] };
+    });
+  };
+
+  const removeNestedItem = (serviceId, listKey, index) => {
+    updateServiceField(serviceId, (service) => {
+      const list = Array.isArray(service[listKey]) ? service[listKey] : [];
+      return { ...service, [listKey]: list.filter((_, idx) => idx !== index) };
+    });
+  };
+
+  const saveAllPrices = async () => {
+    setIsSavingAdminPrices(true);
+    try {
+      const response = await fetch(`${API}/api/admin/prices-structure`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-init-data': WebApp.initData
+        },
+        body: JSON.stringify({ priceListServices: adminPricesDraft })
+      });
+      if (!response.ok) throw new Error('Save failed');
+      const data = await response.json();
+      if (data.priceListServices) {
+        setAdminPricesDraft(data.priceListServices);
+        setPriceListServices(data.priceListServices);
+      }
+      alert('✅ Прайс оновлено');
+    } catch (e) {
+      alert('❌ Не вдалося зберегти');
+    } finally {
+      setIsSavingAdminPrices(false);
+    }
+  };
+
   return (
     <div className="app-container">
-      {/* Header */}
       <div className="card" style={{
         background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
         color: 'white',
@@ -4631,182 +4700,151 @@ if (mode === "prices") {
         borderRadius: '20px',
         boxShadow: '0 10px 30px rgba(79, 172, 254, 0.3)'
       }}>
-        <h2 style={{
-          fontSize: '2rem',
-          margin: 0,
-          fontWeight: 700
-        }}>💰 Редагування прайсу</h2>
-        <p style={{ margin: 0, opacity: 0.9 }}>Змінюйте ціни та зберігайте</p>
+        <h2 style={{ fontSize: '2rem', margin: 0, fontWeight: 700 }}>💰 Редагування прайсу</h2>
+        <p style={{ margin: 0, opacity: 0.9 }}>Редагуйте всі ціни та опції</p>
       </div>
 
-      {/* Categories and services list */}
       <div className="card" style={{ padding: '16px', borderRadius: '16px' }}>
-        {priceList && priceList.length > 0 ? (
-          priceList.map(cat => (
-            <div key={cat.id} style={{ marginBottom: '24px' }}>
-              <h3 style={{ margin: '0 0 10px 0' }}>{cat.name}</h3>
-              {cat.services && cat.services.length > 0 ? (
-                cat.services.map(svc => {
-                  const currentVal = editedPrices[svc.id] ?? svc.price ?? 0;
-                  const currentDiscount = editedDiscountPrices[svc.id] ?? (svc.discount_price ?? 0);
-                  const currentPromotion = editedPromotions[svc.id] ?? !!svc.is_promotion;
-                  const savePrice = async () => {
-                    try {
-                      const response = await fetch(`${API}/api/admin/service`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'x-init-data': WebApp.initData
-                        },
-                        body: JSON.stringify({
-                          id: svc.id,
-                          category_id: cat.id,
-                          name: svc.name,
-                          description: svc.description,
-                          price: Number(currentVal),
-                          is_promotion: Boolean(currentPromotion),
-                          discount_price: Number(currentDiscount) || null,
-                          order_index: svc.order_index || 0,
-                          is_active: svc.is_active ?? true
-                        })
-                      });
-                      if (!response.ok) throw new Error('Failed');
-                      // Update local state
-                      setPriceList(prev => prev.map(c => (
-                        c.id === cat.id ? {
-                          ...c,
-                          services: c.services.map(s => s.id === svc.id ? { 
-                            ...s, 
-                            price: Number(currentVal), 
-                            discount_price: Number(currentDiscount) || null, 
-                            is_promotion: Boolean(currentPromotion) 
-                          } : s)
-                        } : c
-                      )));
-                      alert('✅ Ціну збережено');
-                    } catch (e) {
-                      alert('❌ Помилка збереження');
-                    }
-                  };
-                  return (
-                    <div key={svc.id} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '10px 0',
-                      borderBottom: '1px solid #eee',
-                      flexWrap: 'wrap'
-                    }}>
-                      <div style={{ flex: 1, minWidth: '200px' }}>
-                        <div style={{ fontWeight: 600 }}>{svc.name}</div>
-                        {svc.description && (
-                          <div style={{ fontSize: '0.85rem', color: '#666' }}>{svc.description}</div>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <input
-                          type="number"
-                          min="0"
-                          value={currentVal}
-                          onChange={(e) => setEditedPrices(prev => ({ ...prev, [svc.id]: e.target.value }))}
-                          style={{
-                            width: '100px',
-                            padding: '10px',
-                            borderRadius: '8px',
-                            border: '1px solid #ddd',
-                            fontSize: '1rem'
-                          }}
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="Знижка"
-                          value={currentDiscount}
-                          onChange={(e) => setEditedDiscountPrices(prev => ({ ...prev, [svc.id]: e.target.value }))}
-                          style={{
-                            width: '100px',
-                            padding: '10px',
-                            borderRadius: '8px',
-                            border: '1px solid #ddd',
-                            fontSize: '1rem'
-                          }}
-                        />
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <input
-                            type="checkbox"
-                            checked={currentPromotion}
-                            onChange={(e) => setEditedPromotions(prev => ({ ...prev, [svc.id]: e.target.checked }))}
-                          /> Акція
-                        </label>
-                        <button
-                          onClick={savePrice}
-                          style={{
-                            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '10px 16px',
-                            fontSize: '0.95rem',
-                            fontWeight: 600,
-                            color: 'white',
-                            cursor: 'pointer'
-                          }}
-                        >Зберегти</button>
-                      </div>
+        {isLoadingAdminPrices ? (
+          <div style={{ color: '#666' }}>Завантаження...</div>
+        ) : adminPricesDraft.length === 0 ? (
+          <div style={{ color: '#999' }}>Прайс порожній</div>
+        ) : (
+          adminPricesDraft.map(service => (
+            <div key={service.id || service.title} style={{
+              border: '1px solid #eee',
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 16,
+              boxShadow: '0 6px 18px rgba(0,0,0,0.05)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>
+                    {service.emoji} {service.title || service.name}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#666' }}>ID: {service.id || '—'}</div>
+                </div>
+                {service.fixedPrice !== undefined && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, color: '#555' }}>Фіксована ціна</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={service.fixedPrice ?? 0}
+                      onChange={(e) => updateServiceField(service.id, (s) => ({ ...s, fixedPrice: Number(e.target.value) }))}
+                      style={{ width: 110, padding: 8, borderRadius: 8, border: '1px solid #ddd' }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {service.lengthOptions && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Довжини</div>
+                  {service.lengthOptions.length === 0 && (
+                    <div style={{ color: '#999', marginBottom: 8 }}>Немає варіантів</div>
+                  )}
+                  {service.lengthOptions.map((opt, idx) => (
+                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                      <input
+                        value={opt.size}
+                        onChange={(e) => updateNestedList(service.id, 'lengthOptions', idx, 'size', e.target.value)}
+                        placeholder="Розмір"
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                      />
+                      <input
+                        value={opt.length || ''}
+                        onChange={(e) => updateNestedList(service.id, 'lengthOptions', idx, 'length', e.target.value)}
+                        placeholder="Довжина (опц.)"
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        value={opt.price}
+                        onChange={(e) => updateNestedList(service.id, 'lengthOptions', idx, 'price', e.target.value)}
+                        placeholder="Ціна"
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                      />
+                      <button
+                        onClick={() => removeNestedItem(service.id, 'lengthOptions', idx)}
+                        style={{ border: 'none', background: '#ffe6e6', color: '#d9534f', borderRadius: 8, padding: '10px 12px', cursor: 'pointer' }}
+                      >✕</button>
                     </div>
-                  );
-                })
-              ) : (
-                <div style={{ color: '#999' }}>Немає послуг</div>
+                  ))}
+                  <button
+                    onClick={() => addNestedItem(service.id, 'lengthOptions')}
+                    style={{
+                      marginTop: 6,
+                      border: '1px dashed #667eea',
+                      background: 'transparent',
+                      color: '#667eea',
+                      borderRadius: 8,
+                      padding: '8px 12px',
+                      cursor: 'pointer'
+                    }}
+                  >+ Додати довжину</button>
+                </div>
+              )}
+
+              {service.designOptions && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Дизайни</div>
+                  {service.designOptions.length === 0 && (
+                    <div style={{ color: '#999', marginBottom: 8 }}>Немає варіантів</div>
+                  )}
+                  {service.designOptions.map((opt, idx) => (
+                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                      <input
+                        value={opt.value}
+                        onChange={(e) => updateNestedList(service.id, 'designOptions', idx, 'value', e.target.value)}
+                        placeholder="Назва"
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                      />
+                      <input
+                        value={opt.desc || ''}
+                        onChange={(e) => updateNestedList(service.id, 'designOptions', idx, 'desc', e.target.value)}
+                        placeholder="Опис"
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        value={opt.price}
+                        onChange={(e) => updateNestedList(service.id, 'designOptions', idx, 'price', e.target.value)}
+                        placeholder="Ціна"
+                        style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd' }}
+                      />
+                      <button
+                        onClick={() => removeNestedItem(service.id, 'designOptions', idx)}
+                        style={{ border: 'none', background: '#ffe6e6', color: '#d9534f', borderRadius: 8, padding: '10px 12px', cursor: 'pointer' }}
+                      >✕</button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addNestedItem(service.id, 'designOptions')}
+                    style={{
+                      marginTop: 6,
+                      border: '1px dashed #667eea',
+                      background: 'transparent',
+                      color: '#667eea',
+                      borderRadius: 8,
+                      padding: '8px 12px',
+                      cursor: 'pointer'
+                    }}
+                  >+ Додати дизайн</button>
+                </div>
               )}
             </div>
           ))
-        ) : (
-          <div style={{ color: '#999' }}>Прайс порожній</div>
         )}
       </div>
 
-      {/* Save All Button */}
-      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+      <div style={{ textAlign: 'center', marginTop: 20 }}>
         <button
-          onClick={async () => {
-            const services = priceList.flatMap(c => c.services || []);
-            try {
-              await Promise.all(services.map(svc => {
-                const priceVal = editedPrices[svc.id] ?? svc.price ?? 0;
-                const discountVal = editedDiscountPrices[svc.id] ?? (svc.discount_price ?? null);
-                const promoVal = editedPromotions[svc.id] ?? !!svc.is_promotion;
-                const categoryId = priceList.find(c => (c.services||[]).some(s => s.id === svc.id))?.id;
-                return fetch(`${API}/api/admin/service`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'x-init-data': WebApp.initData
-                  },
-                  body: JSON.stringify({
-                    id: svc.id,
-                    category_id: categoryId,
-                    name: svc.name,
-                    description: svc.description,
-                    price: Number(priceVal),
-                    is_promotion: Boolean(promoVal),
-                    discount_price: discountVal ? Number(discountVal) : null,
-                    order_index: svc.order_index || 0,
-                    is_active: svc.is_active ?? true
-                  })
-                });
-              }));
-              // Refresh from server
-              const r = await fetch(`${API}/api/admin/prices`, { headers: { 'x-init-data': WebApp.initData } });
-              const data = await r.json();
-              setPriceList(data);
-              setEditedPrices({});
-              setEditedDiscountPrices({});
-              setEditedPromotions({});
-              alert('✅ Усі зміни збережено');
-            } catch (e) {
-              alert('❌ Помилка збереження');
-            }
-          }}
+          onClick={saveAllPrices}
+          disabled={isSavingAdminPrices}
           style={{
             background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
             border: 'none',
@@ -4815,13 +4853,13 @@ if (mode === "prices") {
             fontSize: '1rem',
             fontWeight: 600,
             color: 'white',
-            cursor: 'pointer',
+            cursor: isSavingAdminPrices ? 'wait' : 'pointer',
+            opacity: isSavingAdminPrices ? 0.7 : 1,
             boxShadow: '0 4px 15px rgba(67, 233, 123, 0.3)'
           }}
-        >Зберегти всі зміни</button>
+        >{isSavingAdminPrices ? 'Збереження...' : 'Зберегти всі зміни'}</button>
       </div>
 
-      {/* Back Button */}
       <div style={{ textAlign: 'center', marginTop: '20px' }}>
         <button
           className="primary-btn"
@@ -5988,37 +6026,6 @@ if (mode === "booking") {
                         від 130 zł
                       </div>
                     </div>
-
-                    {/* Ремонт - тільки для повторних клієнтів */}
-                    {myHistory && myHistory.length > 0 && (
-                      <div
-                        onClick={() => {
-                          setServiceCategory("Ремонт");
-                          setServiceSub("Ремонт");
-                          setSizeCategory("");
-                          setDesignCategory("");
-                          setMattingCategory("");
-                          setPrice(0);
-                        }}
-                        style={{
-                          padding: 20,
-                          borderRadius: 14,
-                          border: serviceCategory === "Ремонт" ? '2px solid #667eea' : '2px solid #e0e0e0',
-                          background: serviceCategory === "Ремонт" ? 'rgba(102, 126, 234, 0.1)' : 'white',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          textAlign: 'center'
-                        }}
-                      >
-                        <div style={{ fontSize: 32, marginBottom: 10 }}>🔧</div>
-                        <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                          Ремонт
-                        </div>
-                        <div style={{ color: '#666', fontSize: 13 }}>
-                          за домовленістю
-                        </div>
-                      </div>
-                    )}
 
                     {/* Гігієнічний */}
                     <div

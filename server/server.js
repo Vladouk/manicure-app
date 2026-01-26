@@ -1531,96 +1531,147 @@ ORDER BY ws.date, ws.time
             .catch(err => res.status(500).json({ error: 'DB error' }));
         });
 
+        // Helpers to load/save price structure (JSON persisted)
+        const PRICE_FILE = path.join(__dirname, 'uploads', 'prices.json');
+
+        const defaultPriceListServices = [
+          {
+            id: 'reinforcement',
+            name: 'Укріплення',
+            title: 'Укріплення',
+            emoji: '💪',
+            bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            shadowColor: 'rgba(102, 126, 234, 0.3)',
+            accentColor: '#667eea',
+            overlayColor: 'rgba(102, 126, 234, 0.1)',
+            lengthOptions: [
+              { size: 'Нульова', price: 100 },
+              { size: 'S', price: 110 },
+              { size: 'M', price: 120 },
+              { size: 'L', price: 130 },
+              { size: 'XL', price: 140 },
+              { size: '2XL', price: 150 },
+              { size: '3XL', price: 160 }
+            ],
+            designOptions: [
+              { value: 'Однотонний', price: 0, desc: 'Без декору' },
+              { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+              { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+              { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+            ]
+          },
+          {
+            id: 'extension',
+            name: 'Нарощення',
+            title: 'Нарощення',
+            emoji: '✨',
+            bgGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            shadowColor: 'rgba(240, 147, 251, 0.3)',
+            accentColor: '#f093fb',
+            overlayColor: 'rgba(240, 147, 251, 0.1)',
+            lengthOptions: [
+              { size: 'S', length: '±1cm', price: 130 },
+              { size: 'M', length: '±1.5cm', price: 150 },
+              { size: 'L', length: '±2cm', price: 170 },
+              { size: 'XL', length: '±2.5cm', price: 190 },
+              { size: '2XL', length: '±3cm', price: 210 },
+              { size: '3XL', length: '±3.5cm', price: 230 }
+            ],
+            designOptions: [
+              { value: 'Однотонний', price: 0, desc: 'Без декору' },
+              { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+              { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+              { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+            ]
+          },
+          {
+            id: 'hygienic',
+            name: 'Гігієнічний',
+            title: 'Гігієнічний',
+            emoji: '💅',
+            bgGradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+            shadowColor: 'rgba(168, 237, 234, 0.3)',
+            accentColor: '#a8edea',
+            overlayColor: 'rgba(168, 237, 234, 0.1)',
+            fixedPrice: 70,
+            description: [
+              '✓ Обробка кутикули',
+              '✓ Формування нігтів',
+              '✓ Полірування пластини'
+            ],
+            note: '⭐ Ідеально підходить для догляду без покриття'
+          }
+        ];
+
+        const loadPriceListServices = () => {
+          try {
+            if (fs.existsSync(PRICE_FILE)) {
+              const raw = fs.readFileSync(PRICE_FILE, 'utf8');
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) return parsed;
+              if (Array.isArray(parsed.priceListServices)) return parsed.priceListServices;
+            }
+          } catch (e) {
+            console.error('Error reading prices file:', e);
+          }
+          return defaultPriceListServices;
+        };
+
+        const savePriceListServices = (priceListServices) => {
+          try {
+            if (!fs.existsSync(path.dirname(PRICE_FILE))) {
+              fs.mkdirSync(path.dirname(PRICE_FILE), { recursive: true });
+            }
+            fs.writeFileSync(PRICE_FILE, JSON.stringify(priceListServices, null, 2), 'utf8');
+          } catch (e) {
+            console.error('Error saving prices file:', e);
+            throw e;
+          }
+        };
+
         // Get prices for client booking
         app.get('/api/prices', (req, res) => {
-          // Return the full price structure with all options
-          const priceListServices = [
-            {
-              id: 'reinforcement',
-              name: 'Укріплення',
-              title: 'Укріплення',
-              emoji: '💪',
-              bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              shadowColor: 'rgba(102, 126, 234, 0.3)',
-              accentColor: '#667eea',
-              overlayColor: 'rgba(102, 126, 234, 0.1)',
-              lengthOptions: [
-                { size: 'Нульова', price: 100 },
-                { size: 'S', price: 110 },
-                { size: 'M', price: 120 },
-                { size: 'L', price: 130 },
-                { size: 'XL', price: 140 },
-                { size: '2XL', price: 150 },
-                { size: '3XL', price: 160 }
-              ],
-              designOptions: [
-                { value: 'Однотонний', price: 0, desc: 'Без декору' },
-                { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-                { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
-                { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
-              ]
-            },
-            {
-              id: 'extension',
-              name: 'Нарощення',
-              title: 'Нарощення',
-              emoji: '✨',
-              bgGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              shadowColor: 'rgba(240, 147, 251, 0.3)',
-              accentColor: '#f093fb',
-              overlayColor: 'rgba(240, 147, 251, 0.1)',
-              lengthOptions: [
-                { size: 'S', length: '±1cm', price: 130 },
-                { size: 'M', length: '±1.5cm', price: 150 },
-                { size: 'L', length: '±2cm', price: 170 },
-                { size: 'XL', length: '±2.5cm', price: 190 },
-                { size: '2XL', length: '±3cm', price: 210 },
-                { size: '3XL', length: '±3.5cm', price: 230 }
-              ],
-              designOptions: [
-                { value: 'Однотонний', price: 0, desc: 'Без декору' },
-                { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-                { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
-                { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
-              ]
-            },
-            {
-              id: 'hygienic',
-              name: 'Гігієнічний',
-              title: 'Гігієнічний',
-              emoji: '💅',
-              bgGradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-              shadowColor: 'rgba(168, 237, 234, 0.3)',
-              accentColor: '#a8edea',
-              overlayColor: 'rgba(168, 237, 234, 0.1)',
-              fixedPrice: 70,
-              description: [
-                '✓ Обробка кутикули',
-                '✓ Формування нігтів',
-                '✓ Полірування пластини'
-              ],
-              note: '⭐ Ідеально підходить для догляду без покриття'
-            },
-            {
-              id: 'repair',
-              name: 'Ремонт',
-              title: 'Ремонт',
-              emoji: '🔧',
-              bgGradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-              shadowColor: 'rgba(252, 182, 159, 0.3)',
-              accentColor: '#fcb69f',
-              overlayColor: 'rgba(252, 182, 159, 0.1)',
-              fixedPrice: 0,
-              description: [
-                '✓ Відновлення пошкоджених нігтів',
-                '✓ Заміна одного/кількох нігтів',
-                '✓ Корекція форми'
-              ],
-              note: '💡 Ціна залежить від обсягу роботи'
-            }
-          ];
-          
+          const priceListServices = loadPriceListServices();
           res.json(priceListServices);
+        });
+
+        // Admin: get full price structure
+        app.get('/api/admin/prices-structure', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          const priceListServices = loadPriceListServices();
+          res.json(priceListServices);
+        });
+
+        // Admin: update full price structure
+        app.post('/api/admin/prices-structure', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          const { priceListServices } = req.body;
+          if (!Array.isArray(priceListServices)) {
+            return res.status(400).json({ error: 'priceListServices must be an array' });
+          }
+
+          try {
+            savePriceListServices(priceListServices);
+            res.json({ ok: true, priceListServices });
+          } catch (e) {
+            res.status(500).json({ error: 'Failed to save prices' });
+          }
         });
 
         // =============== PROMOTIONS AND REFERRALS MANAGEMENT ===============
