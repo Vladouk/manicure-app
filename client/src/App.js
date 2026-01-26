@@ -266,7 +266,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     // Try to get price from priceList as fallback
     if (basePrice === 0 && priceList.length > 0 && category) {
       const categoryData = priceList.find(cat => cat.name === category);
-      if (categoryData && categoryData.services.length > 0) {
+      if (categoryData && Array.isArray(categoryData.services) && categoryData.services.length > 0) {
         const serviceData = categoryData.services[0];
         basePrice = serviceData.price || 0;
       }
@@ -454,18 +454,18 @@ fetch(`${API}/api/appointment`, {
         .then(data => setPromotions(data))
         .catch(() => setPromotions([]));
       
-      // Load prices
+      // Reload price structure for booking
       fetch(`${API}/api/prices`)
         .then(r => r.json())
-        .then(data => setPriceList(data))
-        .catch(() => setPriceList([]));
+        .then(data => setPriceListServices(Array.isArray(data) ? data : []))
+        .catch(() => setPriceListServices([]));
     }
   }, [mode, tgUser?.id]);
 
   useEffect(() => {
     setPrice(calculatePrice(serviceSub));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceSub, priceList]);
+  }, [serviceSub, priceListServices]);
 
   // Refresh slots when entering client booking mode
   useEffect(() => {
@@ -6782,7 +6782,7 @@ if (mode === "booking") {
                       // Try to get price from priceList as fallback
                       if (basePrice === 0 && priceList.length > 0 && serviceCategory) {
                         const categoryData = priceList.find(cat => cat.name === serviceCategory);
-                        if (categoryData && categoryData.services.length > 0) {
+                        if (categoryData && Array.isArray(categoryData.services) && categoryData.services.length > 0) {
                           const serviceData = categoryData.services[0];
                           basePrice = serviceData.price || 0;
                         }
