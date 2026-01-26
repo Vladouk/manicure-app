@@ -7,73 +7,6 @@ const ADMIN_TG_IDS = [1342762796, 602355992,7058392354];
 
 const API = process.env.REACT_APP_API_URL || '';
 
-// Price List Services Data Structure
-const PRICE_LIST_SERVICES = [
-  {
-    id: 'reinforcement',
-    title: 'Укріплення',
-    emoji: '💪',
-    bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    shadowColor: 'rgba(102, 126, 234, 0.3)',
-    accentColor: '#667eea',
-    overlayColor: 'rgba(102, 126, 234, 0.1)',
-    lengthOptions: [
-      { size: 'Нульова', price: 100 },
-      { size: 'S', price: 110 },
-      { size: 'M', price: 120 },
-      { size: 'L', price: 130 },
-      { size: 'XL', price: 140 },
-      { size: '2XL', price: 150 },
-      { size: '3XL', price: 160 }
-    ],
-    designOptions: [
-      { value: 'Однотонний', price: 0, desc: 'Без декору' },
-      { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-      { value: 'Середній', price: 25, desc: 'Френч, геометрія' },
-      { value: 'Складний', price: 35, desc: 'Детальні малюнки' }
-    ]
-  },
-  {
-    id: 'extension',
-    title: 'Нарощення',
-    emoji: '✨',
-    bgGradient: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-    shadowColor: 'rgba(255, 154, 158, 0.3)',
-    accentColor: '#ff6b6b',
-    overlayColor: 'rgba(255, 154, 158, 0.15)',
-    lengthOptions: [
-      { size: 'S', length: '±1cm', price: 130 },
-      { size: 'M', length: '±1.5cm', price: 150 },
-      { size: 'L', length: '±2cm', price: 170 },
-      { size: 'XL', length: '±2.5cm', price: 190 },
-      { size: '2XL', length: '±3cm', price: 210 },
-      { size: '3XL', length: '±3.5cm', price: 230 }
-    ],
-    designOptions: [
-      { value: 'Однотонний', price: 0, desc: 'Без декору' },
-      { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-      { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
-      { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
-    ]
-  },
-  {
-    id: 'hygienic',
-    title: 'Гігієнічний манікюр 💅',
-    emoji: '✨',
-    bgGradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-    shadowColor: 'rgba(67, 233, 123, 0.3)',
-    accentColor: '#27ae60',
-    fixedPrice: 70,
-    description: [
-      'Обробка кутикули',
-      'Формування нігтів',
-      'Полірування',
-      'Зволоження шкіри рук'
-    ],
-    note: '⭐ Ідеально підходить для догляду без покриття'
-  }
-];
-
 const getSlotLabel = (dateStr) => {
   const today = new Date();
   const slotDate = new Date(dateStr);
@@ -116,6 +49,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [modalImage, setModalImage] = useState(null);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [priceList, setPriceList] = useState([]);
+  const [priceListServices, setPriceListServices] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const [_dynamicPrices, _setDynamicPrices] = useState([]);
   const [promotions, setPromotions] = useState([]);
@@ -308,16 +242,37 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const calculatePrice = (category, size, design, matting) => {
     let basePrice = 0;
     
-    // Try to get price from database first
-    if (priceList.length > 0 && category) {
+    // Try to get price from priceListServices first
+    if (priceListServices.length > 0 && category) {
+      const categoryService = priceListServices.find(svc => 
+        svc.title === category || svc.name === category
+      );
+      
+      if (categoryService) {
+        // For services with lengthOptions (Укріплення, Нарощення)
+        if (categoryService.lengthOptions && size) {
+          const sizeOption = categoryService.lengthOptions.find(opt => opt.size === size);
+          if (sizeOption) {
+            basePrice = sizeOption.price || 0;
+          }
+        } 
+        // For fixed price services (Гігієнічний)
+        else if (categoryService.fixedPrice) {
+          basePrice = categoryService.fixedPrice;
+        }
+      }
+    }
+    
+    // Try to get price from priceList as fallback
+    if (basePrice === 0 && priceList.length > 0 && category) {
       const categoryData = priceList.find(cat => cat.name === category);
       if (categoryData && categoryData.services.length > 0) {
-        const serviceData = categoryData.services[0]; // Get first service in category
+        const serviceData = categoryData.services[0];
         basePrice = serviceData.price || 0;
       }
     }
     
-    // Fallback to hardcoded prices if not in DB
+    // Fallback to hardcoded prices only if no dynamic data available
     if (basePrice === 0) {
       if (category === 'Укріплення' && size) {
         basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
@@ -330,8 +285,23 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       }
     }
     
-    // Add design price
-    const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[design] || 0;
+    // Get design price from dynamic data or fallback
+    let designPrice = 0;
+    if (design && priceListServices.length > 0) {
+      const categoryService = priceListServices.find(svc => 
+        svc.title === category || svc.name === category
+      );
+      if (categoryService && categoryService.designOptions) {
+        const designOption = categoryService.designOptions.find(opt => opt.value === design);
+        if (designOption) {
+          designPrice = designOption.price || 0;
+        }
+      }
+    }
+    // Fallback to hardcoded if not found
+    if (designPrice === 0) {
+      designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[design] || 0;
+    }
     
     // Add matting price
     const mattingPrice = matting === 'Матове' ? 30 : 0;
@@ -363,9 +333,11 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   fetch(`${API}/api/prices`)
     .then(r => r.json())
     .then(data => {
+      setPriceListServices(data);
       _setDynamicPrices(data);
       // Don't set defaults - let user choose manually
-    });
+    })
+    .catch(err => console.error('Client: Error fetching prices:', err));
 
   if (effectiveMode === "client") {
     fetch(`${API}/api/client/points?tg_id=${tgUser?.id}`)
@@ -1839,123 +1811,137 @@ if (mode === "priceList") {
         gap: '25px',
         padding: '0 10px'
       }}>
-        {PRICE_LIST_SERVICES.map(service => (
-          <div
-            key={service.id}
-            className="menu-card"
-            style={{
-              background: service.bgGradient,
-              borderRadius: '16px',
-              padding: '25px',
-              boxShadow: `0 8px 25px ${service.shadowColor}`,
-              border: 'none',
-              color: 'white'
-            }}
-          >
-            <div style={{
-              fontSize: '3rem',
-              marginBottom: '15px',
-              textAlign: 'center'
-            }}>{service.emoji}</div>
-            <h3 style={{
-              margin: '0 0 20px 0',
-              fontSize: '1.5rem',
-              fontWeight: '600',
-              textAlign: 'center'
-            }}>{service.title}</h3>
-
-            {/* Fixed Price Service (Hygienic) */}
-            {service.fixedPrice ? (
+        {priceListServices.length > 0 ? (
+          priceListServices.map(service => (
+            <div
+              key={service.id || service.name}
+              className="menu-card"
+              style={{
+                background: service.bgGradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '16px',
+                padding: '25px',
+                boxShadow: `0 8px 25px ${service.shadowColor || 'rgba(102, 126, 234, 0.3)'}`,
+                border: 'none',
+                color: 'white'
+              }}
+            >
               <div style={{
-                background: 'rgba(255,255,255,0.9)',
-                borderRadius: '12px',
-                padding: '20px',
-                color: '#2c3e50',
+                fontSize: '3rem',
+                marginBottom: '15px',
                 textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: service.accentColor, marginBottom: '10px' }}>
-                  {service.fixedPrice} zł
-                </div>
-                <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
-                  <div style={{ marginBottom: '10px' }}>
-                    <strong>У вартість входить:</strong>
-                  </div>
-                  <ul style={{ margin: '10px 0', paddingLeft: '20px', textAlign: 'left', color: '#555' }}>
-                    {service.description.map((item, idx) => (
-                      <li key={idx}>{item}</li>
-                    ))}
-                  </ul>
-                  <div style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', marginTop: '15px' }}>
-                    {service.note}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Length Options */}
-                <div style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  marginBottom: '15px',
-                  color: '#2c3e50'
-                }}>
-                  <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
-                    Довжина нігтів
-                  </h4>
-                  <div style={{ display: 'grid', gap: '10px' }}>
-                    {service.lengthOptions.map(item => (
-                      <div key={item.size} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '10px 15px',
-                        background: service.overlayColor,
-                        borderRadius: '8px'
-                      }}>
-                        <div>
-                          <span style={{ fontWeight: '500' }}>{item.size}</span>
-                          {item.length && (
-                            <span style={{ fontSize: '0.85rem', color: '#666', marginLeft: '8px' }}>({item.length})</span>
-                          )}
-                        </div>
-                        <span style={{ fontWeight: 'bold', color: service.accentColor }}>{item.price} zł</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              }}>{service.emoji || '💅'}</div>
+              <h3 style={{
+                margin: '0 0 20px 0',
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                textAlign: 'center'
+              }}>{service.title || service.name}</h3>
 
-                {/* Design Options */}
+              {/* Fixed Price Service (Hygienic) */}
+              {service.fixedPrice ? (
                 <div style={{
                   background: 'rgba(255,255,255,0.9)',
                   borderRadius: '12px',
                   padding: '20px',
-                  marginBottom: '15px',
-                  color: '#2c3e50'
+                  color: '#2c3e50',
+                  textAlign: 'center'
                 }}>
-                  <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
-                    Дизайн (додатково)
-                  </h4>
-                  <div style={{ display: 'grid', gap: '10px' }}>
-                    {service.designOptions.map(item => (
-                      <div key={item.value} style={{
-                        padding: '10px 15px',
-                        background: service.overlayColor,
-                        borderRadius: '8px'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                          <span style={{ fontWeight: '500' }}>{item.value}</span>
-                          <span style={{ fontWeight: 'bold', color: service.accentColor }}>+{item.price} zł</span>
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: '#666' }}>{item.desc}</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: service.accentColor || '#667eea', marginBottom: '10px' }}>
+                    {service.fixedPrice} zł
+                  </div>
+                  <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
+                    <div style={{ marginBottom: '10px' }}>
+                      <strong>У вартість входить:</strong>
+                    </div>
+                    {service.description && (
+                      <ul style={{ margin: '10px 0', paddingLeft: '20px', textAlign: 'left', color: '#555' }}>
+                        {service.description.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {service.note && (
+                      <div style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', marginTop: '15px' }}>
+                        {service.note}
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
-              </>
-            )}
+              ) : (
+                <>
+                  {/* Length Options */}
+                  {service.lengthOptions && service.lengthOptions.length > 0 && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.9)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      marginBottom: '15px',
+                      color: '#2c3e50'
+                    }}>
+                      <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+                        Довжина нігтів
+                      </h4>
+                      <div style={{ display: 'grid', gap: '10px' }}>
+                        {service.lengthOptions.map(item => (
+                          <div key={item.size} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '10px 15px',
+                            background: service.overlayColor || 'rgba(0, 0, 0, 0.05)',
+                            borderRadius: '8px'
+                          }}>
+                            <div>
+                              <span style={{ fontWeight: '500' }}>{item.size}</span>
+                              {item.length && (
+                                <span style={{ fontSize: '0.85rem', color: '#666', marginLeft: '8px' }}>({item.length})</span>
+                              )}
+                            </div>
+                            <span style={{ fontWeight: 'bold', color: service.accentColor || '#667eea' }}>{item.price} zł</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Design Options */}
+                  {service.designOptions && service.designOptions.length > 0 && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.9)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      marginBottom: '15px',
+                      color: '#2c3e50'
+                    }}>
+                      <h4 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+                        Дизайн (додатково)
+                      </h4>
+                      <div style={{ display: 'grid', gap: '10px' }}>
+                        {service.designOptions.map(item => (
+                          <div key={item.value} style={{
+                            padding: '10px 15px',
+                            background: service.overlayColor || 'rgba(0, 0, 0, 0.05)',
+                            borderRadius: '8px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                              <span style={{ fontWeight: '500' }}>{item.value}</span>
+                              <span style={{ fontWeight: 'bold', color: service.accentColor || '#667eea' }}>+{item.price} zł</span>
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#666' }}>{item.desc}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))
+        ) : (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+            Завантаження ціноутримання...
           </div>
-        ))}
+        )}
       </div>
 
       {modal}
@@ -2574,7 +2560,7 @@ if (mode === "menu") {
             fontSize: '3rem',
             marginBottom: '15px',
             filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-          }}>💅</div>
+          }}>💰</div>
           <h3 style={{
             margin: '0 0 8px 0',
             fontSize: '1.3rem',
@@ -5900,123 +5886,170 @@ if (mode === "booking") {
 
               {/* Service Options */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 15 }}>
-                {/* Укріплення */}
-                <div
-                  onClick={() => {
-                    setServiceCategory("Укріплення");
-                    setServiceSub("Укріплення");
-                    setSizeCategory("");
-                    setDesignCategory("Однотонний");
-                    setMattingCategory("Глянцеве");
-                    setPrice(0);
-                  }}
-                  style={{
-                    padding: 20,
-                    borderRadius: 14,
-                    border: serviceCategory === "Укріплення" ? '2px solid #667eea' : '2px solid #e0e0e0',
-                    background: serviceCategory === "Укріплення" ? 'rgba(102, 126, 234, 0.1)' : 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    textAlign: 'center'
-                  }}
-                >
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>💪</div>
-                  <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                    Укріплення 💅
-                  </div>
-                  <div style={{ color: '#666', fontSize: 13 }}>
-                    від 100 zł
-                  </div>
-                </div>
-
-                {/* Нарощення */}
-                <div
-                  onClick={() => {
-                    setServiceCategory("Нарощення");
-                    setServiceSub("Нарощення");
-                    setSizeCategory("");
-                    setDesignCategory("Однотонний");
-                    setMattingCategory("Глянцеве");
-                    setPrice(0);
-                  }}
-                  style={{
-                    padding: 20,
-                    borderRadius: 14,
-                    border: serviceCategory === "Нарощення" ? '2px solid #667eea' : '2px solid #e0e0e0',
-                    background: serviceCategory === "Нарощення" ? 'rgba(102, 126, 234, 0.1)' : 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    textAlign: 'center'
-                  }}
-                >
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>✨</div>
-                  <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                    Нарощення
-                  </div>
-                  <div style={{ color: '#666', fontSize: 13 }}>
-                    від 130 zł
-                  </div>
-                </div>
-
-                {/* Ремонт - тільки для повторних клієнтів */}
-                {myHistory && myHistory.length > 0 && (
-                  <div
-                    onClick={() => {
-                      setServiceCategory("Ремонт");
-                      setServiceSub("Ремонт");
-                      setSizeCategory("");
-                      setDesignCategory("");
-                      setMattingCategory("");
-                      setPrice(0);
-                    }}
-                    style={{
-                      padding: 20,
-                      borderRadius: 14,
-                      border: serviceCategory === "Ремонт" ? '2px solid #667eea' : '2px solid #e0e0e0',
-                      background: serviceCategory === "Ремонт" ? 'rgba(102, 126, 234, 0.1)' : 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div style={{ fontSize: 32, marginBottom: 10 }}>🔧</div>
-                    <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                      Ремонт
+                {/* Dynamic services from priceListServices */}
+                {priceListServices.length > 0 ? (
+                  priceListServices.map((service) => (
+                    <div
+                      key={service.id || service.name}
+                      onClick={() => {
+                        setServiceCategory(service.title || service.name);
+                        setServiceSub(service.title || service.name);
+                        setSizeCategory("");
+                        setDesignCategory("Однотонний");
+                        setMattingCategory("Глянцеве");
+                        // Set price based on service type
+                        if (service.fixedPrice) {
+                          setPrice(service.fixedPrice);
+                        } else {
+                          setPrice(0);
+                        }
+                      }}
+                      style={{
+                        padding: 20,
+                        borderRadius: 14,
+                        border: serviceCategory === (service.title || service.name) ? '2px solid #667eea' : '2px solid #e0e0e0',
+                        background: serviceCategory === (service.title || service.name) ? 'rgba(102, 126, 234, 0.1)' : 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: 32, marginBottom: 10 }}>{service.emoji}</div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
+                        {service.title || service.name}
+                      </div>
+                      <div style={{ color: '#667eea', fontWeight: 'bold', fontSize: 14 }}>
+                        {service.fixedPrice 
+                          ? `${service.fixedPrice} zł`
+                          : service.lengthOptions && service.lengthOptions.length > 0
+                          ? `від ${Math.min(...service.lengthOptions.map(o => o.price))} zł`
+                          : 'за домовленістю'
+                        }
+                      </div>
                     </div>
-                    <div style={{ color: '#666', fontSize: 13 }}>
-                      за домовленістю
+                  ))
+                ) : (
+                  /* Fallback to hardcoded if no data loaded */
+                  <>
+                    {/* Укріплення */}
+                    <div
+                      onClick={() => {
+                        setServiceCategory("Укріплення");
+                        setServiceSub("Укріплення");
+                        setSizeCategory("");
+                        setDesignCategory("Однотонний");
+                        setMattingCategory("Глянцеве");
+                        setPrice(0);
+                      }}
+                      style={{
+                        padding: 20,
+                        borderRadius: 14,
+                        border: serviceCategory === "Укріплення" ? '2px solid #667eea' : '2px solid #e0e0e0',
+                        background: serviceCategory === "Укріплення" ? 'rgba(102, 126, 234, 0.1)' : 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: 32, marginBottom: 10 }}>💪</div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
+                        Укріплення 💅
+                      </div>
+                      <div style={{ color: '#666', fontSize: 13 }}>
+                        від 100 zł
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Нарощення */}
+                    <div
+                      onClick={() => {
+                        setServiceCategory("Нарощення");
+                        setServiceSub("Нарощення");
+                        setSizeCategory("");
+                        setDesignCategory("Однотонний");
+                        setMattingCategory("Глянцеве");
+                        setPrice(0);
+                      }}
+                      style={{
+                        padding: 20,
+                        borderRadius: 14,
+                        border: serviceCategory === "Нарощення" ? '2px solid #667eea' : '2px solid #e0e0e0',
+                        background: serviceCategory === "Нарощення" ? 'rgba(102, 126, 234, 0.1)' : 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: 32, marginBottom: 10 }}>✨</div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
+                        Нарощення
+                      </div>
+                      <div style={{ color: '#666', fontSize: 13 }}>
+                        від 130 zł
+                      </div>
+                    </div>
+
+                    {/* Ремонт - тільки для повторних клієнтів */}
+                    {myHistory && myHistory.length > 0 && (
+                      <div
+                        onClick={() => {
+                          setServiceCategory("Ремонт");
+                          setServiceSub("Ремонт");
+                          setSizeCategory("");
+                          setDesignCategory("");
+                          setMattingCategory("");
+                          setPrice(0);
+                        }}
+                        style={{
+                          padding: 20,
+                          borderRadius: 14,
+                          border: serviceCategory === "Ремонт" ? '2px solid #667eea' : '2px solid #e0e0e0',
+                          background: serviceCategory === "Ремонт" ? 'rgba(102, 126, 234, 0.1)' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontSize: 32, marginBottom: 10 }}>🔧</div>
+                        <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
+                          Ремонт
+                        </div>
+                        <div style={{ color: '#666', fontSize: 13 }}>
+                          за домовленістю
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Гігієнічний */}
+                    <div
+                      onClick={() => {
+                        setServiceCategory("Гігієнічний");
+                        setServiceSub("Гігієнічний");
+                        setSizeCategory("");
+                        setDesignCategory("");
+                        setMattingCategory("");
+                        setPrice(70);
+                      }}
+                      style={{
+                        padding: 20,
+                        borderRadius: 14,
+                        border: serviceCategory === "Гігієнічний" ? '2px solid #667eea' : '2px solid #e0e0e0',
+                        background: serviceCategory === "Гігієнічний" ? 'rgba(102, 126, 234, 0.1)' : 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: 32, marginBottom: 10 }}>💅</div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
+                        Гігієнічний 
+                      </div>
+                      <div style={{ color: '#667eea', fontWeight: 'bold', fontSize: 14 }}>
+                        70 zł
+                      </div>
+                    </div>
+                  </>
                 )}
-
-                {/* Гігієнічний */}
-                <div
-                  onClick={() => {
-                    setServiceCategory("Гігієнічний");
-                    setServiceSub("Гігієнічний");
-                    setSizeCategory("");
-                    setDesignCategory("");
-                    setMattingCategory("");
-                    setPrice(70);
-                  }}
-                  style={{
-                    padding: 20,
-                    borderRadius: 14,
-                    border: serviceCategory === "Гігієнічний" ? '2px solid #667eea' : '2px solid #e0e0e0',
-                    background: serviceCategory === "Гігієнічний" ? 'rgba(102, 126, 234, 0.1)' : 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    textAlign: 'center'
-                  }}
-                >
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>💅</div>
-                  <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                    Гігієнічний 
-                  </div>
-                  <div style={{ color: '#667eea', fontWeight: 'bold', fontSize: 14 }}>
-                    70 zł
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -6170,35 +6203,60 @@ if (mode === "booking") {
                       Довжина нігтів:
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                      {[
-                        { size: 'Нульова', price: 100 },
-                        { size: 'S', price: 110 },
-                        { size: 'M', price: 120 },
-                        { size: 'L', price: 130 },
-                        { size: 'XL', price: 140 },
-                        { size: '2XL', price: 150 },
-                        { size: '3XL', price: 160 }
-                      ].map(item => (
-                        <button
-                          key={item.size}
-                          onClick={() => {
-                            setSizeCategory(item.size);
-                            setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
-                          }}
-                          style={{
-                            padding: 15,
-                            borderRadius: 12,
-                            border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                            background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            textAlign: 'center'
-                          }}
-                        >
-                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                        </button>
-                      ))}
+                      {priceListServices.length > 0 && priceListServices.find(s => (s.title || s.name) === "Укріплення")?.lengthOptions ? (
+                        priceListServices.find(s => (s.title || s.name) === "Укріплення").lengthOptions.map(item => (
+                          <button
+                            key={item.size}
+                            onClick={() => {
+                              setSizeCategory(item.size);
+                              setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
+                            }}
+                            style={{
+                              padding: 15,
+                              borderRadius: 12,
+                              border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                          </button>
+                        ))
+                      ) : (
+                        /* Fallback to hardcoded */
+                        [
+                          { size: 'Нульова', price: 100 },
+                          { size: 'S', price: 110 },
+                          { size: 'M', price: 120 },
+                          { size: 'L', price: 130 },
+                          { size: 'XL', price: 140 },
+                          { size: '2XL', price: 150 },
+                          { size: '3XL', price: 160 }
+                        ].map(item => (
+                          <button
+                            key={item.size}
+                            onClick={() => {
+                              setSizeCategory(item.size);
+                              setPrice(calculatePrice("Укріплення", item.size, designCategory, mattingCategory));
+                            }}
+                            style={{
+                              padding: 15,
+                              borderRadius: 12,
+                              border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                          </button>
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -6208,36 +6266,65 @@ if (mode === "booking") {
                       Дизайн:
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                      {[
-                        { value: 'Однотонний', price: 0, desc: 'Без декору' },
-                        { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-                        { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
-                        { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
-                      ].map(item => {
-                        const isSelected = designCategory === item.value;
-                        return (
-                          <button
-                            key={item.value}
-                            onClick={() => {
-                              setDesignCategory(item.value);
-                              setPrice(calculatePrice("Укріплення", sizeCategory, item.value, mattingCategory));
-                            }}
-                            style={{
-                              padding: 12,
-                              borderRadius: 12,
-                              border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                              background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              textAlign: 'center'
-                            }}
-                          >
-                            <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
-                            <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
-                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
-                          </button>
-                        );
-                      })}
+                      {priceListServices.length > 0 && priceListServices.find(s => (s.title || s.name) === "Укріплення")?.designOptions ? (
+                        priceListServices.find(s => (s.title || s.name) === "Укріплення").designOptions.map(item => {
+                          const isSelected = designCategory === item.value;
+                          return (
+                            <button
+                              key={item.value}
+                              onClick={() => {
+                                setDesignCategory(item.value);
+                                setPrice(calculatePrice("Укріплення", sizeCategory, item.value, mattingCategory));
+                              }}
+                              style={{
+                                padding: 12,
+                                borderRadius: 12,
+                                border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                                background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
+                              <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
+                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        /* Fallback to hardcoded */
+                        [
+                          { value: 'Однотонний', price: 0, desc: 'Без декору' },
+                          { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+                          { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+                          { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+                        ].map(item => {
+                          const isSelected = designCategory === item.value;
+                          return (
+                            <button
+                              key={item.value}
+                              onClick={() => {
+                                setDesignCategory(item.value);
+                                setPrice(calculatePrice("Укріплення", sizeCategory, item.value, mattingCategory));
+                              }}
+                              style={{
+                                padding: 12,
+                                borderRadius: 12,
+                                border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                                background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
+                              <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
+                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                            </button>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 </>
@@ -6252,35 +6339,61 @@ if (mode === "booking") {
                       Довжина нігтів:
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                      {[
-                        { size: 'S', length: '±1cm', price: 130 },
-                        { size: 'M', length: '±1.5cm', price: 150 },
-                        { size: 'L', length: '±2cm', price: 170 },
-                        { size: 'XL', length: '±2.5cm', price: 190 },
-                        { size: '2XL', length: '±3cm', price: 210 },
-                        { size: '3XL', length: '±3.5cm', price: 230 }
-                      ].map(item => (
-                        <button
-                          key={item.size}
-                          onClick={() => {
-                            setSizeCategory(item.size);
-                            setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
-                          }}
-                          style={{
-                            padding: 15,
-                            borderRadius: 12,
-                            border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                            background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            textAlign: 'center'
-                          }}
-                        >
-                          <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                          <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
-                          <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                        </button>
-                      ))}
+                      {priceListServices.length > 0 && priceListServices.find(s => (s.title || s.name) === "Нарощення")?.lengthOptions ? (
+                        priceListServices.find(s => (s.title || s.name) === "Нарощення").lengthOptions.map(item => (
+                          <button
+                            key={item.size}
+                            onClick={() => {
+                              setSizeCategory(item.size);
+                              setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
+                            }}
+                            style={{
+                              padding: 15,
+                              borderRadius: 12,
+                              border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                            {item.length && <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>}
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                          </button>
+                        ))
+                      ) : (
+                        /* Fallback to hardcoded */
+                        [
+                          { size: 'S', length: '±1cm', price: 130 },
+                          { size: 'M', length: '±1.5cm', price: 150 },
+                          { size: 'L', length: '±2cm', price: 170 },
+                          { size: 'XL', length: '±2.5cm', price: 190 },
+                          { size: '2XL', length: '±3cm', price: 210 },
+                          { size: '3XL', length: '±3.5cm', price: 230 }
+                        ].map(item => (
+                          <button
+                            key={item.size}
+                            onClick={() => {
+                              setSizeCategory(item.size);
+                              setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
+                            }}
+                            style={{
+                              padding: 15,
+                              borderRadius: 12,
+                              border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                              background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                            <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                          </button>
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -6290,36 +6403,65 @@ if (mode === "booking") {
                       Дизайн:
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                      {[
-                        { value: 'Однотонний', price: 0, desc: 'Без декору' },
-                        { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
-                        { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
-                        { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
-                      ].map(item => {
-                        const isSelected = designCategory === item.value;
-                        return (
-                          <button
-                            key={item.value}
-                            onClick={() => {
-                              setDesignCategory(item.value);
-                              setPrice(calculatePrice("Нарощення", sizeCategory, item.value, mattingCategory));
-                            }}
-                            style={{
-                              padding: 12,
-                              borderRadius: 12,
-                              border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                              background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              textAlign: 'center'
-                            }}
-                          >
-                            <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
-                            <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
-                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
-                          </button>
-                        );
-                      })}
+                      {priceListServices.length > 0 && priceListServices.find(s => (s.title || s.name) === "Нарощення")?.designOptions ? (
+                        priceListServices.find(s => (s.title || s.name) === "Нарощення").designOptions.map(item => {
+                          const isSelected = designCategory === item.value;
+                          return (
+                            <button
+                              key={item.value}
+                              onClick={() => {
+                                setDesignCategory(item.value);
+                                setPrice(calculatePrice("Нарощення", sizeCategory, item.value, mattingCategory));
+                              }}
+                              style={{
+                                padding: 12,
+                                borderRadius: 12,
+                                border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                                background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
+                              <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
+                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        /* Fallback to hardcoded */
+                        [
+                          { value: 'Однотонний', price: 0, desc: 'Без декору' },
+                          { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+                          { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+                          { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+                        ].map(item => {
+                          const isSelected = designCategory === item.value;
+                          return (
+                            <button
+                              key={item.value}
+                              onClick={() => {
+                                setDesignCategory(item.value);
+                                setPrice(calculatePrice("Нарощення", sizeCategory, item.value, mattingCategory));
+                              }}
+                              style={{
+                                padding: 12,
+                                borderRadius: 12,
+                                border: isSelected ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                                background: isSelected ? 'rgba(255,107,157,0.1)' : 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', marginBottom: 3, color: '#333' }}>{item.value}</div>
+                              <div style={{ fontSize: 12, color: '#666', marginBottom: 3 }}>{item.desc}</div>
+                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>+{item.price} zł</div>
+                            </button>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 </>
@@ -6589,20 +6731,57 @@ if (mode === "booking") {
                   )}
 
                     {(() => {
-                      const designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[designCategory] || 0;
+                      let designPrice = 0;
+                      if (designCategory && priceListServices.length > 0) {
+                        const categoryService = priceListServices.find(svc => 
+                          svc.title === serviceCategory || svc.name === serviceCategory
+                        );
+                        if (categoryService && categoryService.designOptions) {
+                          const designOption = categoryService.designOptions.find(opt => opt.value === designCategory);
+                          if (designOption) {
+                            designPrice = designOption.price || 0;
+                          }
+                        }
+                      }
+                      // Fallback to hardcoded if not found
+                      if (designPrice === 0) {
+                        designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[designCategory] || 0;
+                      }
+
                       const mattingPrice = mattingCategory === 'Матове' ? 30 : 0;
                       let basePrice = 0;
                       
-                      // Try to get price from database first
-                      if (priceList.length > 0 && serviceCategory) {
+                      // Try to get price from priceListServices first
+                      if (priceListServices.length > 0 && serviceCategory) {
+                        const categoryService = priceListServices.find(svc => 
+                          svc.title === serviceCategory || svc.name === serviceCategory
+                        );
+                        
+                        if (categoryService) {
+                          // For services with lengthOptions (Укріплення, Нарощення)
+                          if (categoryService.lengthOptions && sizeCategory) {
+                            const sizeOption = categoryService.lengthOptions.find(opt => opt.size === sizeCategory);
+                            if (sizeOption) {
+                              basePrice = sizeOption.price || 0;
+                            }
+                          } 
+                          // For fixed price services (Гігієнічний)
+                          else if (categoryService.fixedPrice) {
+                            basePrice = categoryService.fixedPrice;
+                          }
+                        }
+                      }
+                      
+                      // Try to get price from priceList as fallback
+                      if (basePrice === 0 && priceList.length > 0 && serviceCategory) {
                         const categoryData = priceList.find(cat => cat.name === serviceCategory);
                         if (categoryData && categoryData.services.length > 0) {
-                          const serviceData = categoryData.services[0]; // Get first service in category
+                          const serviceData = categoryData.services[0];
                           basePrice = serviceData.price || 0;
                         }
                       }
                       
-                      // Fallback to hardcoded prices if not in DB
+                      // Fallback to hardcoded prices only if no dynamic data available
                       if (basePrice === 0) {
                         if (serviceCategory === 'Укріплення' && sizeCategory) {
                           basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[sizeCategory] || 0;
