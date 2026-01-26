@@ -7,6 +7,53 @@ const TelegramBot = require('node-telegram-bot-api');
 const multer = require("multer");
 const cors = require('cors');
 
+// ===== 🔧 OPTIMIZATION HELPERS =====
+// Telegram WebApp Security Middleware
+function validateInitData(initData) {
+  if (!initData) return false;
+  
+  try {
+    // У production використовуй крипто перевірку
+    // Для dev достатньо базової перевірки
+    const params = new URLSearchParams(initData);
+    return params.has('user') && params.has('auth_date');
+  } catch (e) {
+    return false;
+  }
+}
+
+const tgAuth = (req, res, next) => {
+  const initData = req.headers['x-init-data'];
+  
+  if (process.env.NODE_ENV !== 'production') {
+    // У development дозволяємо без auth
+    return next();
+  }
+  
+  if (!initData || !validateInitData(initData)) {
+    console.warn('⚠️ Unauthorized API call:', req.path);
+    return res.sendStatus(403);
+  }
+  
+  next();
+};
+
+// NODE_ENV логування helper
+const logger = {
+  log: (msg, data) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(msg, data);
+    }
+  },
+  error: (msg, error) => {
+    console.error(msg, error.message);
+  },
+  warn: (msg, data) => {
+    console.warn(msg, data);
+  }
+};
+// ===== END OPTIMIZATION HELPERS =====
+
 // ✅ Check required environment variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -441,244 +488,219 @@ app.post(
     try {
       const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code, bonus_points_to_use, bonus_reward_type } = req.body;
     
-    // Handle multiple current hands photos
-    const currentHandsImages = [];
-    for (let i = 0; i < 5; i++) {
-      const fieldName = `current_hands_${i}`;
-      if (req.files[fieldName] && req.files[fieldName][0]) {
-        currentHandsImages.push(`/uploads/${req.files[fieldName][0].filename}`);
-      }
-    }
-    
-    // Handle multiple reference photos
-    const referenceImages = [];
-    for (let i = 0; i < 5; i++) {
-      const fieldName = `reference_${i}`;
-      if (req.files[fieldName] && req.files[fieldName][0]) {
-        referenceImages.push(`/uploads/${req.files[fieldName][0].filename}`);
-      }
-    }
-
-    console.log('📩 /api/appointment payload', { client, slot_id, tg_id, username, service, price, bonus_points_to_use, currentHandsImages: currentHandsImages.length, referenceImages: referenceImages.length });
-
-    // Basic validation and coercion
-    const slotIdNum = parseInt(slot_id, 10);
-    const tgIdNum = parseInt(tg_id, 10);
-    const bonusPointsToUse = parseInt(bonus_points_to_use || 0, 10);
-
-    if (!client || isNaN(slotIdNum) || isNaN(tgIdNum)) {
-      console.error("❌ Missing or invalid required fields:", { client: !!client, slot_id, tg_id });
-      return res.status(400).json({ error: "Missing or invalid fields" });
-    }
-
-    // Validate bonus points if provided
-    if (bonusPointsToUse > 0) {
-      const validBonusAmounts = [5, 10, 14];
-      if (!validBonusAmounts.includes(bonusPointsToUse)) {
-        return res.status(400).json({ error: "Invalid bonus points amount" });
-      }
-    }
-
-    // Use numeric ids downstream
-    req.body.slot_id = slotIdNum;
-    req.body.tg_id = tgIdNum;
-
-    // Check for active promotions
-    pool.query(`
-      SELECT id, discount_type, discount_value 
-      FROM promotions 
-      WHERE is_active = true 
-      AND (valid_from IS NULL OR valid_from <= NOW()) 
-      AND (valid_until IS NULL OR valid_until > NOW())
-      ORDER BY discount_value DESC
-      LIMIT 1
-    `)
-      .then(promoResult => {
-        let finalPrice = price;
-        let discountApplied = 0;
-        let bonusApplied = false;
-        let bonusPointsSpent = 0;
-        let referralInfo = null;
-        let promotionDiscount = 0;
-
-        if (promoResult.rows.length > 0) {
-          const promo = promoResult.rows[0];
-          if (promo.discount_type === 'percentage') {
-            promotionDiscount = Math.round(price * (promo.discount_value / 100));
-          } else if (promo.discount_type === 'fixed') {
-            promotionDiscount = promo.discount_value;
-          }
-          console.log(`✅ Applied promotion: ${promo.discount_value}${promo.discount_type === 'percentage' ? '%' : ' zł'} discount`);
+      // Handle multiple current hands photos
+      const currentHandsImages = [];
+      for (let i = 0; i < 5; i++) {
+        const fieldName = `current_hands_${i}`;
+        if (req.files[fieldName] && req.files[fieldName][0]) {
+          currentHandsImages.push(`/uploads/${req.files[fieldName][0].filename}`);
         }
+      }
+      
+      // Handle multiple reference photos
+      const referenceImages = [];
+      for (let i = 0; i < 5; i++) {
+        const fieldName = `reference_${i}`;
+        if (req.files[fieldName] && req.files[fieldName][0]) {
+          referenceImages.push(`/uploads/${req.files[fieldName][0].filename}`);
+        }
+      }
 
-        // Check for referral discount available (applies only to the referrer, not stacking)
-        return pool.query(`SELECT referral_discount_available, points FROM client_points WHERE tg_id = $1`, [tgIdNum])
-          .then(result => {
-            const referralRow = result.rows[0];
-            const referralAvailableDiscount = (referralRow && referralRow.referral_discount_available) ? Math.round(price * 0.2) : 0;
-            const clientPoints = referralRow ? referralRow.points : 0;
+      console.log('📩 /api/appointment payload', { client, slot_id, tg_id, username, service, price, bonus_points_to_use, currentHandsImages: currentHandsImages.length, referenceImages: referenceImages.length });
 
-            // Check if bonus points are valid and available
-            if (bonusPointsToUse > 0) {
-              if (clientPoints < bonusPointsToUse) {
-                return res.status(400).json({ error: "Not enough bonus points" });
-              }
-              bonusPointsSpent = bonusPointsToUse;
-              bonusApplied = true;
-              
-              // Calculate bonus discount based on reward type
-              if (bonus_reward_type === 'free_design') {
-                // 5 points = free design (no discount, but mark it)
-                bestDiscount = 0;
-              } else if (bonus_reward_type === 'discount_50') {
-                // 10 points = 50% discount
-                bestDiscount = Math.round(price * 0.5);
-              } else if (bonus_reward_type === 'free_manicure') {
-                // 14 points = free manicure (100% discount)
-                bestDiscount = price;
-              }
-              discountApplied = bestDiscount;
-              finalPrice = price - bestDiscount;
-            } else {
-              // Pick the best single discount (referral or promotion)
-              let bestNonBonusDiscount = Math.max(referralAvailableDiscount, promotionDiscount);
-              discountApplied = bestNonBonusDiscount;
-              finalPrice = price - bestNonBonusDiscount;
+      // Basic validation and coercion
+      const slotIdNum = parseInt(slot_id, 10);
+      const tgIdNum = parseInt(tg_id, 10);
+      const bonusPointsToUse = parseInt(bonus_points_to_use || 0, 10);
 
-              // Consume referral discount only if it was used
-              if (bestNonBonusDiscount === referralAvailableDiscount && referralAvailableDiscount > 0) {
-                pool.query(`UPDATE client_points SET referral_discount_available = 0 WHERE tg_id = $1`, [tg_id])
-                  .catch(err => console.error('Error resetting referral discount:', err));
-              }
-            }
+      if (!client || isNaN(slotIdNum) || isNaN(tgIdNum)) {
+        console.error("❌ Missing or invalid required fields:", { client: !!client, slot_id, tg_id });
+        return res.status(400).json({ error: "Missing or invalid fields" });
+      }
 
-            // Handle referral code if provided (gives future discount to referrer, no immediate discount here)
-            if (referral_code) {
-              return pool.query(`SELECT id, tg_id as referrer_tg_id FROM referral_codes WHERE code = $1 AND is_active = true`, [referral_code])
-                .then(result => {
-                  const codeRow = result.rows[0];
-                  if (codeRow) {
-                    // Check if user already used this referral code
-                    return pool.query(`SELECT id FROM referral_uses WHERE referral_code_id = $1 AND used_by_tg_id = $2`, [codeRow.id, tgIdNum])
-                      .then(result => {
-                        const useRow = result.rows[0];
-                        if (!useRow) {
-                          // Give referral discount to the referrer for their future booking
-                          pool.query(`UPDATE client_points SET referral_discount_available = 1 WHERE tg_id = $1`, [codeRow.referrer_tg_id])
-                            .catch(err => console.error('Error updating referral discount:', err));
+      // Validate bonus points if provided
+      if (bonusPointsToUse > 0) {
+        const validBonusAmounts = [5, 10, 14];
+        if (!validBonusAmounts.includes(bonusPointsToUse)) {
+          return res.status(400).json({ error: "Invalid bonus points amount" });
+        }
+      }
 
-                          // Prepare referral info to be saved after appointment is created
-                          referralInfo = {
-                            code_id: codeRow.id,
-                            referrer_tg_id: codeRow.referrer_tg_id,
-                            referee_discount_applied: 0
-                          };
-                        }
+      // Use numeric ids downstream
+      req.body.slot_id = slotIdNum;
+      req.body.tg_id = tgIdNum;
 
-                        return createAppointment(finalPrice, discountApplied, referralInfo, bonusPointsSpent, bonus_reward_type);
-                      });
-                  } else {
-                    return createAppointment(finalPrice, discountApplied, referralInfo, bonusPointsSpent, bonus_reward_type);
-                  }
-                });
-            } else {
-              return createAppointment(finalPrice, discountApplied, referralInfo, bonusPointsSpent, bonus_reward_type);
-            }
-          });
-      })
-      .catch(err => {
-        console.error('❌ DB error (appointment flow):', err);
-        return res.status(500).json({ error: "DB error" });
-      });
+      // Check for active promotions
+      const promoResult = await pool.query(`
+        SELECT id, discount_type, discount_value 
+        FROM promotions 
+        WHERE is_active = true 
+        AND (valid_from IS NULL OR valid_from <= NOW()) 
+        AND (valid_until IS NULL OR valid_until > NOW())
+        ORDER BY discount_value DESC
+        LIMIT 1
+      `);
 
-    function createAppointment(finalPrice, discountApplied, referralInfo, bonusPointsSpent, bonusRewardType) {
-      console.log("🔍 Checking slot availability for slot_id:", slotIdNum);
-      // Check slot availability
-      pool.query(`SELECT date, time FROM work_slots WHERE id = $1 AND is_booked = false`, [slotIdNum])
-        .then(result => {
-          const slot = result.rows[0];
-          if (!slot) {
-            console.error("❌ Slot not available or not found:", slot_id);
-            return res.status(400).json({ error: "Slot not available" });
+      let finalPrice = price;
+      let discountApplied = 0;
+      let bonusApplied = false;
+      let bonusPointsSpent = 0;
+      let referralInfo = null;
+      let promotionDiscount = 0;
+
+      if (promoResult.rows.length > 0) {
+        const promo = promoResult.rows[0];
+        if (promo.discount_type === 'percentage') {
+          promotionDiscount = Math.round(price * (promo.discount_value / 100));
+        } else if (promo.discount_type === 'fixed') {
+          promotionDiscount = promo.discount_value;
+        }
+        console.log(`✅ Applied promotion: ${promo.discount_value}${promo.discount_type === 'percentage' ? '%' : ' zł'} discount`);
+      }
+
+      // Check for referral discount available
+      const referralResult = await pool.query(`SELECT referral_discount_available, points FROM client_points WHERE tg_id = $1`, [tgIdNum]);
+      const referralRow = referralResult.rows[0];
+      const referralAvailableDiscount = (referralRow && referralRow.referral_discount_available) ? Math.round(price * 0.2) : 0;
+      const clientPoints = referralRow ? referralRow.points : 0;
+
+      // Check if bonus points are valid and available
+      if (bonusPointsToUse > 0) {
+        if (clientPoints < bonusPointsToUse) {
+          return res.status(400).json({ error: "Not enough bonus points" });
+        }
+        bonusPointsSpent = bonusPointsToUse;
+        bonusApplied = true;
+        
+        // Calculate bonus discount based on reward type
+        let bestDiscount = 0;
+        if (bonus_reward_type === 'free_design') {
+          bestDiscount = 0;
+        } else if (bonus_reward_type === 'discount_50') {
+          bestDiscount = Math.round(price * 0.5);
+        } else if (bonus_reward_type === 'free_manicure') {
+          bestDiscount = price;
+        }
+        discountApplied = bestDiscount;
+        finalPrice = price - bestDiscount;
+      } else {
+        // Pick the best single discount
+        let bestNonBonusDiscount = Math.max(referralAvailableDiscount, promotionDiscount);
+        discountApplied = bestNonBonusDiscount;
+        finalPrice = price - bestNonBonusDiscount;
+
+        // Consume referral discount only if it was used
+        if (bestNonBonusDiscount === referralAvailableDiscount && referralAvailableDiscount > 0) {
+          await pool.query(`UPDATE client_points SET referral_discount_available = 0 WHERE tg_id = $1`, [tg_id])
+            .catch(err => console.error('Error resetting referral discount:', err));
+        }
+      }
+
+      // Handle referral code if provided
+      if (referral_code) {
+        const codeResult = await pool.query(`SELECT id, tg_id as referrer_tg_id FROM referral_codes WHERE code = $1 AND is_active = true`, [referral_code]);
+        const codeRow = codeResult.rows[0];
+        
+        if (codeRow) {
+          const useResult = await pool.query(`SELECT id FROM referral_uses WHERE referral_code_id = $1 AND used_by_tg_id = $2`, [codeRow.id, tgIdNum]);
+          const useRow = useResult.rows[0];
+          
+          if (!useRow) {
+            await pool.query(`UPDATE client_points SET referral_discount_available = 1 WHERE tg_id = $1`, [codeRow.referrer_tg_id])
+              .catch(err => console.error('Error updating referral discount:', err));
+
+            referralInfo = {
+              code_id: codeRow.id,
+              referrer_tg_id: codeRow.referrer_tg_id,
+              referee_discount_applied: 0
+            };
           }
-          console.log("✅ Slot available:", slot);
+        }
+      }
 
-          // Insert appointment
-          return pool.query(
-            `INSERT INTO appointments
-            (client, date, time, design, length, type, service, price, comment, reference_image, current_hands_images, tg_id, username, bonus_points_spent, bonus_reward)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            RETURNING id`,
-            [
-              client,
-              slot.date,
-              slot.time,
-              design,
-              length,
-              type,
-              service,
-              finalPrice,
-              comment,
-              JSON.stringify(referenceImages),
-              JSON.stringify(currentHandsImages),
-              tgIdNum,
-              username && username.trim() ? username.trim() : null,
-              bonusPointsSpent || 0,
-              bonusRewardType || null
-            ]
-          )
-          .then(result => {
-            const appointmentId = result.rows[0].id;
-            console.log("✅ Appointment inserted with id", appointmentId);
+      // Check slot availability
+      console.log("🔍 Checking slot availability for slot_id:", slotIdNum);
+      const slotResult = await pool.query(`SELECT date, time FROM work_slots WHERE id = $1 AND is_booked = false`, [slotIdNum]);
+      const slot = slotResult.rows[0];
+      
+      if (!slot) {
+        console.error("❌ Slot not available or not found:", slot_id);
+        return res.status(400).json({ error: "Slot not available" });
+      }
+      console.log("✅ Slot available:", slot);
 
-            // Deduct bonus points if they were used
-            if (bonusPointsSpent > 0) {
-              pool.query(`UPDATE client_points SET points = points - $1 WHERE tg_id = $2`, [bonusPointsSpent, tgIdNum])
-                .then(() => {
-                  pool.query(`INSERT INTO bonus_uses (tg_id, appointment_id, points_spent, reward_type) VALUES ($1, $2, $3, $4)`, [tgIdNum, appointmentId, bonusPointsSpent, bonusRewardType])
-                    .catch(err => console.error("Bonus use record error:", err));
-                })
-                .catch(err => console.error("Bonus points deduction error:", err));
-            }
+      // Insert appointment
+      const appointmentResult = await pool.query(
+        `INSERT INTO appointments
+        (client, date, time, design, length, type, service, price, comment, reference_image, current_hands_images, tg_id, username, bonus_points_spent, bonus_reward)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        RETURNING id`,
+        [
+          client,
+          slot.date,
+          slot.time,
+          design,
+          length,
+          type,
+          service,
+          finalPrice,
+          comment,
+          JSON.stringify(referenceImages),
+          JSON.stringify(currentHandsImages),
+          tgIdNum,
+          username && username.trim() ? username.trim() : null,
+          bonusPointsSpent || 0,
+          bonus_reward_type || null
+        ]
+      );
 
-            // Insert reminder
-            pool.query(`INSERT INTO reminders (appointment_id) VALUES ($1)`, [appointmentId])
-              .catch(err => console.error("Reminder insert error:", err));
+      const appointmentId = appointmentResult.rows[0].id;
+      console.log("✅ Appointment inserted with id", appointmentId);
 
-            // Handle referral use
-            if (referralInfo) {
-              pool.query(
-                `INSERT INTO referral_uses (referral_code_id, used_by_tg_id, appointment_id, discount_applied) VALUES ($1, $2, $3, $4)`,
-                [referralInfo.code_id, tgIdNum, appointmentId, referralInfo.referee_discount_applied || 0],
-                (err) => {
-                  if (!err) {
-                    // Update referral code usage count
-                    pool.query(`UPDATE referral_codes SET used_count = used_count + 1 WHERE id = $1`, [referralInfo.code_id])
-                      .catch(err => console.error("Referral code update error:", err));
+      // Deduct bonus points if they were used
+      if (bonusPointsSpent > 0) {
+        await pool.query(`UPDATE client_points SET points = points - $1 WHERE tg_id = $2`, [bonusPointsSpent, tgIdNum])
+          .catch(err => console.error("Bonus points deduction error:", err));
+        
+        await pool.query(`INSERT INTO bonus_uses (tg_id, appointment_id, points_spent, reward_type) VALUES ($1, $2, $3, $4)`, [tgIdNum, appointmentId, bonusPointsSpent, bonus_reward_type])
+          .catch(err => console.error("Bonus use record error:", err));
+      }
 
-                    // Give referrer 2 bonus points for successful referral
-                    pool.query(`INSERT INTO client_points (tg_id, points) VALUES ($1, 0) ON CONFLICT (tg_id) DO NOTHING`, [referralInfo.referrer_tg_id])
-                      .then(() => pool.query(`UPDATE client_points SET points = points + 2 WHERE tg_id = $1`, [referralInfo.referrer_tg_id]))
-                      .then(() => {
-                        bot.sendMessage(referralInfo.referrer_tg_id, `🎉 *Реферальний бонус!*\n\nКлієнт використав твій код. Ти отримав 2 бали за реферала 🎁`, { parse_mode: "Markdown" })
-                          .catch(err => console.error("Referrer bonus notify error:", err));
-                      })
-                      .catch(err => console.error("Referral points update error:", err));
+      // Insert reminder
+      await pool.query(`INSERT INTO reminders (appointment_id) VALUES ($1)`, [appointmentId])
+        .catch(err => console.error("Reminder insert error:", err));
 
-                    console.log(`✅ Referral bonus: ${referralInfo.referrer_tg_id} gets 2 points for referring ${tgIdNum}`);
-                  }
-                }
-              )
-              .catch(err => console.error("Referral use insert error:", err));
-            }
+      // Handle referral use
+      if (referralInfo) {
+        await pool.query(
+          `INSERT INTO referral_uses (referral_code_id, used_by_tg_id, appointment_id, discount_applied) VALUES ($1, $2, $3, $4)`,
+          [referralInfo.code_id, tgIdNum, appointmentId, referralInfo.referee_discount_applied || 0]
+        ).catch(err => console.error("Referral use insert error:", err));
 
-            // Update slot as booked
-            pool.query(`UPDATE work_slots SET is_booked = true WHERE id = $1`, [slotIdNum])
-              .then(() => console.log("✅ Slot marked as booked"))
-              .catch(err => console.error("❌ Slot update error:", err));
+        // Update referral code usage count
+        await pool.query(`UPDATE referral_codes SET used_count = used_count + 1 WHERE id = $1`, [referralInfo.code_id])
+          .catch(err => console.error("Referral code update error:", err));
 
-            // 🔔 Сповіщення клієнту
-            let clientMessage = `💅 *Запис створено!*  
+        // Give referrer 2 bonus points
+        await pool.query(`INSERT INTO client_points (tg_id, points) VALUES ($1, 0) ON CONFLICT (tg_id) DO NOTHING`, [referralInfo.referrer_tg_id])
+          .catch(err => console.error("Client points insert error:", err));
+        
+        await pool.query(`UPDATE client_points SET points = points + 2 WHERE tg_id = $1`, [referralInfo.referrer_tg_id])
+          .catch(err => console.error("Referral points update error:", err));
+
+        bot.sendMessage(referralInfo.referrer_tg_id, `🎉 *Реферальний бонус!*\n\nКлієнт використав твій код. Ти отримав 2 бали за реферала 🎁`, { parse_mode: "Markdown" })
+          .catch(err => console.error("Referrer bonus notify error:", err));
+
+        console.log(`✅ Referral bonus: ${referralInfo.referrer_tg_id} gets 2 points for referring ${tgIdNum}`);
+      }
+
+      // Update slot as booked
+      await pool.query(`UPDATE work_slots SET is_booked = true WHERE id = $1`, [slotIdNum])
+        .then(() => console.log("✅ Slot marked as booked"))
+        .catch(err => console.error("❌ Slot update error:", err));
+
+      // 🔔 Client notification
+      let clientMessage = `💅 *Запис створено!*  
 
 📅 Дата: ${slot.date}  
 ⏰ Час: ${slot.time}  
@@ -690,36 +712,33 @@ app.post(
 
 💰 Ціна: ${finalPrice} zł`;
 
-            if (bonusPointsSpent > 0) {
-              let bonusText = '';
-              if (bonusRewardType === 'free_design') {
-                bonusText = 'Безкоштовний дизайн 🎨';
-              } else if (bonusRewardType === 'discount_50') {
-                bonusText = 'Знижка 50% 💰';
-              } else if (bonusRewardType === 'free_manicure') {
-                bonusText = 'Повний манікюр безкоштовно 💅';
-              }
-              clientMessage += `\n🎁 Бонус: ${bonusText} (-${bonusPointsSpent} балів)`;
-            } else if (discountApplied > 0) {
-              clientMessage += `\n💸 Знижка: ${discountApplied} zł`;
-            }
+      if (bonusPointsSpent > 0) {
+        let bonusText = '';
+        if (bonus_reward_type === 'free_design') {
+          bonusText = 'Безкоштовний дизайн 🎨';
+        } else if (bonus_reward_type === 'discount_50') {
+          bonusText = 'Знижка 50% 💰';
+        } else if (bonus_reward_type === 'free_manicure') {
+          bonusText = 'Повний манікюр безкоштовно 💅';
+        }
+        clientMessage += `\n🎁 Бонус: ${bonusText} (-${bonusPointsSpent} балів)`;
+      } else if (discountApplied > 0) {
+        clientMessage += `\n💸 Знижка: ${discountApplied} zł`;
+      }
 
-            if (referralInfo) {
-              clientMessage += `\n🎉 Використано реферальний код!`;
-            }
+      if (referralInfo) {
+        clientMessage += `\n🎉 Використано реферальний код!`;
+      }
 
-            clientMessage += `\n\n⏳ *Статус:* очікує підтвердження`;
+      clientMessage += `\n\n⏳ *Статус:* очікує підтвердження`;
 
-            bot.sendMessage(
-              tgIdNum,
-              clientMessage,
-              { parse_mode: "Markdown" }
-            ).then(() => console.log("✅ Client notification sent"))
-             .catch(err => console.error("❌ Client notification error:", err));
+      bot.sendMessage(tgIdNum, clientMessage, { parse_mode: "Markdown" })
+        .then(() => console.log("✅ Client notification sent"))
+        .catch(err => console.error("❌ Client notification error:", err));
 
-            // 🔥 Сповіщення адміну — РОЗШИРЕНА ВЕРСІЯ
-            let clientLink = username ? `[@${username}](https://t.me/${username})` : `[${client}](tg://user?id=${tgIdNum})`;
-            let adminMessage = `🔔 *Новий запис!*
+      // 🔥 Admin notification
+      let clientLink = username ? `[@${username}](https://t.me/${username})` : `[${client}](tg://user?id=${tgIdNum})`;
+      let adminMessage = `🔔 *Новий запис!*
 
 👤 Клієнт: ${clientLink}
 📝 Ім'я: *${client}*
@@ -733,43 +752,38 @@ app.post(
 💼 Послуга: *${service}*
 💰 Ціна: *${finalPrice} zł*`;
 
-            if (bonusPointsSpent > 0) {
-              let bonusText = '';
-              if (bonusRewardType === 'free_design') {
-                bonusText = 'Безкоштовний дизайн 🎨';
-              } else if (bonusRewardType === 'discount_50') {
-                bonusText = 'Знижка 50% 💰';
-              } else if (bonusRewardType === 'free_manicure') {
-                bonusText = 'Повний манікюр безкоштовно 💅';
-              }
-              adminMessage += `\n🎁 *Бонус:* ${bonusText} (-${bonusPointsSpent} балів)`;
-            } else if (discountApplied > 0) {
-              adminMessage += `\n💸 Знижка: *${discountApplied} zł*`;
-            }
+      if (bonusPointsSpent > 0) {
+        let bonusText = '';
+        if (bonus_reward_type === 'free_design') {
+          bonusText = 'Безкоштовний дизайн 🎨';
+        } else if (bonus_reward_type === 'discount_50') {
+          bonusText = 'Знижка 50% 💰';
+        } else if (bonus_reward_type === 'free_manicure') {
+          bonusText = 'Повний манікюр безкоштовно 💅';
+        }
+        adminMessage += `\n🎁 *Бонус:* ${bonusText} (-${bonusPointsSpent} балів)`;
+      } else if (discountApplied > 0) {
+        adminMessage += `\n💸 Знижка: *${discountApplied} zł*`;
+      }
 
-            if (referralInfo) {
-              adminMessage += `\n🎉 *Рефералка від користувача ${referralInfo.referrer_tg_id}*`;
-            }
+      if (referralInfo) {
+        adminMessage += `\n🎉 *Рефералка від користувача ${referralInfo.referrer_tg_id}*`;
+      }
 
-            if (comment && comment.trim() !== "") {
-              adminMessage += `\n💬 *Коментар клієнта:*\n${comment}`;
-            }
+      if (comment && comment.trim() !== "") {
+        adminMessage += `\n💬 *Коментар клієнта:*\n${comment}`;
+      }
 
-            bot.sendMessage(
-              ADMIN_TG_ID,
-              adminMessage,
-              { parse_mode: "Markdown" }
-            ).then(() => console.log("✅ Admin notification sent"))
-             .catch(err => console.error("❌ Admin notification error:", err));
+      bot.sendMessage(ADMIN_TG_ID, adminMessage, { parse_mode: "Markdown" })
+        .then(() => console.log("✅ Admin notification sent"))
+        .catch(err => console.error("❌ Admin notification error:", err));
 
-            console.log("✅ Appointment creation completed successfully");
-            res.json({ ok: true, appointment_id: appointmentId, final_price: finalPrice, discount: discountApplied });
-          });
-        })
-        .catch(err => {
-          console.error("❌ DB error in createAppointment:", err);
-          res.status(500).json({ error: "DB error" });
-        });
+      console.log("✅ Appointment creation completed successfully");
+      res.json({ ok: true, appointment_id: appointmentId, final_price: finalPrice, discount: discountApplied });
+
+    } catch (error) {
+      console.error('❌ Error in POST /api/appointment:', error);
+      res.status(500).json({ error: "Server error" });
     }
   }
 );
