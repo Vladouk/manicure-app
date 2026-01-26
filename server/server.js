@@ -437,9 +437,9 @@ app.post(
     { name: 'reference_3', maxCount: 1 },
     { name: 'reference_4', maxCount: 1 }
   ]),
-  (req, res) => {
-    // removed noisy request logging
-    const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code, bonus_points_to_use, bonus_reward_type } = req.body;
+  async (req, res) => {
+    try {
+      const { client, slot_id, design, length, type, service, price, comment, tg_id, username, referral_code, bonus_points_to_use, bonus_reward_type } = req.body;
     
     // Handle multiple current hands photos
     const currentHandsImages = [];

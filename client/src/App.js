@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
@@ -6,6 +6,29 @@ import "./styles/theme.css";
 const ADMIN_TG_IDS = [1342762796, 602355992,7058392354];
 
 const API = process.env.REACT_APP_API_URL || '';
+
+// 🔧 API Helper - centralizes fetch logic & auto-adds auth header
+const apiCall = async (url, options = {}) => {
+  const headers = {
+    ...options.headers,
+    'x-init-data': WebApp.initData
+  };
+
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(`${API}${url}`, {
+    ...options,
+    headers
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+};
 
 const getSlotLabel = (dateStr) => {
   const today = new Date();
@@ -42,7 +65,6 @@ const [comment, setComment] = useState("");
 const [reference, setReference] = useState([]);
 const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
 const [calendarDate, setCalendarDate] = useState(new Date());
-  const [adminCalendarView, setAdminCalendarView] = useState(false);
   const [mode, setMode] = useState("menu");
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
@@ -50,8 +72,6 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [bonusPoints, setBonusPoints] = useState(0);
   const [priceList, setPriceList] = useState([]);
   const [priceListServices, setPriceListServices] = useState([]);
-  // eslint-disable-next-line no-unused-vars
-  const [_dynamicPrices, _setDynamicPrices] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [referralCode, setReferralCode] = useState(null);
   const [enteredReferralCode, setEnteredReferralCode] = useState("");
@@ -104,8 +124,8 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       return;
     }
 
-    const clientName = tgUser?.first_name || _manualName || "Anon";
-    const effectiveTgId = tgUser?.id || _manualTgId || '';
+    const clientName = tgUser?.first_name || "Anon";
+    const effectiveTgId = tgUser?.id || '';
 
     if (!effectiveTgId) {
       alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
@@ -238,87 +258,83 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [mattingCategory, setMattingCategory] = useState("Глянцеве"); // Глянцеве, Матове
   const [price, setPrice] = useState(0);
   
-  // Centralized price calculation function
-  const calculatePrice = (category, size, design, matting) => {
-    let basePrice = 0;
-    
-    // Try to get price from priceListServices first
-    if (priceListServices.length > 0 && category) {
-      const categoryService = priceListServices.find(svc => 
-        svc.title === category || svc.name === category
-      );
+  // Memoized price calculation - only recalculates when dependencies change
+  const calculatePrice = useMemo(() => {
+    return (category, size, design, matting) => {
+      let basePrice = 0;
       
-      if (categoryService) {
-        // For services with lengthOptions (Укріплення, Нарощення)
-        if (categoryService.lengthOptions && size) {
-          const sizeOption = categoryService.lengthOptions.find(opt => opt.size === size);
-          if (sizeOption) {
-            basePrice = sizeOption.price || 0;
+      // Try to get price from priceListServices first
+      if (priceListServices.length > 0 && category) {
+        const categoryService = priceListServices.find(svc => 
+          svc.title === category || svc.name === category
+        );
+        
+        if (categoryService) {
+          // For services with lengthOptions (Укріплення, Нарощення)
+          if (categoryService.lengthOptions && size) {
+            const sizeOption = categoryService.lengthOptions.find(opt => opt.size === size);
+            if (sizeOption) {
+              basePrice = sizeOption.price || 0;
+            }
+          } 
+          // For fixed price services (Гігієнічний)
+          else if (categoryService.fixedPrice) {
+            basePrice = categoryService.fixedPrice;
           }
-        } 
-        // For fixed price services (Гігієнічний)
-        else if (categoryService.fixedPrice) {
-          basePrice = categoryService.fixedPrice;
         }
       }
-    }
-    
-    // Try to get price from priceList as fallback
-    if (basePrice === 0 && priceList.length > 0 && category) {
-      const categoryData = priceList.find(cat => cat.name === category);
-      if (categoryData && Array.isArray(categoryData.services) && categoryData.services.length > 0) {
-        const serviceData = categoryData.services[0];
-        basePrice = serviceData.price || 0;
-      }
-    }
-    
-    // Fallback to hardcoded prices only if no dynamic data available
-    if (basePrice === 0) {
-      if (category === 'Укріплення' && size) {
-        basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
-      } else if (category === 'Нарощення' && size) {
-        basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
-      } else if (category === 'Гігієнічний') {
-        basePrice = 70;
-      } else if (category === 'Ремонт') {
-        basePrice = 0; // Ремонт - за домовленістю
-      }
-    }
-    
-    // Get design price from dynamic data or fallback
-    let designPrice = 0;
-    if (design && priceListServices.length > 0) {
-      const categoryService = priceListServices.find(svc => 
-        svc.title === category || svc.name === category
-      );
-      if (categoryService && categoryService.designOptions) {
-        const designOption = categoryService.designOptions.find(opt => opt.value === design);
-        if (designOption) {
-          designPrice = designOption.price || 0;
+      
+      // Try to get price from priceList as fallback
+      if (basePrice === 0 && priceList.length > 0 && category) {
+        const categoryData = priceList.find(cat => cat.name === category);
+        if (categoryData && Array.isArray(categoryData.services) && categoryData.services.length > 0) {
+          const serviceData = categoryData.services[0];
+          basePrice = serviceData.price || 0;
         }
       }
-    }
-    // Fallback to hardcoded if not found
-    if (designPrice === 0) {
-      designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[design] || 0;
-    }
-    
-    // Add matting price
-    const mattingPrice = matting === 'Матове' ? 30 : 0;
-    
-    return basePrice + designPrice + mattingPrice;
-  };
+      
+      // Fallback to hardcoded prices only if no dynamic data available
+      if (basePrice === 0) {
+        if (category === 'Укріплення' && size) {
+          basePrice = { 'Нульова': 100, S: 110, M: 120, L: 130, XL: 140, '2XL': 150, '3XL': 160 }[size] || 0;
+        } else if (category === 'Нарощення' && size) {
+          basePrice = { 'Нульова': 130, S: 130, M: 150, L: 170, XL: 190, '2XL': 210, '3XL': 230 }[size] || 0;
+        } else if (category === 'Гігієнічний') {
+          basePrice = 70;
+        } else if (category === 'Ремонт') {
+          basePrice = 0;
+        }
+      }
+      
+      // Get design price from dynamic data or fallback
+      let designPrice = 0;
+      if (design && priceListServices.length > 0) {
+        const categoryService = priceListServices.find(svc => 
+          svc.title === category || svc.name === category
+        );
+        if (categoryService && categoryService.designOptions) {
+          const designOption = categoryService.designOptions.find(opt => opt.value === design);
+          if (designOption) {
+            designPrice = designOption.price || 0;
+          }
+        }
+      }
+      // Fallback to hardcoded if not found
+      if (designPrice === 0) {
+        designPrice = { 'Однотонний': 0, 'Простий': 15, 'Середній': 25, 'Складний': 35 }[design] || 0;
+      }
+      
+      // Add matting price
+      const mattingPrice = matting === 'Матове' ? 30 : 0;
+      
+      return basePrice + designPrice + mattingPrice;
+    };
+  }, [priceListServices, priceList];
   
   // Clear size when service changes
   useEffect(() => {
     setSizeCategory('');
   }, [serviceCategory]);
-  
-  // Fallback for non-Telegram (web) users
-  // eslint-disable-next-line no-unused-vars
-  const [_manualName, _setManualName] = useState("");
-  // eslint-disable-next-line no-unused-vars
-  const [_manualTgId, _setManualTgId] = useState("");
 
   useEffect(() => {
   WebApp.ready();
@@ -356,9 +372,8 @@ const [calendarDate, setCalendarDate] = useState(new Date());
         }
 
         const formData = new FormData();
-        // Use Telegram user data when available, otherwise use manual inputs for web users
-        const clientName = tgUser?.first_name || _manualName || "Anon";
-        const effectiveTgId = tgUser?.id || _manualTgId || '';
+        const clientName = tgUser?.first_name || "Anon";
+        const effectiveTgId = tgUser?.id || '';
 
         if (!effectiveTgId) {
           alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
@@ -403,7 +418,7 @@ fetch(`${API}/api/appointment`, {
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, _manualName, _manualTgId]);
+  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
