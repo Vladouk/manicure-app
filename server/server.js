@@ -231,7 +231,8 @@ async function initializeDatabase() {
       ALTER TABLE appointments
       ADD COLUMN IF NOT EXISTS username TEXT,
       ADD COLUMN IF NOT EXISTS current_hands_images TEXT,
-      ADD COLUMN IF NOT EXISTS viewed_by_admin BOOLEAN DEFAULT false
+      ADD COLUMN IF NOT EXISTS viewed_by_admin BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     `);
 
     // Create reminders table
@@ -431,6 +432,21 @@ async function cancelExpiredPendingAppointments() {
 }
 
 // Populate database with initial data
+// Default categories and services used for initial population (fallback if missing)
+const categories = [
+  { name: 'Укріплення', description: 'Послуги укріплення нігтів' },
+  { name: 'Нарощення', description: 'Послуги нарощення нігтів' },
+  { name: 'Гігієнічний', description: 'Гігієнічний манікюр' },
+  { name: 'Ремонт', description: 'Ремонт нігтів' }
+];
+
+const services = [
+  { category: 'Укріплення', name: 'Укріплення (M)', price: 120 },
+  { category: 'Нарощення', name: 'Нарощення (M)', price: 150 },
+  { category: 'Гігієнічний', name: 'Гігієнічний', price: 70 },
+  { category: 'Ремонт', name: 'Ремонт', price: 0 }
+];
+
 async function populateDatabase() {
   try {
     const result = await pool.query(`SELECT COUNT(*) as count FROM service_categories`);
