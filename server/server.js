@@ -1533,51 +1533,94 @@ ORDER BY ws.date, ws.time
 
         // Get prices for client booking
         app.get('/api/prices', (req, res) => {
-          pool.query(`
-    SELECT 
-      c.id as category_id,
-      c.name as category_name,
-      c.description as category_description,
-      s.id as service_id,
-      s.name as service_name,
-      s.description as service_description,
-      s.price,
-      s.is_promotion,
-      s.discount_price
-    FROM service_categories c
-    LEFT JOIN services s ON c.id = s.category_id
-    WHERE c.is_active = true AND (s.is_active = true OR s.id IS NULL)
-    ORDER BY c.order_index, c.id, s.order_index, s.id
-  `, [])
-            .then(result => {
-              const rows = result.rows;
-
-              // Group by categories
-              const categories = {};
-              rows.forEach(row => {
-                if (!categories[row.category_id]) {
-                  categories[row.category_id] = {
-                    id: row.category_id,
-                    name: row.category_name,
-                    description: row.category_description,
-                    services: []
-                  };
-                }
-                if (row.service_id) {
-                  categories[row.category_id].services.push({
-                    id: row.service_id,
-                    name: row.service_name,
-                    description: row.service_description,
-                    price: row.price,
-                    is_promotion: row.is_promotion,
-                    discount_price: row.discount_price
-                  });
-                }
-              });
-
-              res.json(Object.values(categories));
-            })
-            .catch(err => res.status(500).json({ error: 'DB error' }));
+          // Return the full price structure with all options
+          const priceListServices = [
+            {
+              id: 'reinforcement',
+              name: 'Укріплення',
+              title: 'Укріплення',
+              emoji: '💪',
+              bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              shadowColor: 'rgba(102, 126, 234, 0.3)',
+              accentColor: '#667eea',
+              overlayColor: 'rgba(102, 126, 234, 0.1)',
+              lengthOptions: [
+                { size: 'Нульова', price: 100 },
+                { size: 'S', price: 110 },
+                { size: 'M', price: 120 },
+                { size: 'L', price: 130 },
+                { size: 'XL', price: 140 },
+                { size: '2XL', price: 150 },
+                { size: '3XL', price: 160 }
+              ],
+              designOptions: [
+                { value: 'Однотонний', price: 0, desc: 'Без декору' },
+                { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+                { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+                { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+              ]
+            },
+            {
+              id: 'extension',
+              name: 'Нарощення',
+              title: 'Нарощення',
+              emoji: '✨',
+              bgGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              shadowColor: 'rgba(240, 147, 251, 0.3)',
+              accentColor: '#f093fb',
+              overlayColor: 'rgba(240, 147, 251, 0.1)',
+              lengthOptions: [
+                { size: 'S', length: '±1cm', price: 130 },
+                { size: 'M', length: '±1.5cm', price: 150 },
+                { size: 'L', length: '±2cm', price: 170 },
+                { size: 'XL', length: '±2.5cm', price: 190 },
+                { size: '2XL', length: '±3cm', price: 210 },
+                { size: '3XL', length: '±3.5cm', price: 230 }
+              ],
+              designOptions: [
+                { value: 'Однотонний', price: 0, desc: 'Без декору' },
+                { value: 'Простий', price: 15, desc: 'Крапки, лінії, блискітки' },
+                { value: 'Середній', price: 25, desc: 'Френч, геометрія, наклейки' },
+                { value: 'Складний', price: 35, desc: 'Детальні малюнки, об\'ємні' }
+              ]
+            },
+            {
+              id: 'hygienic',
+              name: 'Гігієнічний',
+              title: 'Гігієнічний',
+              emoji: '💅',
+              bgGradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+              shadowColor: 'rgba(168, 237, 234, 0.3)',
+              accentColor: '#a8edea',
+              overlayColor: 'rgba(168, 237, 234, 0.1)',
+              fixedPrice: 70,
+              description: [
+                '✓ Обробка кутикули',
+                '✓ Формування нігтів',
+                '✓ Полірування пластини'
+              ],
+              note: '⭐ Ідеально підходить для догляду без покриття'
+            },
+            {
+              id: 'repair',
+              name: 'Ремонт',
+              title: 'Ремонт',
+              emoji: '🔧',
+              bgGradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+              shadowColor: 'rgba(252, 182, 159, 0.3)',
+              accentColor: '#fcb69f',
+              overlayColor: 'rgba(252, 182, 159, 0.1)',
+              fixedPrice: 0,
+              description: [
+                '✓ Відновлення пошкоджених нігтів',
+                '✓ Заміна одного/кількох нігтів',
+                '✓ Корекція форми'
+              ],
+              note: '💡 Ціна залежить від обсягу роботи'
+            }
+          ];
+          
+          res.json(priceListServices);
         });
 
         // =============== PROMOTIONS AND REFERRALS MANAGEMENT ===============
