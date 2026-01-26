@@ -88,6 +88,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [adminPricesDraft, setAdminPricesDraft] = useState([]);
   const [isLoadingAdminPrices, setIsLoadingAdminPrices] = useState(false);
   const [isSavingAdminPrices, setIsSavingAdminPrices] = useState(false);
+  const [adminCalendarView, setAdminCalendarView] = useState(false);
   
   // RESCHEDULE APPOINTMENT
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
@@ -7457,30 +7458,40 @@ if (mode === "admin") {
             </button>
 
             <button
-              onClick={() => alert('📅 Календарний вид розробляється')}
+              onClick={() => setAdminCalendarView(!adminCalendarView)}
               style={{
-                background: 'rgba(255,255,255,0.9)',
+                background: adminCalendarView ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255,255,255,0.9)',
                 border: 'none',
                 borderRadius: '12px',
                 padding: '15px 20px',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                color: '#999',
-                cursor: 'not-allowed',
+                color: adminCalendarView ? 'white' : '#667eea',
+                cursor: 'pointer',
                 transition: 'all 0.3s ease',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                opacity: 0.6
+                boxShadow: adminCalendarView 
+                  ? '0 6px 20px rgba(102, 126, 234, 0.3)' 
+                  : '0 2px 8px rgba(0,0,0,0.1)'
               }}
-              disabled
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = adminCalendarView 
+                  ? '0 6px 20px rgba(102, 126, 234, 0.3)' 
+                  : '0 2px 8px rgba(0,0,0,0.1)';
+              }}
             >
-              📅 Календар (розробка)
+              📅 Календар
             </button>
           </div>
         </div>
       </div>
 
       {/* Calendar View or List View */}
-      {false ? (
+      {adminCalendarView ? (
         (() => {
           const formatDateForComparison = (dateStr) => {
             if (!dateStr) return '';
