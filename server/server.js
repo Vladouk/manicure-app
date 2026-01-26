@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const cron = require('node-cron');
 const TelegramBot = require('node-telegram-bot-api');
 const multer = require("multer");
 const cors = require('cors');
@@ -2152,6 +2153,112 @@ ORDER BY ws.date, ws.time
         } else {
           console.warn('Warning: client/build not found. Static files will not be served.');
         }
+
+        // ===== 🔄 CRON JOBS SETUP =====
+        // 1️⃣ Cancel expired pending appointments (every 5 minutes)
+        cron.schedule('*/5 * * * *', async () => {
+          try {
+            const client = await pool.connect();
+            const result = await client.query(`
+              UPDATE appointments 
+              SET status = 'canceled'
+              WHERE status = 'pending' 
+                AND created_at < NOW() - INTERVAL '24 hours'
+              RETURNING id, tg_id, client, date, time
+            `);
+
+            const canceledCount = result.rows.length;
+            if (canceledCount > 0) {
+              console.log(`✅ Canceled ${canceledCount} expired pending appointments`);
+              for (const appointment of result.rows) {
+                await pool.query(
+                  `UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`,
+                  [appointment.date, appointment.time]
+                );
+                await bot.sendMessage(
+                  appointment.tg_id,
+                  `⏰ *Ваш запис автоматично скасовано*\n\nЗапис від ${appointment.date} ${appointment.time} був скасований через невідповідь протягом 24 годин.`,
+                  { parse_mode: "Markdown" }
+                ).catch(() => {});
+              }
+            }
+            client.release();
+          } catch (err) {
+            console.error('❌ Error canceling expired appointments:', err.message);
+          }
+        });
+
+        // 2️⃣ Delete old slots (daily at 00:00)
+        cron.schedule('0 0 * * *', async () => {
+          try {
+            const client = await pool.connect();
+            const result = await client.query(`
+              DELETE FROM work_slots 
+              WHERE date < NOW()::date - INTERVAL '30 days'
+              RETURNING id
+            `);
+            const deletedCount = result.rows.length;
+            if (deletedCount > 0) {
+              console.log(`✅ Deleted ${deletedCount} old slots`);
+            }
+            client.release();
+          } catch (err) {
+            console.error('❌ Error deleting old slots:', err.message);
+          }
+        });
+
+        // 3️⃣ Send daily admin report (daily at 18:00)
+        cron.schedule('0 18 * * *', async () => {
+          try {
+            const client = await pool.connect();
+            const result = await client.query(`
+              SELECT 
+                COUNT(*) as total_bookings,
+                COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+                COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled,
+                SUM(CASE WHEN status = 'approved' THEN price ELSE 0 END) as revenue
+              FROM appointments
+              WHERE date = CURRENT_DATE
+            `);
+            const stats = result.rows[0];
+            await bot.sendMessage(
+              ADMIN_TG_ID,
+              `📊 *Щоденний звіт за ${new Date().toLocaleDateString('uk-UA')}*\n\n` +
+              `📅 Всього записів: ${stats.total_bookings}\n` +
+              `✅ Підтверджено: ${stats.approved}\n` +
+              `⏳ Очікує: ${stats.pending}\n` +
+              `❌ Скасовано: ${stats.canceled}\n` +
+              `💰 Дохід: ${stats.revenue || 0} zł`,
+              { parse_mode: "Markdown" }
+            ).catch(err => console.error('Report send error:', err.message));
+            client.release();
+          } catch (err) {
+            console.error('❌ Error generating daily report:', err.message);
+          }
+        });
+
+        // 4️⃣ Cleanup database (monthly at 03:00 on 1st)
+        cron.schedule('0 3 1 * *', async () => {
+          try {
+            const client = await pool.connect();
+            const deletedReminders = await client.query(`
+              DELETE FROM reminders 
+              WHERE appointment_id IN (
+                SELECT id FROM appointments 
+                WHERE created_at < NOW() - INTERVAL '90 days'
+              )
+            `);
+            console.log(`✅ Cleaned up ${deletedReminders.rowCount} old reminders`);
+            client.release();
+          } catch (err) {
+            console.error('❌ Error cleaning database:', err.message);
+          }
+        });
+
+        console.log('✅ Cron jobs initialized');
+        // ===== END CRON JOBS =====
+
         // =============== START SERVER ===============
         const PORT = process.env.PORT || 3000;
         app.listen(PORT, () =>
