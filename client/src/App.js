@@ -8,6 +8,7 @@ const ADMIN_TG_IDS = [1342762796, 602355992,7058392354];
 const API = process.env.REACT_APP_API_URL || '';
 
 // 🔧 API Helper - centralizes fetch logic & auto-adds auth header
+// eslint-disable-next-line no-unused-vars
 const apiCall = async (url, options = {}) => {
   const headers = {
     ...options.headers,
