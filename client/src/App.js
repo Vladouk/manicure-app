@@ -2589,6 +2589,57 @@ if (mode === "menu") {
           </div>
         )}
 
+        {/* Price List Card */}
+        <div
+          className="menu-card"
+          onClick={() => {
+            fetch(`${API}/api/prices`)
+              .then(r => r.json())
+              .then(data => {
+                _setDynamicPrices(data);
+                setMode("priceList");
+              });
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
+            border: 'none',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-5px)';
+            e.target.style.boxShadow = '0 15px 35px rgba(240, 147, 251, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 8px 25px rgba(240, 147, 251, 0.3)';
+          }}
+        >
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '15px',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+          }}>💅</div>
+          <h3 style={{
+            margin: '0 0 8px 0',
+            fontSize: '1.3rem',
+            fontWeight: '600',
+            color: 'white'
+          }}>Прайс</h3>
+          <p style={{
+            margin: '0',
+            fontSize: '0.9rem',
+            opacity: '0.9',
+            color: 'white'
+          }}>Ціни на послуги</p>
+        </div>
+
         {/* Promotions Card */}
         <div
           className="menu-card"
