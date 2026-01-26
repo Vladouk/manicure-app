@@ -390,12 +390,7 @@ async function populateDatabase() {
     if (parseInt(result.rows[0].count) === 0) {
       console.log('Database empty, populating categories and services...');
       // Insert categories
-      const categories = [
-        { name: 'Гібридний манікюр (gel polish / hybryda)', description: 'Класичний гібридний манікюр' },
-        { name: 'Нарощування / зміцнення гелем', description: 'Нарощування та зміцнення нігтів' },
-        { name: 'Зняття, ремонт, окремі нігті', description: 'Зняття покриття та ремонт' },
-        { name: 'Дизайн та декор', description: 'Декоративні послуги' }
-      ];
+      
 
       for (let i = 0; i < categories.length; i++) {
         const cat = categories[i];
@@ -406,14 +401,7 @@ async function populateDatabase() {
       }
 
       // Add some services
-      const services = [
-        { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр — один колір', price: 135 },
-        { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр — френч / babyboomer', price: 155 },
-        { category: 'Гібридний манікюр (gel polish / hybryda)', name: 'Гібридний манікюр + вирівнювання базою', price: 155 },
-        { category: 'Нарощування / зміцнення гелем', name: 'Нарощування гелем', price: 200 },
-        { category: 'Зняття, ремонт, окремі нігті', name: 'Зняття гелю', price: 50 },
-        { category: 'Дизайн та декор', name: 'Дизайн нігтів', price: 30 }
-      ];
+     
 
       for (let i = 0; i < services.length; i++) {
         const service = services[i];
@@ -1343,13 +1331,20 @@ ORDER BY ws.date, ws.time
               const row = result.rows[0];
               if (!row) return res.json({ ok: true });
 
-              // 2️⃣ видаляємо запис
-              pool.query(`DELETE FROM appointments WHERE id = $1`, [id])
+              // 2️⃣ видаляємо залежні записи з referral_uses та bonus_uses
+              Promise.all([
+                pool.query(`DELETE FROM referral_uses WHERE appointment_id = $1`, [id]),
+                pool.query(`DELETE FROM bonus_uses WHERE appointment_id = $1`, [id])
+              ])
+                .then(() => {
+                  // 3️⃣ видаляємо запис
+                  return pool.query(`DELETE FROM appointments WHERE id = $1`, [id]);
+                })
+                .then(() => {
+                  // 4️⃣ розблоковуємо слот
+                  return pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time]);
+                })
                 .catch(err => console.error("Delete appointment error:", err));
-
-              // 3️⃣ розблоковуємо слот
-              pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time])
-                .catch(err => console.error("Unbook slot error:", err));
 
               bot.sendMessage(
                 row.tg_id,

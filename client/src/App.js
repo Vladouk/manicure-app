@@ -1793,7 +1793,7 @@ if (mode === "priceList") {
             fontSize: '1.5rem',
             fontWeight: '600',
             textAlign: 'center'
-          }}>Укріплення 💅</h3>
+          }}>Укріплення </h3>
 
           {/* Size Prices */}
           <div style={{
@@ -6054,9 +6054,9 @@ if (mode === "booking") {
                     textAlign: 'center'
                   }}
                 >
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>👔</div>
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>💅</div>
                   <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#333', fontSize: 16 }}>
-                    Гігієнічний 💅
+                    Гігієнічний 
                   </div>
                   <div style={{ color: '#667eea', fontWeight: 'bold', fontSize: 14 }}>
                     70 zł
