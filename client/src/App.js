@@ -3,7 +3,7 @@ import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
  
-const ADMIN_TG_IDS = [1342762796, 602355992,7058392354];
+const ADMIN_TG_IDS = [1342762796, 602355992,1248276494];
 
 const API = process.env.REACT_APP_API_URL || '';
 
