@@ -235,6 +235,9 @@ async function initializeDatabase() {
       ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     `);
 
+    // Ensure existing appointments have a created_at timestamp
+    await pool.query(`UPDATE appointments SET created_at = NOW() WHERE created_at IS NULL`).catch(() => {});
+
     // Create reminders table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reminders (
