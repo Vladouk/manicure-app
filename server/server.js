@@ -794,7 +794,6 @@ app.post(
 
 🎨 Дизайн: *${design || 'Не вказано'}*
 📏 Довжина: *${length || 'Не вказано'}*
-💎 Тип: *${type || 'Не вказано'}*
 💼 Послуга: *${service || 'Не вказано'}*
 💰 Ціна: *${finalPrice} zł*`;
 
@@ -851,17 +850,35 @@ app.post(
           }
 
           pool.query(`
-    SELECT id, date, time, design, length, type, status, comment
+    SELECT id, date, time, design, length, service, price, comment, reference_image, current_hands_images, username, bonus_points_spent, bonus_reward, status, created_at, reminded, viewed_by_admin
     FROM appointments
     WHERE tg_id = $1
       AND status != 'canceled'
-    ORDER BY date DESC, time DESC
-    LIMIT 1
+    ORDER BY date DESC, time DESC, created_at DESC
+    LIMIT 50
     `, [tg_id])
             .then(result => {
-              const row = result.rows[0];
-              console.log("📌 MY APPOINTMENT:", row);
-              res.json(row || null);
+              const rows = result.rows.map(r => ({
+                id: r.id,
+                date: r.date,
+                time: r.time,
+                design: r.design,
+                length: r.length,
+                service: r.service,
+                price: r.price,
+                comment: r.comment,
+                reference_images: (() => { try { return JSON.parse(r.reference_image || '[]'); } catch(e){ return []; } })(),
+                current_hands_images: (() => { try { return JSON.parse(r.current_hands_images || '[]'); } catch(e){ return []; } })(),
+                username: r.username,
+                bonus_points_spent: r.bonus_points_spent,
+                bonus_reward: r.bonus_reward,
+                status: r.status,
+                created_at: r.created_at,
+                reminded: r.reminded,
+                viewed_by_admin: r.viewed_by_admin
+              }));
+              console.log("📌 MY APPOINTMENTS:", rows.length);
+              res.json(rows);
             })
             .catch(err => {
               console.error("DB ERROR:", err);
@@ -914,9 +931,7 @@ app.post(
 
 🎨 ${row.design}
 📏 ${row.length}
-💅 ${row.type}
-`
-            );
+`);
 
             return res.json({ ok: true });
           })
@@ -1092,7 +1107,37 @@ app.post(
 `;
 
           pool.query(sql, params)
-            .then(result => res.json(result.rows))
+            .then(result => {
+              // Map rows to include parsed image arrays and remove `type` (покриття) field for admin panel
+              const mapped = result.rows.map(r => {
+                const parsedRef = (() => { try { return JSON.parse(r.reference_image || '[]'); } catch(e){ return []; } })();
+                const parsedCurrent = (() => { try { return JSON.parse(r.current_hands_images || '[]'); } catch(e){ return []; } })();
+                const obj = {
+                  id: r.id,
+                  client: r.client,
+                  username: r.username,
+                  tg_id: r.tg_id,
+                  date: r.date,
+                  time: r.time,
+                  design: r.design,
+                  length: r.length,
+                  // note: intentionally exclude `type` (покриття) per request
+                  service: r.service,
+                  price: r.price,
+                  comment: r.comment,
+                  reference_images: parsedRef,
+                  current_hands_images: parsedCurrent,
+                  status: r.status,
+                  bonus_points_spent: r.bonus_points_spent,
+                  bonus_reward: r.bonus_reward,
+                  reminded: r.reminded,
+                  viewed_by_admin: r.viewed_by_admin,
+                  created_at: r.created_at
+                };
+                return obj;
+              });
+              res.json(mapped);
+            })
             .catch(err => res.status(500).json({ error: "DB error" }));
         });
 
