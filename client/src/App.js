@@ -8054,7 +8054,12 @@ if (mode === "admin") {
               overflow: 'hidden',
               transition: 'all 0.3s ease'
             }}
-            onClick={(e) => { if (e.target.closest && e.target.closest('button')) return; setSelectedAdminAppointment(a); }}
+            onClick={(e) => {
+              const isButton = e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button');
+              if (!isButton) {
+                setSelectedAdminAppointment(a);
+              }
+            }}
             onMouseEnter={(e) => {
               e.target.style.transform = 'translateY(-3px)';
               e.target.style.boxShadow = getSlotLabel(a.date) === "today"
@@ -8337,7 +8342,7 @@ if (mode === "admin") {
                   <>
                     <button
                       className="btn-cancel"
-                      onClick={() => changeStatus(a.id, "canceled")}
+                      onClick={(e) => { e.stopPropagation(); changeStatus(a.id, "canceled"); }}
                       style={{
                         background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
                         border: 'none',
@@ -8364,7 +8369,7 @@ if (mode === "admin") {
                     </button>
                     <button
                       className="btn-secondary"
-                      onClick={() => changeStatus(a.id, "pending")}
+                      onClick={(e) => { e.stopPropagation(); changeStatus(a.id, "pending"); }}
                       style={{
                         background: 'linear-gradient(135deg, #f1c40f 0%, #f39c12 100%)',
                         border: 'none',
@@ -8396,7 +8401,7 @@ if (mode === "admin") {
                   <>
                     <button
                       className="btn-approve"
-                      onClick={() => changeStatus(a.id, "approved")}
+                      onClick={(e) => { e.stopPropagation(); changeStatus(a.id, "approved"); }}
                       style={{
                         background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
                         border: 'none',
@@ -8423,7 +8428,7 @@ if (mode === "admin") {
                     </button>
                     <button
                       className="btn-secondary"
-                      onClick={() => changeStatus(a.id, "pending")}
+                      onClick={(e) => { e.stopPropagation(); changeStatus(a.id, "pending"); }}
                       style={{
                         background: 'linear-gradient(135deg, #f1c40f 0%, #f39c12 100%)',
                         border: 'none',
@@ -8455,7 +8460,7 @@ if (mode === "admin") {
                   <>
                     <button
                       className="btn-approve"
-                      onClick={() => changeStatus(a.id, "approved")}
+                      onClick={(e) => { e.stopPropagation(); changeStatus(a.id, "approved"); }}
                       style={{
                         background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
                         border: 'none',
@@ -8483,7 +8488,7 @@ if (mode === "admin") {
 
                     <button
                       className="btn-cancel"
-                      onClick={() => changeStatus(a.id, "canceled")}
+                      onClick={(e) => { e.stopPropagation(); changeStatus(a.id, "canceled"); }}
                       style={{
                         background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
                         border: 'none',
@@ -8516,12 +8521,7 @@ if (mode === "admin") {
               <div style={{ marginTop: '10px' }}>
                 <button
                   className="btn-edit-price"
-                  onClick={() => {
-                    setEditPriceAppointmentId(a.id);
-                    setEditPriceValue(a.price.toString());
-                    setEditPriceOldValue(a.price);
-                    setEditPriceModalOpen(true);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setEditPriceAppointmentId(a.id); setEditPriceValue(a.price.toString()); setEditPriceOldValue(a.price); setEditPriceModalOpen(true); }}
                   style={{
                     background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                     border: 'none',
@@ -8553,7 +8553,7 @@ if (mode === "admin") {
               <div style={{ marginTop: '10px' }}>
                 <button
                   className="btn-delete"
-                  onClick={() => deleteAppointment(a.id)}
+                  onClick={(e) => { e.stopPropagation(); deleteAppointment(a.id); }}
                   style={{
                     background: 'linear-gradient(135deg, #8e44ad 0%, #6c3483 100%)',
                     border: 'none',
