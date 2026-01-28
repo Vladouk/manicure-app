@@ -1088,6 +1088,7 @@ fetch(`${API}/api/appointment`, {
 
       {modal}
       {priceEditModal}
+      {adminDetailModal}
     </div>
   );
 }
