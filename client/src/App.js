@@ -3,7 +3,7 @@ import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
  
-const ADMIN_TG_IDS = [1342762796, 602355992,1248276494];
+const ADMIN_TG_IDS = [1342762796, 1248276494];
 
 const API = process.env.REACT_APP_API_URL || '';
 
@@ -96,6 +96,12 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [rescheduleOldDate, setRescheduleOldDate] = useState(null);
   const [rescheduleOldTime, setRescheduleOldTime] = useState(null);
   const [rescheduleSelectedSlotId, setRescheduleSelectedSlotId] = useState(null);
+
+  // EDIT PRICE MODAL
+  const [editPriceModalOpen, setEditPriceModalOpen] = useState(false);
+  const [editPriceAppointmentId, setEditPriceAppointmentId] = useState(null);
+  const [editPriceValue, setEditPriceValue] = useState('');
+  const [editPriceOldValue, setEditPriceOldValue] = useState(null);
 
   // BOOKING INTERFACE HOOKS
   const [bookingStep, setBookingStep] = useState(1);
@@ -251,6 +257,179 @@ const [calendarDate, setCalendarDate] = useState(new Date());
     </div>
   ) : null;
 
+  // EDIT PRICE MODAL
+  const priceEditModal = editPriceModalOpen ? (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1001,
+      }}
+      onClick={() => setEditPriceModalOpen(false)}
+    >
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '30px',
+          maxWidth: '400px',
+          width: '90%',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 style={{
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          color: '#2c3e50',
+          marginBottom: '10px',
+          textAlign: 'center'
+        }}>
+          💰 Змінити ціну
+        </h2>
+        
+        <div style={{
+          background: '#ecf0f1',
+          borderRadius: '10px',
+          padding: '15px',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            fontSize: '0.9rem',
+            color: '#666',
+            marginBottom: '5px'
+          }}>
+            Стара ціна:
+          </div>
+          <div style={{
+            fontSize: '1.8rem',
+            fontWeight: 'bold',
+            color: '#e74c3c'
+          }}>
+            {editPriceOldValue} zł
+          </div>
+        </div>
+
+        <label style={{
+          display: 'block',
+          marginBottom: '8px',
+          fontWeight: '600',
+          color: '#2c3e50',
+          fontSize: '0.95rem'
+        }}>
+          Нова ціна (zł):
+        </label>
+        
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={editPriceValue}
+          onChange={(e) => setEditPriceValue(e.target.value)}
+          placeholder="Введіть нову ціну"
+          style={{
+            width: '100%',
+            padding: '12px',
+            borderRadius: '10px',
+            border: '2px solid #3498db',
+            fontSize: '1rem',
+            boxSizing: 'border-box',
+            marginBottom: '20px',
+            fontWeight: '500'
+          }}
+        />
+
+        <div style={{
+          background: '#e8f4f8',
+          borderRadius: '10px',
+          padding: '15px',
+          marginBottom: '20px',
+          textAlign: 'center',
+          display: editPriceValue ? 'block' : 'none'
+        }}>
+          <div style={{
+            fontSize: '0.9rem',
+            color: '#666',
+            marginBottom: '5px'
+          }}>
+            Нова ціна:
+          </div>
+          <div style={{
+            fontSize: '1.8rem',
+            fontWeight: 'bold',
+            color: '#27ae60'
+          }}>
+            {editPriceValue} zł
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '10px'
+        }}>
+          <button
+            onClick={() => setEditPriceModalOpen(false)}
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '10px',
+              border: '2px solid #bdc3c7',
+              background: 'white',
+              color: '#2c3e50',
+              fontWeight: '600',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#ecf0f1';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'white';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
+            Скасувати
+          </button>
+          <button
+            onClick={() => updatePrice(editPriceAppointmentId, parseInt(editPriceValue, 10))}
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+              color: 'white',
+              fontWeight: '600',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(52, 152, 219, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(52, 152, 219, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
+            }}
+          >
+            ✓ Зберегти
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // BOOKING SYSTEM - NEW
   const [serviceCategory, setServiceCategory] = useState("");
@@ -479,9 +658,9 @@ fetch(`${API}/api/appointment`, {
   }, [mode, tgUser?.id]);
 
   useEffect(() => {
-    setPrice(calculatePrice(serviceSub));
+    setPrice(calculatePrice(serviceCategory, sizeCategory, designCategory, mattingCategory));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceSub, priceListServices]);
+  }, [serviceCategory, sizeCategory, designCategory, mattingCategory, priceListServices]);
 
   // Refresh slots when entering client booking mode
   useEffect(() => {
@@ -584,6 +763,37 @@ fetch(`${API}/api/appointment`, {
         loadAppointments();
       })
       .catch(() => alert("❌ Помилка видалення"));
+  };
+
+  const updatePrice = (id, newPrice) => {
+    if (!newPrice || newPrice < 0) {
+      alert("❌ Введіть коректну ціну");
+      return;
+    }
+
+    fetch(`${API}/api/admin/appointment/price`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-init-data": WebApp.initData
+      },
+      body: JSON.stringify({ id, price: newPrice })
+    })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(() => {
+        alert("✅ Ціну оновлено!");
+        setEditPriceModalOpen(false);
+        setEditPriceValue('');
+        setEditPriceAppointmentId(null);
+        loadAppointments();
+      })
+      .catch(err => {
+        console.error("Price update error:", err);
+        alert(`❌ Помилка оновлення ціни: ${err.message}`);
+      });
   };
 
   // ADMIN PANEL
@@ -792,6 +1002,7 @@ fetch(`${API}/api/appointment`, {
       )}
 
       {modal}
+      {priceEditModal}
     </div>
   );
 }
@@ -1283,6 +1494,7 @@ if (effectiveMode === "clientHistory") {
       </div>
 
       {modal}
+      {priceEditModal}
     </div>
   );
 }
@@ -7722,6 +7934,7 @@ if (mode === "admin") {
           );
         })()
       ) : (
+        <>
         <div style={{
           display: 'grid',
           gap: '20px',
@@ -8211,6 +8424,43 @@ if (mode === "admin") {
                 )}
               </div>
 
+              {/* Edit Price Button - Always visible */}
+              <div style={{ marginTop: '10px' }}>
+                <button
+                  className="btn-edit-price"
+                  onClick={() => {
+                    setEditPriceAppointmentId(a.id);
+                    setEditPriceValue(a.price.toString());
+                    setEditPriceOldValue(a.price);
+                    setEditPriceModalOpen(true);
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 20px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(52, 152, 219, 0.3)',
+                    transition: 'all 0.3s ease',
+                    width: '100%',
+                    marginBottom: '10px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 20px rgba(52, 152, 219, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 15px rgba(52, 152, 219, 0.3)';
+                  }}
+                >
+                  💰 Змінити ціну ({a.price} zł)
+                </button>
+              </div>
+
               {/* Delete Button - Always visible for all appointments */}
               <div style={{ marginTop: '10px' }}>
                 <button
@@ -8244,6 +8494,7 @@ if (mode === "admin") {
             </div>
           </div>
         ))}
+        </div>
 
         {/* Empty State */}
         {sortedAppointments.length === 0 && (
@@ -8283,13 +8534,15 @@ if (mode === "admin") {
             </div>
           </div>
         )}
-        </div>
+        </>
       )}
 
       {modal}
+      {priceEditModal}
     </div>
   );
 }
+
 }
 
 export default App;

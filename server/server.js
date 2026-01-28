@@ -69,8 +69,18 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const ADMIN_TG_IDS = [1342762796, 602355992, 1248276494];
-const ADMIN_TG_ID = ADMIN_TG_IDS[0]; // for messages
+const ADMIN_TG_IDS = [1342762796, 1248276494];
+const ADMIN_TG_ID = ADMIN_TG_IDS[0]; // primary admin for legacy support
+
+// Helper function to send message to all admins
+const notifyAllAdmins = (message, parseMode = "Markdown") => {
+  return Promise.all(
+    ADMIN_TG_IDS.map(adminId =>
+      bot.sendMessage(adminId, message, { parse_mode: parseMode })
+        .catch(err => console.error(`Error notifying admin ${adminId}:`, err))
+    )
+  );
+};
 
 // 🔥 Telegram bot для надсилання повідомлень клієнтам
 const bot = new TelegramBot(BOT_TOKEN, { polling: false });
@@ -102,7 +112,7 @@ bot.onText(/\/start/, (msg) => {
 });
 
 bot.onText(/\/admin/, (msg) => {
-  if (msg.from.id !== ADMIN_TG_ID) {
+  if (!ADMIN_TG_IDS.includes(msg.from.id)) {
     bot.sendMessage(msg.chat.id, '❌ Немає доступу');
     return;
   }
@@ -720,17 +730,30 @@ app.post(
         .catch(err => console.error("❌ Slot update error:", err));
 
       // 🔔 Client notification
+      const referenceCount = referenceImages.length;
+      const currentHandsCount = currentHandsImages.length;
+      
       let clientMessage = `💅 *Запис створено!*  
 
 📅 Дата: ${slot.date}  
 ⏰ Час: ${slot.time}  
 
-🎨 Дизайн: ${design}  
-📏 Довжина: ${length}  
-💎 Тип: ${type}  
-💼 Послуга: ${service}  
+🎨 Дизайн: ${design || 'Не вказано'}  
+📏 Довжина: ${length || 'Не вказано'}  
+💎 Тип: ${type || 'Не вказано'}  
+💼 Послуга: ${service || 'Не вказано'}  
 
 💰 Ціна: ${finalPrice} zł`;
+
+      if (referenceCount > 0 || currentHandsCount > 0) {
+        clientMessage += `\n\n📸 *Фотографії:*`;
+        if (referenceCount > 0) {
+          clientMessage += `\n🖼️ Референси: ${referenceCount}`;
+        }
+        if (currentHandsCount > 0) {
+          clientMessage += `\n✋ Поточний стан: ${currentHandsCount}`;
+        }
+      }
 
       if (bonusPointsSpent > 0) {
         let bonusText = '';
@@ -766,11 +789,21 @@ app.post(
 📅 Дата: *${slot.date}*
 ⏰ Час: *${slot.time}*
 
-🎨 Дизайн: *${design}*
-📏 Довжина: *${length}*
-💎 Тип: *${type}*
-💼 Послуга: *${service}*
+🎨 Дизайн: *${design || 'Не вказано'}*
+📏 Довжина: *${length || 'Не вказано'}*
+💎 Тип: *${type || 'Не вказано'}*
+💼 Послуга: *${service || 'Не вказано'}*
 💰 Ціна: *${finalPrice} zł*`;
+
+      if (referenceCount > 0 || currentHandsCount > 0) {
+        adminMessage += `\n\n📸 *Фотографії прикріплені:*`;
+        if (referenceCount > 0) {
+          adminMessage += `\n🖼️ Референси: ${referenceCount}`;
+        }
+        if (currentHandsCount > 0) {
+          adminMessage += `\n✋ Поточний стан: ${currentHandsCount}`;
+        }
+      }
 
       if (bonusPointsSpent > 0) {
         let bonusText = '';
@@ -794,7 +827,7 @@ app.post(
         adminMessage += `\n💬 *Коментар клієнта:*\n${comment}`;
       }
 
-      bot.sendMessage(ADMIN_TG_ID, adminMessage, { parse_mode: "Markdown" })
+      notifyAllAdmins(adminMessage)
         .then(() => console.log("✅ Admin notification sent"))
         .catch(err => console.error("❌ Admin notification error:", err));
 
@@ -868,8 +901,7 @@ app.post(
 
             // 4️⃣ Повідомляємо адміну
             let cancelLink = row.username ? `[@${row.username}](https://t.me/${row.username})` : `[Клієнт](tg://user?id=${tg_id})`;
-            bot.sendMessage(
-              ADMIN_TG_ID,
+            notifyAllAdmins(
               `❗ *Клієнт сам скасував запис*  
 
 👤 ${cancelLink}
@@ -880,7 +912,7 @@ app.post(
 🎨 ${row.design}
 📏 ${row.length}
 💅 ${row.type}
-`, { parse_mode: "Markdown" }
+`
             );
 
             return res.json({ ok: true });
@@ -936,14 +968,12 @@ app.post(
                       ).catch(err => console.error("Client notification error:", err));
 
                       // 7️⃣ Повідомляємо адміну
-                      bot.sendMessage(
-                        ADMIN_TG_ID,
+                      notifyAllAdmins(
                         `🔄 *Клієнт перенес запис*
 
 👤 Клієнт ID: ${tg_id}
 📅 Було: ${appointment.date} — ${appointment.time}
-📅 Тепер: ${new_date} — ${new_time}`,
-                        { parse_mode: "Markdown" }
+📅 Тепер: ${new_date} — ${new_time}`
                       ).catch(err => console.error("Admin notification error:", err));
 
                       res.json({ ok: true });
@@ -1025,7 +1055,7 @@ app.post(
                   bot.sendMessage(tg_id, `🎁 *Винагорода активована!*\n\n${rewardText}`, { parse_mode: "Markdown" });
 
                   // Повідомити адміна
-                  bot.sendMessage(ADMIN_TG_ID, `🎁 Клієнт витратив ${points_to_spend} балів на винагороду: ${rewardText}`, { parse_mode: "Markdown" });
+                  notifyAllAdmins(`🎁 Клієнт витратив ${points_to_spend} балів на винагороду: ${rewardText}`);
 
                   res.json({ ok: true });
                 });
@@ -1394,6 +1424,59 @@ ORDER BY ws.date, ws.time
               res.json({ ok: true });
             })
             .catch(err => res.status(500).json({ error: "DB error" }));
+        });
+
+        // =============== ADMIN: UPDATE APPOINTMENT PRICE ===============
+        app.post('/api/admin/appointment/price', (req, res) => {
+          const { id, price } = req.body;
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          if (!id || price === undefined || price === null)
+            return res.status(400).json({ error: 'Invalid id or price' });
+
+          const newPrice = parseInt(price, 10);
+          if (isNaN(newPrice) || newPrice < 0)
+            return res.status(400).json({ error: 'Invalid price value' });
+
+          // Get appointment details
+          pool.query(`SELECT tg_id, client, price as old_price FROM appointments WHERE id = $1`, [id])
+            .then(result => {
+              const row = result.rows[0];
+              if (!row) return res.status(404).json({ error: 'Appointment not found' });
+
+              // Update price
+              return pool.query(`UPDATE appointments SET price = $1 WHERE id = $2 RETURNING price`, [newPrice, id])
+                .then(updateResult => {
+                  const updatedPrice = updateResult.rows[0].price;
+                  
+                  // Notify client
+                  bot.sendMessage(
+                    row.tg_id,
+                    `💰 *Ціна вашого запису змінена!*
+
+👤 Клієнт: ${row.client}
+
+💵 Стара ціна: ${row.old_price} zł
+✨ Нова ціна: ${updatedPrice} zł
+
+Дякуємо за розуміння 💅`,
+                    { parse_mode: "Markdown" }
+                  ).catch(err => console.error('Price update notification error:', err));
+
+                  res.json({ ok: true, price: updatedPrice });
+                });
+            })
+            .catch(err => {
+              console.error("Price update error:", err);
+              res.status(500).json({ error: "DB error" });
+            });
         });
 
         // =============== PRICE LIST MANAGEMENT ===============
@@ -2070,13 +2153,11 @@ ORDER BY ws.date, ws.time
               );
 
               // 🔔 повідомлення адміна
-              bot.sendMessage(
-                ADMIN_TG_ID,
+              notifyAllAdmins(
                 `📢 *Нагадування відправлено клієнту:* ${a.client}
 
 📅 ${a.date}
-⏰ ${a.time}`,
-                { parse_mode: "Markdown" }
+⏰ ${a.time}`
               );
 
               // помічаємо як нагадано
@@ -2239,16 +2320,14 @@ ORDER BY ws.date, ws.time
               WHERE date = CURRENT_DATE
             `);
             const stats = result.rows[0];
-            await bot.sendMessage(
-              ADMIN_TG_ID,
+            notifyAllAdmins(
               `📊 *Щоденний звіт за ${new Date().toLocaleDateString('uk-UA')}*\n\n` +
               `📅 Всього записів: ${stats.total_bookings}\n` +
               `✅ Підтверджено: ${stats.approved}\n` +
               `⏳ Очікує: ${stats.pending}\n` +
               `❌ Скасовано: ${stats.canceled}\n` +
-              `💰 Дохід: ${stats.revenue || 0} zł`,
-              { parse_mode: "Markdown" }
-            ).catch(err => console.error('Report send error:', err.message));
+              `💰 Дохід: ${stats.revenue || 0} zł`
+            );
             client.release();
           } catch (err) {
             console.error('❌ Error generating daily report:', err.message);
