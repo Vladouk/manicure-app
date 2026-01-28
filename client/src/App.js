@@ -140,6 +140,13 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       return;
     }
 
+    // Ensure a service is selected (prefer specific sub-service)
+    const selectedService = (serviceSub && String(serviceSub).trim()) || (serviceCategory && String(serviceCategory).trim());
+    if (!selectedService) {
+      alert("❗ Оберіть послугу");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("client", clientName);
     formData.append("slot_id", selectedSlotId);
@@ -151,6 +158,8 @@ const [calendarDate, setCalendarDate] = useState(new Date());
       formData.append("username", tgUser?.username || "");
     formData.append("service_category", serviceCategory);
     formData.append("service_sub", serviceSub);
+    // Add `service` field expected by server
+    formData.append("service", selectedService);
     formData.append("price", price);
     formData.append("referral_code", enteredReferralCode);
     formData.append("bonus_points_to_use", bonusPointsToUse);
