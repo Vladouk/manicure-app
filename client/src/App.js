@@ -8054,9 +8054,10 @@ if (mode === "admin") {
               overflow: 'hidden',
               transition: 'all 0.3s ease'
             }}
-            onClick={(e) => {
+            onClickCapture={(e) => {
               const isButton = e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button');
               if (!isButton) {
+                console.log('🔵 Card clicked, opening modal for appointment:', a.id);
                 setSelectedAdminAppointment(a);
               }
             }}
