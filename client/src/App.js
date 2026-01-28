@@ -70,6 +70,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
   const [modalImage, setModalImage] = useState(null);
+  const [selectedAdminAppointment, setSelectedAdminAppointment] = useState(null);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [priceList, setPriceList] = useState([]);
   const [priceListServices, setPriceListServices] = useState([]);
@@ -435,6 +436,81 @@ const [calendarDate, setCalendarDate] = useState(new Date());
           >
             ✓ Зберегти
           </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  // ADMIN: Appointment detail modal
+  const adminDetailModal = selectedAdminAppointment ? (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1100,
+      }}
+      onClick={() => setSelectedAdminAppointment(null)}
+    >
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '20px',
+          maxWidth: '900px',
+          width: '95%',
+          maxHeight: '90%',
+          overflow: 'auto'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <h2 style={{ margin: 0 }}>Дані запису</h2>
+          <button onClick={() => setSelectedAdminAppointment(null)} style={{ padding: '6px 10px', borderRadius: '8px', cursor: 'pointer' }}>✕ Закрити</button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div>
+            <div style={{ fontWeight: 700 }}>Клієнт</div>
+            <div>{selectedAdminAppointment.client} {selectedAdminAppointment.username ? `(@${selectedAdminAppointment.username})` : ''}</div>
+            <div style={{ marginTop: 8, fontWeight: 700 }}>Телеграм ID</div>
+            <div>{selectedAdminAppointment.tg_id}</div>
+            <div style={{ marginTop: 8, fontWeight: 700 }}>Дата / Час</div>
+            <div>{selectedAdminAppointment.date} {selectedAdminAppointment.time}</div>
+            <div style={{ marginTop: 8, fontWeight: 700 }}>Послуга</div>
+            <div>{selectedAdminAppointment.service || '—'}</div>
+            <div style={{ marginTop: 8, fontWeight: 700 }}>Дизайн / Довжина</div>
+            <div>{selectedAdminAppointment.design || '—'} / {selectedAdminAppointment.length || '—'}</div>
+            <div style={{ marginTop: 8, fontWeight: 700 }}>Ціна</div>
+            <div>{selectedAdminAppointment.price} zł</div>
+            <div style={{ marginTop: 8, fontWeight: 700 }}>Статус</div>
+            <div>{selectedAdminAppointment.status}</div>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 700 }}>Коментар</div>
+            <div style={{ whiteSpace: 'pre-wrap', marginBottom: 10 }}>{selectedAdminAppointment.comment || '—'}</div>
+
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>Фотографії (референси)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+              {(selectedAdminAppointment.reference_images || []).map((p, i) => (
+                <img key={i} src={`${API}${p}`} alt={`ref-${i}`} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, cursor: 'pointer' }} onClick={() => setModalImage(`${API}${p}`)} />
+              ))}
+            </div>
+
+            <div style={{ fontWeight: 700, marginTop: 12, marginBottom: 6 }}>Фотографії (поточний стан)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+              {(selectedAdminAppointment.current_hands_images || []).map((p, i) => (
+                <img key={i} src={`${API}${p}`} alt={`current-${i}`} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, cursor: 'pointer' }} onClick={() => setModalImage(`${API}${p}`)} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -5505,6 +5581,7 @@ if (mode === "promotions") {
               border: 'none',
               position: 'relative',
               overflow: 'hidden',
+              cursor: 'pointer',
               transition: 'all 0.3s ease'
             }}
             onMouseEnter={(e) => {
@@ -7976,6 +8053,7 @@ if (mode === "admin") {
               overflow: 'hidden',
               transition: 'all 0.3s ease'
             }}
+            onClick={(e) => { if (e.target.closest && e.target.closest('button')) return; setSelectedAdminAppointment(a); }}
             onMouseEnter={(e) => {
               e.target.style.transform = 'translateY(-3px)';
               e.target.style.boxShadow = getSlotLabel(a.date) === "today"
