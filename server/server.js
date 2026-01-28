@@ -393,7 +393,7 @@ async function deleteOldSlots() {
     const result = await pool.query(`
       DELETE FROM work_slots 
       WHERE is_booked = false 
-      AND date < $1
+      AND date::date < $1::date
       RETURNING id
     `, [todayStr]);
     
@@ -886,7 +886,7 @@ app.post(
               .catch(err => console.error("Cancel appointment error:", err));
 
             // 2️⃣ Звільняємо слот
-            pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time])
+            pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [row.date, row.time])
               .catch(err => console.error("Free slot error:", err));
 
             // 3️⃣ Повідомляємо клієнту
@@ -937,7 +937,7 @@ app.post(
               }
 
               // 2️⃣ Перевіримо, що новий слот доступний
-              pool.query(`SELECT id FROM work_slots WHERE date = $1 AND time = $2 AND is_booked = false`, [new_date, new_time])
+              pool.query(`SELECT id FROM work_slots WHERE date::date = $1::date AND time = $2 AND is_booked = false`, [new_date, new_time])
                 .then(result => {
                   const newSlot = result.rows[0];
                   if (!newSlot) {
@@ -945,7 +945,7 @@ app.post(
                   }
 
                   // 3️⃣ Звільняємо старий слот
-                  pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [appointment.date, appointment.time])
+                  pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [appointment.date, appointment.time])
                     .catch(err => console.error("Free old slot error:", err));
 
                   // 4️⃣ Бронюємо новий слот
@@ -1161,7 +1161,7 @@ app.post(
 
               // ❗ якщо скасовано — розблокувати слот і повернути бали
               if (status === 'canceled') {
-                pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time])
+                pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [row.date, row.time])
                   .catch(err => console.error("Slot unbook error:", err));
 
                 // Return points if appointment was approved before cancellation
@@ -1406,7 +1406,7 @@ ORDER BY ws.date, ws.time
                 })
                 .then(() => {
                   // 4️⃣ розблоковуємо слот
-                  return pool.query(`UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`, [row.date, row.time]);
+                  return pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [row.date, row.time]);
                 })
                 .catch(err => console.error("Delete appointment error:", err));
 
@@ -2130,9 +2130,9 @@ ORDER BY ws.date, ws.time
           const targetDate = `${yyyy}-${mm}-${dd}`;
 
           pool.query(
-            `SELECT id, client, date, time, tg_id
-     FROM appointments
-     WHERE date = $1 AND status = 'approved' AND reminded = false`,
+                 `SELECT id, client, date, time, tg_id
+               FROM appointments
+               WHERE date::date = $1::date AND status = 'approved' AND reminded = false`,
             [targetDate]
           )
           .then(result => {
@@ -2270,7 +2270,7 @@ ORDER BY ws.date, ws.time
               console.log(`✅ Canceled ${canceledCount} expired pending appointments`);
               for (const appointment of result.rows) {
                 await pool.query(
-                  `UPDATE work_slots SET is_booked = false WHERE date = $1 AND time = $2`,
+                  `UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`,
                   [appointment.date, appointment.time]
                 );
                 await bot.sendMessage(
@@ -2292,7 +2292,7 @@ ORDER BY ws.date, ws.time
             const client = await pool.connect();
             const result = await client.query(`
               DELETE FROM work_slots 
-              WHERE date < NOW()::date - INTERVAL '30 days'
+              WHERE date::date < (NOW()::date - INTERVAL '30 days')
               RETURNING id
             `);
             const deletedCount = result.rows.length;
@@ -2317,7 +2317,7 @@ ORDER BY ws.date, ws.time
                 COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled,
                 SUM(CASE WHEN status = 'approved' THEN price ELSE 0 END) as revenue
               FROM appointments
-              WHERE date = CURRENT_DATE
+              WHERE date::date = CURRENT_DATE
             `);
             const stats = result.rows[0];
             notifyAllAdmins(
