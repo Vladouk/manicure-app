@@ -543,9 +543,12 @@ app.post(
       const tgIdNum = parseInt(tg_id, 10);
       const bonusPointsToUse = parseInt(bonus_points_to_use || 0, 10);
 
-      if (!client || isNaN(slotIdNum) || isNaN(tgIdNum)) {
-        console.error("❌ Missing or invalid required fields:", { client: !!client, slot_id, tg_id });
-        return res.status(400).json({ error: "Missing or invalid fields" });
+      // Ensure required fields are present
+      const invalidService = !service || !String(service).trim() || ['не вказано', '(не вказана)', 'not specified'].includes(String(service).trim().toLowerCase());
+
+      if (!client || isNaN(slotIdNum) || isNaN(tgIdNum) || invalidService) {
+        console.error("❌ Missing or invalid required fields:", { client: !!client, slot_id, tg_id, service });
+        return res.status(400).json({ error: "Missing or invalid fields: 'client', 'slot_id', 'tg_id', and 'service' are required" });
       }
 
       // Validate bonus points if provided
