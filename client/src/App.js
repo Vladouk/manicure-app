@@ -448,66 +448,66 @@ const [calendarDate, setCalendarDate] = useState(new Date());
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(0,0,0,0.85)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 1100,
+        zIndex: 1200,
+        overflowY: 'auto',
       }}
       onClick={() => setSelectedAdminAppointment(null)}
     >
       <div
         style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '20px',
+          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+          borderRadius: '22px',
+          padding: '36px 32px',
           maxWidth: '900px',
-          width: '95%',
-          maxHeight: '90%',
-          overflow: 'auto'
+          width: '98vw',
+          maxHeight: '92vh',
+          overflow: 'auto',
+          boxShadow: '0 12px 40px rgba(252, 182, 159, 0.25)',
+          border: 'none',
+          position: 'relative',
         }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h2 style={{ margin: 0 }}>Дані запису</h2>
-          <button onClick={() => setSelectedAdminAppointment(null)} style={{ padding: '6px 10px', borderRadius: '8px', cursor: 'pointer' }}>✕ Закрити</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+          <h2 style={{ margin: 0, fontWeight: 800, fontSize: '2rem', color: '#ff6f61', letterSpacing: 1 }}>Дані запису</h2>
+          <button onClick={() => setSelectedAdminAppointment(null)} style={{ padding: '8px 16px', borderRadius: '10px', background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', color: '#fff', border: 'none', fontWeight: 700, fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(255, 154, 158, 0.2)' }}>✕ Закрити</button>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div>
-            <div style={{ fontWeight: 700 }}>Клієнт</div>
-            <div>{selectedAdminAppointment.client} {selectedAdminAppointment.username ? `(@${selectedAdminAppointment.username})` : ''}</div>
-            <div style={{ marginTop: 8, fontWeight: 700 }}>Телеграм ID</div>
-            <div>{selectedAdminAppointment.tg_id}</div>
-            <div style={{ marginTop: 8, fontWeight: 700 }}>Дата / Час</div>
-            <div>{selectedAdminAppointment.date} {selectedAdminAppointment.time}</div>
-            <div style={{ marginTop: 8, fontWeight: 700 }}>Послуга</div>
-            <div>{selectedAdminAppointment.service || '—'}</div>
-            <div style={{ marginTop: 8, fontWeight: 700 }}>Дизайн / Довжина</div>
-            <div>{selectedAdminAppointment.design || '—'} / {selectedAdminAppointment.length || '—'}</div>
-            <div style={{ marginTop: 8, fontWeight: 700 }}>Ціна</div>
-            <div>{selectedAdminAppointment.price} zł</div>
-            <div style={{ marginTop: 8, fontWeight: 700 }}>Статус</div>
-            <div>{selectedAdminAppointment.status}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: 12 }}>
+          <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 20, boxShadow: '0 2px 8px rgba(255, 154, 158, 0.08)' }}>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Клієнт</div>
+            <div style={{ fontSize: '1.1rem', marginBottom: 8 }}>{selectedAdminAppointment.client} {selectedAdminAppointment.username ? `(@${selectedAdminAppointment.username})` : ''}</div>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Телеграм ID</div>
+            <div style={{ marginBottom: 8 }}>{selectedAdminAppointment.tg_id}</div>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Дата / Час</div>
+            <div style={{ marginBottom: 8 }}>{selectedAdminAppointment.date} {selectedAdminAppointment.time}</div>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Послуга</div>
+            <div style={{ marginBottom: 8 }}>{selectedAdminAppointment.service || '—'}</div>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Дизайн / Довжина</div>
+            <div style={{ marginBottom: 8 }}>{selectedAdminAppointment.design || '—'} / {selectedAdminAppointment.length || '—'}</div>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Ціна</div>
+            <div style={{ marginBottom: 8 }}>{selectedAdminAppointment.price} zł</div>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Статус</div>
+            <div style={{ marginBottom: 8 }}>{selectedAdminAppointment.status}</div>
           </div>
-
-          <div>
-            <div style={{ fontWeight: 700 }}>Коментар</div>
-            <div style={{ whiteSpace: 'pre-wrap', marginBottom: 10 }}>{selectedAdminAppointment.comment || '—'}</div>
-
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>Фотографії (референси)</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+          <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 20, boxShadow: '0 2px 8px rgba(255, 154, 158, 0.08)' }}>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Коментар</div>
+            <div style={{ whiteSpace: 'pre-wrap', marginBottom: 14 }}>{selectedAdminAppointment.comment || '—'}</div>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8 }}>Фотографії (референси)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 8 }}>
               {(selectedAdminAppointment.reference_images || []).map((p, i) => (
-                <img key={i} src={`${API}${p}`} alt={`ref-${i}`} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, cursor: 'pointer' }} onClick={() => setModalImage(`${API}${p}`)} />
+                <img key={i} src={`${API}${p}`} alt={`ref-${i}`} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', boxShadow: '0 2px 8px rgba(255, 154, 158, 0.12)' }} onClick={() => setModalImage(`${API}${p}`)} />
               ))}
             </div>
-
-            <div style={{ fontWeight: 700, marginTop: 12, marginBottom: 6 }}>Фотографії (поточний стан)</div>
+            <div style={{ fontWeight: 700, color: '#ff6f61', marginBottom: 8, marginTop: 12 }}>Фотографії (поточний стан)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
               {(selectedAdminAppointment.current_hands_images || []).map((p, i) => (
-                <img key={i} src={`${API}${p}`} alt={`current-${i}`} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, cursor: 'pointer' }} onClick={() => setModalImage(`${API}${p}`)} />
+                <img key={i} src={`${API}${p}`} alt={`current-${i}`} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', boxShadow: '0 2px 8px rgba(255, 154, 158, 0.12)' }} onClick={() => setModalImage(`${API}${p}`)} />
               ))}
             </div>
           </div>
