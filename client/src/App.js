@@ -8085,13 +8085,6 @@ if (mode === "admin") {
               overflow: 'hidden',
               transition: 'all 0.3s ease'
             }}
-            onClickCapture={(e) => {
-              const isButton = e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button');
-              if (!isButton) {
-                console.log('🔵 Card clicked, opening modal for appointment:', a.id);
-                setSelectedAdminAppointment(a);
-              }
-            }}
             onMouseEnter={(e) => {
               e.target.style.transform = 'translateY(-3px)';
               e.target.style.boxShadow = getSlotLabel(a.date) === "today"
@@ -8109,6 +8102,34 @@ if (mode === "admin") {
                 : '0 8px 25px rgba(240, 147, 251, 0.3)';
             }}
           >
+                        <div style={{ display: 'flex', justifyContent: 'center', margin: '18px 0 0 0' }}>
+                          <button
+                            style={{
+                              background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+                              color: '#fff',
+                              fontWeight: 800,
+                              fontSize: '1.2rem',
+                              padding: '16px 40px',
+                              border: 'none',
+                              borderRadius: '14px',
+                              boxShadow: '0 4px 16px rgba(255, 154, 158, 0.18)',
+                              cursor: 'pointer',
+                              letterSpacing: 1,
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => {
+                              e.target.style.transform = 'translateY(-2px) scale(1.03)';
+                              e.target.style.boxShadow = '0 8px 24px rgba(255, 154, 158, 0.28)';
+                            }}
+                            onMouseLeave={e => {
+                              e.target.style.transform = 'none';
+                              e.target.style.boxShadow = '0 4px 16px rgba(255, 154, 158, 0.18)';
+                            }}
+                            onClick={() => setSelectedAdminAppointment(a)}
+                          >
+                            👁️ Переглянути запис
+                          </button>
+                        </div>
             {/* Date Badge */}
             <div style={{
               position: 'absolute',
