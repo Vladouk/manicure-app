@@ -512,6 +512,36 @@ const [calendarDate, setCalendarDate] = useState(new Date());
             </div>
           </div>
         </div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+          <button
+            style={{
+              background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: '1.4rem',
+              padding: '22px 60px',
+              border: 'none',
+              borderRadius: '16px',
+              boxShadow: '0 6px 24px rgba(255, 154, 158, 0.18)',
+              cursor: 'pointer',
+              letterSpacing: 1,
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.target.style.transform = 'translateY(-2px) scale(1.03)';
+              e.target.style.boxShadow = '0 12px 32px rgba(255, 154, 158, 0.28)';
+            }}
+            onMouseLeave={e => {
+              e.target.style.transform = 'none';
+              e.target.style.boxShadow = '0 6px 24px rgba(255, 154, 158, 0.18)';
+            }}
+            onClick={() => {
+              // Можна додати додаткову логіку тут, якщо потрібно
+            }}
+          >
+            👁️ Переглянути запис
+          </button>
+        </div>
       </div>
     </div>
   ) : null;
