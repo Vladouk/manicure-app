@@ -639,9 +639,9 @@ const [calendarDate, setCalendarDate] = useState(new Date());
           )}
 
           {/* Reference Images */}
-          {selectedDetailedAppointment.reference_image && (() => {
+          {selectedDetailedAppointment.reference_images && (() => {
             try {
-              const images = JSON.parse(selectedDetailedAppointment.reference_image);
+              const images = selectedDetailedAppointment.reference_images;
               if (Array.isArray(images) && images.length > 0) {
                 return (
                   <div style={{
@@ -688,7 +688,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
                 );
               }
             } catch (e) {
-              console.error('Error parsing reference_image:', e);
+              console.error('Error parsing reference_images:', e);
             }
             return null;
           })()}
@@ -696,7 +696,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
           {/* Current Hands Images */}
           {selectedDetailedAppointment.current_hands_images && (() => {
             try {
-              const images = JSON.parse(selectedDetailedAppointment.current_hands_images);
+              const images = selectedDetailedAppointment.current_hands_images;
               if (Array.isArray(images) && images.length > 0) {
                 return (
                   <div style={{
@@ -743,7 +743,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
                 );
               }
             } catch (e) {
-              console.error('Error parsing current_hands_images:', e);
+              console.error('Error processing current_hands_images:', e);
             }
             return null;
           })()}
