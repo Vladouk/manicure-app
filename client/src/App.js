@@ -103,6 +103,9 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const [editPriceValue, setEditPriceValue] = useState('');
   const [editPriceOldValue, setEditPriceOldValue] = useState(null);
 
+  // APPOINTMENT DETAILS MODAL
+  const [selectedDetailedAppointment, setSelectedDetailedAppointment] = useState(null);
+
   // BOOKING INTERFACE HOOKS
   const [bookingStep, setBookingStep] = useState(1);
   const totalSteps = 4;
@@ -441,6 +444,342 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   ) : null;
 
   // ADMIN: Appointment detail modal
+  const appointmentDetailModal = selectedDetailedAppointment ? (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1002,
+        overflowY: 'auto',
+        padding: '20px 0'
+      }}
+      onClick={() => setSelectedDetailedAppointment(null)}
+    >
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '25px',
+          maxWidth: '500px',
+          width: '90%',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+          margin: 'auto'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 style={{
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          color: '#2c3e50',
+          marginBottom: '20px',
+          textAlign: 'center',
+          borderBottom: '2px solid #667eea',
+          paddingBottom: '15px'
+        }}>
+          📋 Деталі запису
+        </h2>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+          {/* Client Info */}
+          <div style={{
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            padding: '15px',
+            borderLeft: '4px solid #667eea'
+          }}>
+            <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '5px', fontWeight: '600' }}>
+              👤 КЛІЄНТ
+            </div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2c3e50', marginBottom: '8px' }}>
+              {selectedDetailedAppointment.client || selectedDetailedAppointment.client_name || 'Невідомий'}
+            </div>
+            {selectedDetailedAppointment.username && (
+              <a
+                href={`https://t.me/${selectedDetailedAppointment.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#0088cc',
+                  textDecoration: 'none',
+                  fontSize: '0.9rem',
+                  fontWeight: '500'
+                }}
+                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+              >
+                @{selectedDetailedAppointment.username} →
+              </a>
+            )}
+          </div>
+
+          {/* Date & Time */}
+          <div style={{
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            padding: '15px',
+            borderLeft: '4px solid #27ae60',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '5px', fontWeight: '600' }}>
+                📅 ДАТА
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#2c3e50' }}>
+                {selectedDetailedAppointment.date}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '5px', fontWeight: '600' }}>
+                ⏰ ЧАС
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#2c3e50' }}>
+                {selectedDetailedAppointment.time}
+              </div>
+            </div>
+          </div>
+
+          {/* Service Details */}
+          <div style={{
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            padding: '15px',
+            borderLeft: '4px solid #f39c12'
+          }}>
+            <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '10px', fontWeight: '600' }}>
+              💅 ПОСЛУГА
+            </div>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {selectedDetailedAppointment.type && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem' }}>Тип:</span>
+                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>{selectedDetailedAppointment.type}</span>
+                </div>
+              )}
+              {selectedDetailedAppointment.length && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem' }}>Довжина:</span>
+                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>{selectedDetailedAppointment.length}</span>
+                </div>
+              )}
+              {selectedDetailedAppointment.design && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem' }}>Дизайн:</span>
+                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>{selectedDetailedAppointment.design}</span>
+                </div>
+              )}
+              {selectedDetailedAppointment.service && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem' }}>Послуга:</span>
+                  <span style={{ fontWeight: '600', color: '#2c3e50' }}>{selectedDetailedAppointment.service}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Price & Status */}
+          <div style={{
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            padding: '15px',
+            borderLeft: '4px solid #3498db',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '5px', fontWeight: '600' }}>
+                💰 ЦІНА
+              </div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#2c3e50' }}>
+                {selectedDetailedAppointment.price} zł
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '5px', fontWeight: '600' }}>
+                📊 СТАТУС
+              </div>
+              <div style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                background: selectedDetailedAppointment.status === 'approved' ? '#d4edda' : selectedDetailedAppointment.status === 'canceled' ? '#f8d7da' : '#fff3cd',
+                color: selectedDetailedAppointment.status === 'approved' ? '#155724' : selectedDetailedAppointment.status === 'canceled' ? '#721c24' : '#856404',
+                textAlign: 'center'
+              }}>
+                {selectedDetailedAppointment.status === 'approved' ? '✅ Затверджено' : selectedDetailedAppointment.status === 'canceled' ? '❌ Скасовано' : '⏳ Очікує'}
+              </div>
+            </div>
+          </div>
+
+          {/* Comment */}
+          {selectedDetailedAppointment.comment && (
+            <div style={{
+              background: '#e3f2fd',
+              borderRadius: '12px',
+              padding: '15px',
+              borderLeft: '4px solid #2196F3'
+            }}>
+              <div style={{ fontSize: '0.85rem', color: '#1976d2', fontWeight: '600', marginBottom: '8px' }}>
+                💬 КОМЕНТАР
+              </div>
+              <div style={{ color: '#555', lineHeight: '1.5', fontSize: '0.95rem' }}>
+                {selectedDetailedAppointment.comment}
+              </div>
+            </div>
+          )}
+
+          {/* Reference Images */}
+          {selectedDetailedAppointment.reference_image && (() => {
+            try {
+              const images = JSON.parse(selectedDetailedAppointment.reference_image);
+              if (Array.isArray(images) && images.length > 0) {
+                return (
+                  <div style={{
+                    background: '#f8f9fa',
+                    borderRadius: '12px',
+                    padding: '15px',
+                    borderLeft: '4px solid #e74c3c'
+                  }}>
+                    <div style={{ fontSize: '0.85rem', color: '#666', fontWeight: '600', marginBottom: '10px' }}>
+                      🖼️ ФОТО-ПРИКЛАД
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                      gap: '10px'
+                    }}>
+                      {images.map((imgPath, idx) => (
+                        <img
+                          key={idx}
+                          src={`${API}${imgPath}`}
+                          alt={`Reference ${idx + 1}`}
+                          style={{
+                            width: '100%',
+                            maxHeight: '150px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          }}
+                          onClick={() => setModalImage(`${API}${imgPath}`)}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'scale(1.05)';
+                            e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'scale(1)';
+                            e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+            } catch (e) {
+              console.error('Error parsing reference_image:', e);
+            }
+            return null;
+          })()}
+
+          {/* Current Hands Images */}
+          {selectedDetailedAppointment.current_hands_images && (() => {
+            try {
+              const images = JSON.parse(selectedDetailedAppointment.current_hands_images);
+              if (Array.isArray(images) && images.length > 0) {
+                return (
+                  <div style={{
+                    background: '#f8f9fa',
+                    borderRadius: '12px',
+                    padding: '15px',
+                    borderLeft: '4px solid #27ae60'
+                  }}>
+                    <div style={{ fontSize: '0.85rem', color: '#666', fontWeight: '600', marginBottom: '10px' }}>
+                      ✋ ПОТОЧНИЙ СТАН РУК
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                      gap: '10px'
+                    }}>
+                      {images.map((imgPath, idx) => (
+                        <img
+                          key={idx}
+                          src={`${API}${imgPath}`}
+                          alt={`Current hands ${idx + 1}`}
+                          style={{
+                            width: '100%',
+                            maxHeight: '150px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          }}
+                          onClick={() => setModalImage(`${API}${imgPath}`)}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'scale(1.05)';
+                            e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'scale(1)';
+                            e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+            } catch (e) {
+              console.error('Error parsing current_hands_images:', e);
+            }
+            return null;
+          })()}
+        </div>
+
+        {/* Close Button */}
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <button
+            onClick={() => setSelectedDetailedAppointment(null)}
+            style={{
+              padding: '12px 30px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              fontWeight: '600',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+            }}
+          >
+            Закрити
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // BOOKING SYSTEM - NEW
   const [serviceCategory, setServiceCategory] = useState("");
@@ -1505,6 +1844,7 @@ if (effectiveMode === "clientHistory") {
           })}
         </div>
         {modal}
+        {appointmentDetailModal}
         {priceEditModal}
       </div>
     </div>
@@ -8258,6 +8598,35 @@ if (mode === "admin") {
                 gap: '10px',
                 flexWrap: 'wrap'
               }}>
+                {/* View Details Button - Always visible */}
+                <button
+                  className="btn-view"
+                  onClick={(e) => { e.stopPropagation(); setSelectedDetailedAppointment(a); }}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 20px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+                    transition: 'all 0.3s ease',
+                    flex: 1,
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+                  }}
+                >
+                  👁 Переглянути
+                </button>
                 {a.status === "approved" && (
                   <>
                     <button
@@ -8546,6 +8915,7 @@ if (mode === "admin") {
       )}
 
       {modal}
+      {appointmentDetailModal}
       {priceEditModal}
     </div>
   );
