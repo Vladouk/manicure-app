@@ -209,7 +209,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 1000,
+        zIndex: 1003,
       }}
       onClick={() => setModalImage(null)}
     >
@@ -672,7 +672,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
                             transition: 'all 0.3s ease',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                           }}
-                          onClick={() => setModalImage(`${API}${imgPath}`)}
+                          onClick={(e) => { e.stopPropagation(); setModalImage(`${API}${imgPath}`); }}
                           onMouseEnter={(e) => {
                             e.target.style.transform = 'scale(1.05)';
                             e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
@@ -727,7 +727,7 @@ const [calendarDate, setCalendarDate] = useState(new Date());
                             transition: 'all 0.3s ease',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                           }}
-                          onClick={() => setModalImage(`${API}${imgPath}`)}
+                          onClick={(e) => { e.stopPropagation(); setModalImage(`${API}${imgPath}`); }}
                           onMouseEnter={(e) => {
                             e.target.style.transform = 'scale(1.05)';
                             e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
