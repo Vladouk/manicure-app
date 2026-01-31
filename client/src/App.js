@@ -70,7 +70,6 @@ const [calendarDate, setCalendarDate] = useState(new Date());
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
   const [modalImage, setModalImage] = useState(null);
-  const [selectedAdminAppointment, setSelectedAdminAppointment] = useState(null);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [priceList, setPriceList] = useState([]);
   const [priceListServices, setPriceListServices] = useState([]);
@@ -1015,7 +1014,6 @@ fetch(`${API}/api/appointment`, {
 
       {modal}
       {priceEditModal}
-      {adminDetailModal}
     </div>
   );
 }
