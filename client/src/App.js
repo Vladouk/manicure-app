@@ -51,9 +51,6 @@ const getSlotLabel = (dateStr) => {
 };
 
 function App() {
-  // --- Modal for appointment details ---
-  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
-  const [selectedAppointmentDetails, setSelectedAppointmentDetails] = useState(null);
   // COMMON
   const [selectedSlotId, setSelectedSlotId] = useState('');
   const [slots, setSlots] = useState([]);
@@ -1017,122 +1014,6 @@ fetch(`${API}/api/appointment`, {
 
       {modal}
       {priceEditModal}
-
-      {/* Модальне вікно деталей запису */}
-      {showAppointmentModal && selectedAppointmentDetails && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.35)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-          onClick={() => setShowAppointmentModal(false)}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: '18px',
-              minWidth: '340px',
-              maxWidth: '95vw',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
-              padding: '32px 24px 24px 24px',
-              position: 'relative',
-              animation: 'fadeInModal .2s',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowAppointmentModal(false)}
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 16,
-                background: 'none',
-                border: 'none',
-                fontSize: '1.7rem',
-                color: '#f5576c',
-                cursor: 'pointer',
-                fontWeight: 700,
-                zIndex: 2
-              }}
-              aria-label="Закрити"
-            >×</button>
-            <h2 style={{marginTop:0, color:'#f5576c', fontWeight:700, fontSize:'1.3rem', textAlign:'center'}}>Деталі запису</h2>
-            <div style={{margin:'18px 0 0 0'}}>
-              <div><b>Дата:</b> {selectedAppointmentDetails.date}</div>
-              <div><b>Час:</b> {selectedAppointmentDetails.time}</div>
-              <div><b>Клієнт:</b> {selectedAppointmentDetails.client}</div>
-              <div><b>Телеграм:</b> {selectedAppointmentDetails.username ? (
-                <a href={`https://t.me/${selectedAppointmentDetails.username}`} target="_blank" rel="noopener noreferrer">@{selectedAppointmentDetails.username}</a>
-              ) : selectedAppointmentDetails.tg_id ? selectedAppointmentDetails.tg_id : '—'}</div>
-              <div><b>Статус:</b> {selectedAppointmentDetails.status}</div>
-              <div><b>Дизайн:</b> {selectedAppointmentDetails.design}</div>
-              <div><b>Довжина:</b> {selectedAppointmentDetails.length}</div>
-              <div><b>Тип:</b> {selectedAppointmentDetails.type}</div>
-              <div><b>Ціна:</b> {selectedAppointmentDetails.price} zł</div>
-              {selectedAppointmentDetails.comment && (
-                <div style={{marginTop:'10px'}}><b>Коментар:</b> <span style={{fontStyle:'italic'}}>{selectedAppointmentDetails.comment}</span></div>
-              )}
-              {/* Reference Images */}
-              {selectedAppointmentDetails.reference_image && (() => {
-                try {
-                  const images = JSON.parse(selectedAppointmentDetails.reference_image);
-                  if (Array.isArray(images) && images.length > 0) {
-                    return (
-                      <div style={{marginTop:'14px'}}>
-                        <b>Фото-приклад:</b>
-                        <div style={{display:'flex',gap:'10px',flexWrap:'wrap',marginTop:'6px'}}>
-                          {images.map((imgPath, idx) => (
-                            <img
-                              key={idx}
-                              src={`${API}${imgPath}`}
-                              alt={`Reference ${idx+1}`}
-                              style={{width:'90px',height:'90px',objectFit:'cover',borderRadius:'8px',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                } catch(e){}
-                return null;
-              })()}
-              {/* Current Hands Images */}
-              {selectedAppointmentDetails.current_hands_images && (() => {
-                try {
-                  const images = JSON.parse(selectedAppointmentDetails.current_hands_images);
-                  if (Array.isArray(images) && images.length > 0) {
-                    return (
-                      <div style={{marginTop:'14px'}}>
-                        <b>Поточний стан рук:</b>
-                        <div style={{display:'flex',gap:'10px',flexWrap:'wrap',marginTop:'6px'}}>
-                          {images.map((imgPath, idx) => (
-                            <img
-                              key={idx}
-                              src={`${API}${imgPath}`}
-                              alt={`Current hands ${idx+1}`}
-                              style={{width:'90px',height:'90px',objectFit:'cover',borderRadius:'8px',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                } catch(e){}
-                return null;
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -8116,33 +7997,6 @@ if (mode === "admin") {
                 : '0 8px 25px rgba(240, 147, 251, 0.3)';
             }}
           >
-            {/* Кнопка перегляду запису */}
-            <button
-              style={{
-                position: 'absolute',
-                top: '15px',
-                right: '120px',
-                background: 'linear-gradient(135deg, #fff 0%, #f093fb 100%)',
-                color: '#f5576c',
-                border: 'none',
-                borderRadius: '10px',
-                padding: '8px 16px',
-                fontWeight: '600',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(240, 147, 251, 0.15)',
-                zIndex: 2
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedAppointmentDetails(a);
-                setShowAppointmentModal(true);
-              }}
-              onMouseEnter={e => e.target.style.background = 'linear-gradient(135deg, #f093fb 0%, #fff 100%)'}
-              onMouseLeave={e => e.target.style.background = 'linear-gradient(135deg, #fff 0%, #f093fb 100%)'}
-            >
-              👁 Переглянути запис
-            </button>
             {/* Date Badge */}
             <div style={{
               position: 'absolute',
