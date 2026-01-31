@@ -8102,32 +8102,36 @@ if (mode === "admin") {
                 : '0 8px 25px rgba(240, 147, 251, 0.3)';
             }}
           >
-                        <div style={{ display: 'flex', justifyContent: 'center', margin: '18px 0 0 0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
                           <button
                             style={{
                               background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
                               color: '#fff',
-                              fontWeight: 800,
-                              fontSize: '1.2rem',
-                              padding: '16px 40px',
+                              fontWeight: 700,
+                              fontSize: '1rem',
+                              padding: '8px 18px',
                               border: 'none',
-                              borderRadius: '14px',
-                              boxShadow: '0 4px 16px rgba(255, 154, 158, 0.18)',
+                              borderRadius: '10px',
+                              boxShadow: '0 2px 8px rgba(255, 154, 158, 0.12)',
                               cursor: 'pointer',
-                              letterSpacing: 1,
+                              letterSpacing: 0.5,
                               transition: 'all 0.2s',
+                              marginRight: 0
                             }}
                             onMouseEnter={e => {
-                              e.target.style.transform = 'translateY(-2px) scale(1.03)';
-                              e.target.style.boxShadow = '0 8px 24px rgba(255, 154, 158, 0.28)';
+                              e.target.style.transform = 'translateY(-1px) scale(1.04)';
+                              e.target.style.boxShadow = '0 4px 16px rgba(255, 154, 158, 0.18)';
                             }}
                             onMouseLeave={e => {
                               e.target.style.transform = 'none';
-                              e.target.style.boxShadow = '0 4px 16px rgba(255, 154, 158, 0.18)';
+                              e.target.style.boxShadow = '0 2px 8px rgba(255, 154, 158, 0.12)';
                             }}
-                            onClick={() => setSelectedAdminAppointment(a)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedAdminAppointment(a);
+                            }}
                           >
-                            👁️ Переглянути запис
+                            👁️ Переглянути
                           </button>
                         </div>
             {/* Date Badge */}
