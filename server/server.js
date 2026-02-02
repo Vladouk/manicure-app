@@ -347,6 +347,19 @@ async function initializeDatabase() {
       )
     `);
 
+    // Create blacklist table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS blacklist (
+        id SERIAL PRIMARY KEY,
+        tg_id BIGINT NOT NULL UNIQUE,
+        client TEXT,
+        username TEXT,
+        reason TEXT,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        added_by BIGINT
+      )
+    `);
+
     // Add bonus_points_spent column to appointments if not exists
     await pool.query(`
       ALTER TABLE appointments
@@ -2398,6 +2411,101 @@ ORDER BY ws.date, ws.time
           } catch (err) {
             console.error('❌ Error cleaning database:', err.message);
           }
+        });
+
+        // =============== ADMIN: BLACKLIST - ADD CLIENT ===============
+        app.post('/api/admin/blacklist', (req, res) => {
+          const initData = req.headers['x-init-data'];
+          const { tg_id, reason } = req.body;
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          if (!tg_id) 
+            return res.status(400).json({ error: 'Missing tg_id' });
+
+          // Get client info
+          pool.query(
+            `SELECT client, username FROM appointments WHERE tg_id = $1 ORDER BY created_at DESC LIMIT 1`,
+            [tg_id]
+          )
+            .then(result => {
+              const clientInfo = result.rows[0];
+              const clientName = clientInfo?.client || 'Unknown';
+              const username = clientInfo?.username || null;
+
+              // Add to blacklist
+              return pool.query(
+                `INSERT INTO blacklist (tg_id, client, username, reason, added_by) 
+                 VALUES ($1, $2, $3, $4, $5) 
+                 ON CONFLICT (tg_id) DO NOTHING`,
+                [tg_id, clientName, username, reason || null, user.id]
+              )
+                .then(() => {
+                  console.log(`🚫 Client ${tg_id} added to blacklist`);
+                  notifyAllAdmins(
+                    `🚫 *Клієнта додано в чорний список*\n\n👤 Клієнт: ${clientName}\n📱 ID: ${tg_id}\n${username ? `📧 Username: @${username}\n` : ''}${reason ? `📝 Причина: ${reason}` : ''}`
+                  );
+                  res.json({ ok: true });
+                });
+            })
+            .catch(err => {
+              console.error('Blacklist add error:', err);
+              res.status(500).json({ error: 'DB error' });
+            });
+        });
+
+        // =============== ADMIN: BLACKLIST - GET ALL ===============
+        app.get('/api/admin/blacklist', (req, res) => {
+          const initData = req.headers['x-init-data'];
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          pool.query(
+            `SELECT id, tg_id, client, username, reason, added_at FROM blacklist ORDER BY added_at DESC`,
+            []
+          )
+            .then(result => res.json(result.rows))
+            .catch(err => {
+              console.error('Blacklist fetch error:', err);
+              res.status(500).json({ error: 'DB error' });
+            });
+        });
+
+        // =============== ADMIN: BLACKLIST - REMOVE CLIENT ===============
+        app.post('/api/admin/blacklist/remove', (req, res) => {
+          const initData = req.headers['x-init-data'];
+          const { tg_id } = req.body;
+
+          if (!initData || !validateInitData(initData))
+            return res.status(403).json({ error: 'Access denied' });
+
+          const user = JSON.parse(new URLSearchParams(initData).get('user'));
+          if (!ADMIN_TG_IDS.includes(user.id))
+            return res.status(403).json({ error: 'Not admin' });
+
+          if (!tg_id) 
+            return res.status(400).json({ error: 'Missing tg_id' });
+
+          pool.query(`DELETE FROM blacklist WHERE tg_id = $1`, [tg_id])
+            .then(() => {
+              console.log(`✅ Client ${tg_id} removed from blacklist`);
+              notifyAllAdmins(`✅ *Клієнта видалено з чорного списку*\n\n📱 ID: ${tg_id}`);
+              res.json({ ok: true });
+            })
+            .catch(err => {
+              console.error('Blacklist remove error:', err);
+              res.status(500).json({ error: 'DB error' });
+            });
         });
 
         console.log('✅ Cron jobs initialized');
