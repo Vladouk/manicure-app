@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+﻿import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
@@ -22,181 +22,137 @@ const apiCall = async (url, options = {}) => {
   const response = await fetch(`${API}${url}`, {
     ...options,
     headers
-          {clientList.map(c => (
-            <div
-              key={c.tg_id}
-              className="menu-card"
-              onClick={() => {
-                setSelectedClient(c);
-                setMode("clientHistory");
-                fetch(`${API}/api/admin/client-history?tg_id=${c.tg_id}`, {
-                  headers: { "x-init-data": WebApp.initData }
-                })
-                  .then(r => r.json())
-                  .then(data => {
-                    setClientHistory(data);
-                  });
-              }}
-              style={{
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                borderRadius: '16px',
-                padding: '20px',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                border: 'none',
-                position: 'relative'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.12)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
-              }}
-            >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: '12px'
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontSize: '1.2rem',
-                    fontWeight: 'bold',
-                    color: '#2c3e50',
-                    marginBottom: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    👤 {c.client}
-                  </div>
-                  {c.username && (
-                    <a
-                      href={`https://t.me/${c.username}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        color: '#0088cc',
-                        textDecoration: 'none',
-                        fontSize: '0.9rem',
-                        fontWeight: '500',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                      onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                      onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-                    >
-                      📱 @{c.username} →
-                    </a>
-                  )}
-                  {!c.username && c.tg_id && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        WebApp.openTelegramLink(`tg://user?id=${c.tg_id}`);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        color: '#0088cc',
-                        textDecoration: 'none',
-                        fontSize: '0.9rem',
-                        fontWeight: '500',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer'
-                      }}
-                      onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                      onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-                    >
-                      📱 Відкрити профіль →
-                    </button>
-                  )}
-                  {/* Кнопка додавання в чорний список */}
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (!window.confirm('Додати клієнта в чорний список?')) return;
-                      try {
-                        const res = await fetch(`${API}/api/admin/blacklist`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'x-init-data': WebApp.initData
-                          },
-                          body: JSON.stringify({ tg_id: c.tg_id })
-                        });
-                        if (res.ok) {
-                          alert('Клієнта додано в чорний список!');
-                          // Оновити список клієнтів
-                          fetch(`${API}/api/admin/clients`, {
-                            headers: { "x-init-data": WebApp.initData }
-                          })
-                            .then(r => r.json())
-                            .then(setClientList);
-                        } else {
-                          alert('Помилка при додаванні в чорний список');
-                        }
-                      } catch (err) {
-                        alert('Помилка при додаванні в чорний список');
-                      }
-                    }}
-                    style={{
-                      marginTop: 8,
-                      background: '#e74c3c',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '6px 14px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s',
-                    }}
-                  >
-                    🚫 В чорний список
-                  </button>
-                </div>
-                <div style={{
-                  background: 'rgba(102, 126, 234, 0.15)',
-                  color: '#667eea',
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem',
-                  fontWeight: '600'
-                }}>
-                  {c.total_visits || 0} {c.total_visits === 1 ? 'візит' : 'візитів'}
-                </div>
-              </div>
+  });
 
-              <div style={{
-                fontSize: '0.9rem',
-                color: '#666',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <span style={{ opacity: 0.7 }}>📅</span>
-                <span>
-                  Останній візит: <strong>{c.last_visit ? new Date(c.last_visit.replace(' ', 'T')).toLocaleDateString('uk-UA', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  }) : "немає"}</strong>
-                </span>
-              </div>
-            </div>
-          ))}
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+const getSlotLabel = (dateStr) => {
+  const today = new Date();
+  const slotDate = new Date(dateStr);
+
+  const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (isSameDay(slotDate, today)) return "today";
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  if (isSameDay(slotDate, tomorrow)) return "tomorrow";
+
+  return "other";
+};
+
+function App() {
+  // COMMON
+  const [selectedSlotId, setSelectedSlotId] = useState('');
+  const [slots, setSlots] = useState([]);
+  const [filter, setFilter] = useState('all');
+  const tgUser = WebApp.initDataUnsafe?.user;
+  const isAdmin = ADMIN_TG_IDS.includes(tgUser?.id);
+  const [slotsAdmin, setSlotsAdmin] = useState([]);
+  const [myHistory, setMyHistory] = useState([]);
+  const [clientList, setClientList] = useState([]);
+  const [clientHistory, setClientHistory] = useState([]);
+  const [blacklist, setBlacklist] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [comment, setComment] = useState("");
+  const [reference, setReference] = useState([]);
+  const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [mode, setMode] = useState("menu");
+  const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
+  const [appointments, setAppointments] = useState([]);
+  const [modalImage, setModalImage] = useState(null);
+  const [bonusPoints, setBonusPoints] = useState(0);
+  const [priceList, setPriceList] = useState([]);
+  const [priceListServices, setPriceListServices] = useState([]);
+  const [promotions, setPromotions] = useState([]);
+  const [referralCode, setReferralCode] = useState(null);
+  const [enteredReferralCode, setEnteredReferralCode] = useState("");
+  const [hasReferralDiscount, setHasReferralDiscount] = useState(false);
+  const [hasUsedReferralCode, setHasUsedReferralCode] = useState(false);
+  const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
+  const [bonusPointsToUse, setBonusPointsToUse] = useState(0);
+  const [selectedBonusReward, setSelectedBonusReward] = useState(null);
+  const [analyticsHours, setAnalyticsHours] = useState([]);
+  const [analyticsDays, setAnalyticsDays] = useState([]);
+  const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
+  const [analyticsForecast, setAnalyticsForecast] = useState(null);
+  const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
+  const [adminPricesDraft, setAdminPricesDraft] = useState([]);
+  const [isLoadingAdminPrices, setIsLoadingAdminPrices] = useState(false);
+  const [isSavingAdminPrices, setIsSavingAdminPrices] = useState(false);
+  const [adminCalendarView, setAdminCalendarView] = useState(false);
+
+  // RESCHEDULE APPOINTMENT
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+  const [rescheduleOldDate, setRescheduleOldDate] = useState(null);
+  const [rescheduleOldTime, setRescheduleOldTime] = useState(null);
+  const [rescheduleSelectedSlotId, setRescheduleSelectedSlotId] = useState(null);
+
+  // EDIT PRICE MODAL
+  const [editPriceModalOpen, setEditPriceModalOpen] = useState(false);
+  const [editPriceAppointmentId, setEditPriceAppointmentId] = useState(null);
+  const [editPriceValue, setEditPriceValue] = useState('');
+  const [editPriceOldValue, setEditPriceOldValue] = useState(null);
+
+  // APPOINTMENT DETAILS MODAL
+  const [selectedDetailedAppointment, setSelectedDetailedAppointment] = useState(null);
+
+  // BOOKING INTERFACE HOOKS
+  const [bookingStep, setBookingStep] = useState(1);
+  const totalSteps = 4;
+
+  const nextStep = () => setBookingStep(prev => Math.min(prev + 1, totalSteps));
+  const prevStep = () => setBookingStep(prev => Math.max(prev - 1, 1));
+  const resetBooking = () => {
+    setBookingStep(1);
+    setServiceCategory("");
+    setServiceSub("");
+    setSizeCategory("");
+    setDesignCategory("Однотонний");
+    setMattingCategory("Глянцеве");
+    setPrice(0);
+    setSelectedSlotId("");
+    setEnteredReferralCode("");
+    setComment("");
+    setReference([]);
+    setCurrentHandsPhotos([]);
+    setBonusPointsToUse(0);
+    setSelectedBonusReward(null);
+  };
+
+  const submitBooking = async () => {
+    if (!selectedSlotId) {
+      alert("❗ Оберіть дату та час");
+      return;
+    }
+
+    const clientName = tgUser?.first_name || "Anon";
+    const effectiveTgId = tgUser?.id || '';
+
+    if (!effectiveTgId) {
+      alert('❗ Вкажіть ваш Telegram ID або відкрийте додаток через Telegram Web App');
+      return;
+    }
+
+    // Ensure a service is selected (prefer specific sub-service)
+    const selectedService = (serviceSub && String(serviceSub).trim()) || (serviceCategory && String(serviceCategory).trim());
+    if (!selectedService) {
+      alert("❗ Оберіть послугу");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("client", clientName);
     formData.append("slot_id", selectedSlotId);
     formData.append("design", designCategory);
     formData.append("length", sizeCategory);
@@ -1350,6 +1306,51 @@ const apiCall = async (url, options = {}) => {
                       📱 Відкрити профіль →
                     </button>
                   )}
+                  {/* Кнопка додавання в чорний список */}
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!window.confirm('Додати клієнта в чорний список?')) return;
+                      try {
+                        const res = await fetch(`${API}/api/admin/blacklist`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'x-init-data': WebApp.initData
+                          },
+                          body: JSON.stringify({ tg_id: c.tg_id })
+                        });
+                        if (res.ok) {
+                          alert('Клієнта додано в чорний список!');
+                          // Оновити список клієнтів
+                          fetch(`${API}/api/admin/clients`, {
+                            headers: { "x-init-data": WebApp.initData }
+                          })
+                            .then(r => r.json())
+                            .then(setClientList);
+                        } else {
+                          alert('Помилка при додаванні в чорний список');
+                        }
+                      } catch (err) {
+                        alert('Помилка при додаванні в чорний список');
+                      }
+                    }}
+                    style={{
+                      marginTop: 8,
+                      background: '#e74c3c',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px 14px',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    🚫 В чорний список
+                  </button>
                 </div>
                 <div style={{
                   background: 'rgba(102, 126, 234, 0.15)',
