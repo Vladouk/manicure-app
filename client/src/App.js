@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
