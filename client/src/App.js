@@ -61,7 +61,6 @@ function App() {
   const [myHistory, setMyHistory] = useState([]);
   const [clientList, setClientList] = useState([]);
   const [clientHistory, setClientHistory] = useState([]);
-  const [blacklist, setBlacklist] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [comment, setComment] = useState("");
   const [reference, setReference] = useState([]);
@@ -185,10 +184,14 @@ function App() {
         body: formData
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         alert("✅ Запис створено!");
         resetBooking();
         setMode("menu");
+      } else if (response.status === 403 && data.blacklisted) {
+        alert(`🚫 Вибачте, ви не можете створювати записи.\n${data.reason ? `Причина: ${data.reason}` : ''}\n\nЯкщо у вас є питання, зверніться до адміністратора.`);
       } else {
         alert("❌ Помилка при відправці");
       }
@@ -934,8 +937,14 @@ function App() {
           body: formData
         })
           .then(r => r.json())
-          .then(() => {
-            alert("✅ Запис створено!");
+          .then(data => {
+            if (data.error && data.blacklisted) {
+              alert(`🚫 Вибачте, ви не можете створювати записи.\n${data.reason ? `Причина: ${data.reason}` : ''}\n\nЯкщо у вас є питання, зверніться до адміністратора.`);
+            } else if (data.error) {
+              alert("❌ Помилка: " + data.error);
+            } else {
+              alert("✅ Запис створено!");
+            }
           })
           .catch(() => alert("❌ Помилка при відправці"));
 
@@ -1211,34 +1220,16 @@ function App() {
             <div
               key={c.tg_id}
               className="menu-card"
-              onClick={() => {
-                setSelectedClient(c);
-                setMode("clientHistory");
-                fetch(`${API}/api/admin/client-history?tg_id=${c.tg_id}`, {
-                  headers: { "x-init-data": WebApp.initData }
-                })
-                  .then(r => r.json())
-                  .then(data => {
-                    setClientHistory(data);
-                  });
-              }}
               style={{
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                background: c.is_blacklisted 
+                  ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)' 
+                  : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
                 borderRadius: '16px',
                 padding: '20px',
-                cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
                 border: 'none',
                 position: 'relative'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.12)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
               }}
             >
               <div style={{
@@ -1306,51 +1297,6 @@ function App() {
                       📱 Відкрити профіль →
                     </button>
                   )}
-                  {/* Кнопка додавання в чорний список */}
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (!window.confirm('Додати клієнта в чорний список?')) return;
-                      try {
-                        const res = await fetch(`${API}/api/admin/blacklist`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'x-init-data': WebApp.initData
-                          },
-                          body: JSON.stringify({ tg_id: c.tg_id })
-                        });
-                        if (res.ok) {
-                          alert('Клієнта додано в чорний список!');
-                          // Оновити список клієнтів
-                          fetch(`${API}/api/admin/clients`, {
-                            headers: { "x-init-data": WebApp.initData }
-                          })
-                            .then(r => r.json())
-                            .then(setClientList);
-                        } else {
-                          alert('Помилка при додаванні в чорний список');
-                        }
-                      } catch (err) {
-                        alert('Помилка при додаванні в чорний список');
-                      }
-                    }}
-                    style={{
-                      marginTop: 8,
-                      background: '#e74c3c',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '6px 14px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s',
-                    }}
-                  >
-                    🚫 В чорний список
-                  </button>
                 </div>
                 <div style={{
                   background: 'rgba(102, 126, 234, 0.15)',
@@ -1364,12 +1310,31 @@ function App() {
                 </div>
               </div>
 
+              {c.is_blacklisted && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  color: '#d32f2f',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>🚫</span>
+                  <span>У чорному списку{c.blacklist_reason ? `: ${c.blacklist_reason}` : ''}</span>
+                </div>
+              )}
+
               <div style={{
                 fontSize: '0.9rem',
-                color: '#666',
+                color: c.is_blacklisted ? '#fff' : '#666',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '6px',
+                marginBottom: '12px'
               }}>
                 <span style={{ opacity: 0.7 }}>📅</span>
                 <span>
@@ -1379,6 +1344,126 @@ function App() {
                     year: 'numeric'
                   }) : "немає"}</strong>
                 </span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                marginTop: '12px'
+              }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedClient(c);
+                    setMode("clientHistory");
+                    fetch(`${API}/api/admin/client-history?tg_id=${c.tg_id}`, {
+                      headers: { "x-init-data": WebApp.initData }
+                    })
+                      .then(r => r.json())
+                      .then(data => {
+                        setClientHistory(data);
+                      });
+                  }}
+                  style={{
+                    flex: 1,
+                    background: c.is_blacklisted ? 'rgba(255, 255, 255, 0.2)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  📋 Історія
+                </button>
+                
+                {!c.is_blacklisted ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const reason = prompt('Введіть причину додавання в чорний список (необов\'язково):');
+                      if (reason !== null) {
+                        fetch(`${API}/api/admin/blacklist`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'x-init-data': WebApp.initData
+                          },
+                          body: JSON.stringify({ tg_id: c.tg_id, reason })
+                        })
+                          .then(r => r.json())
+                          .then(() => {
+                            // Refresh client list
+                            fetch(`${API}/api/admin/clients`, {
+                              headers: { "x-init-data": WebApp.initData }
+                            })
+                              .then(r => r.json())
+                              .then(setClientList);
+                            alert('Клієнта додано в чорний список');
+                          })
+                          .catch(err => alert('Помилка: ' + err.message));
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    🚫 Заблокувати
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Видалити клієнта з чорного списку?')) {
+                        fetch(`${API}/api/admin/blacklist/remove`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'x-init-data': WebApp.initData
+                          },
+                          body: JSON.stringify({ tg_id: c.tg_id })
+                        })
+                          .then(r => r.json())
+                          .then(() => {
+                            // Refresh client list
+                            fetch(`${API}/api/admin/clients`, {
+                              headers: { "x-init-data": WebApp.initData }
+                            })
+                              .then(r => r.json())
+                              .then(setClientList);
+                            alert('Клієнта видалено з чорного списку');
+                          })
+                          .catch(err => alert('Помилка: ' + err.message));
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      background: 'linear-gradient(135deg, #51cf66 0%, #40c057 100%)',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    ✅ Розблокувати
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -1896,210 +1981,6 @@ function App() {
       </div>
     );
   }
-
-  if (mode === "blacklist") {
-    return (
-      <div className="app-container">
-        {/* Header */}
-        <div className="card" style={{
-          background: 'linear-gradient(135deg, #ec008c 0%, #fc6767 100%)',
-          color: 'white',
-          textAlign: 'center',
-          padding: '30px 20px',
-          marginBottom: '25px',
-          borderRadius: '20px',
-          boxShadow: '0 10px 30px rgba(252, 103, 103, 0.3)'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🚫</div>
-          <h1 style={{ margin: '0 0 5px 0', fontSize: '1.8rem' }}>Чорний список</h1>
-          <p style={{ margin: '0', opacity: '0.9', fontSize: '0.95rem' }}>
-            Всього заблокованих: {blacklist.length}
-          </p>
-        </div>
-
-        {/* Back Button */}
-        <div style={{ textAlign: 'center', margin: '20px 0' }}>
-          <button
-            className="primary-btn"
-            onClick={() => setMode("adminMenu")}
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '15px 30px',
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: 'white',
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
-            }}
-          >
-            ← Назад в адмінку
-          </button>
-        </div>
-
-        {/* Blacklist Grid */}
-        <div style={{
-          display: 'grid',
-          gap: '15px',
-          marginBottom: '25px'
-        }}>
-          {blacklist.length > 0 ? blacklist.map(b => (
-            <div
-              key={b.tg_id}
-              className="menu-card"
-              style={{
-                background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
-                borderRadius: '16px',
-                padding: '20px',
-                boxShadow: '0 4px 15px rgba(244, 67, 54, 0.15)',
-                border: '2px solid #ef5350',
-                position: 'relative'
-              }}
-            >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: '12px'
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontSize: '1.2rem',
-                    fontWeight: 'bold',
-                    color: '#c62828',
-                    marginBottom: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    🚫 {b.client || 'Невідомий'}
-                  </div>
-                  {b.username && (
-                    <a
-                      href={`https://t.me/${b.username}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: '#0088cc',
-                        textDecoration: 'none',
-                        fontSize: '0.9rem',
-                        fontWeight: '500',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                      onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                      onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-                    >
-                      📱 @{b.username} →
-                    </a>
-                  )}
-                  {!b.username && b.tg_id && (
-                    <div style={{
-                      color: '#999',
-                      fontSize: '0.9rem',
-                      fontWeight: '500'
-                    }}>
-                      📱 ID: {b.tg_id}
-                    </div>
-                  )}
-                  {b.reason && (
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '8px',
-                      background: 'rgba(0,0,0,0.05)',
-                      borderRadius: '6px',
-                      fontSize: '0.85rem',
-                      color: '#666'
-                    }}>
-                      📝 Причина: {b.reason}
-                    </div>
-                  )}
-                  <div style={{
-                    fontSize: '0.8rem',
-                    color: '#999',
-                    marginTop: '8px'
-                  }}>
-                    ⏰ Додано: {new Date(b.added_at).toLocaleDateString('uk-UA', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </div>
-                </div>
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Видалити клієнта з чорного списку?')) return;
-                    try {
-                      const res = await fetch(`${API}/api/admin/blacklist/remove`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'x-init-data': WebApp.initData
-                        },
-                        body: JSON.stringify({ tg_id: b.tg_id })
-                      });
-                      if (res.ok) {
-                        setBlacklist(prev => prev.filter(bl => bl.tg_id !== b.tg_id));
-                        alert('✅ Клієнта видалено з чорного списку!');
-                      } else {
-                        alert('❌ Помилка при видаленні');
-                      }
-                    } catch (err) {
-                      alert('❌ Помилка при видаленні');
-                    }
-                  }}
-                  style={{
-                    background: '#27ae60',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '8px 14px',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    whiteSpace: 'nowrap'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#229954'}
-                  onMouseLeave={(e) => e.target.style.background = '#27ae60'}
-                >
-                  ↩️ Розблокувати
-                </button>
-              </div>
-            </div>
-          )) : (
-            <div className="card" style={{
-              textAlign: 'center',
-              padding: '60px 20px',
-              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-              borderRadius: '20px'
-            }}>
-              <div style={{ fontSize: '4rem', marginBottom: '20px', opacity: 0.5 }}>😊</div>
-              <h3 style={{ color: '#666', margin: '0 0 10px 0' }}>Чорний список пустий</h3>
-              <p style={{ color: '#888', margin: 0 }}>Немає заблокованих клієнтів</p>
-            </div>
-          )}
-        </div>
-
-        {modal}
-        {priceEditModal}
-      </div>
-    );
-  }
-
   if (mode === "myAppointments") {
     return (
       <div className="app-container">
@@ -4135,57 +4016,6 @@ function App() {
               opacity: '0.8',
               color: '#2c3e50'
             }}>Спеціальні пропозиції</p>
-          </div>
-
-          {/* Blacklist Card */}
-          <div
-            className="menu-card"
-            onClick={() => {
-              fetch(`${API}/api/admin/blacklist`, {
-                headers: { "x-init-data": WebApp.initData }
-              })
-                .then(r => r.json())
-                .then(setBlacklist);
-              setMode("blacklist");
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #ec008c 0%, #fc6767 100%)',
-              borderRadius: '16px',
-              padding: '25px',
-              textAlign: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 8px 25px rgba(252, 103, 103, 0.3)',
-              border: 'none',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-5px)';
-              e.target.style.boxShadow = '0 15px 35px rgba(252, 103, 103, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 8px 25px rgba(252, 103, 103, 0.3)';
-            }}
-          >
-            <div style={{
-              fontSize: '3rem',
-              marginBottom: '15px',
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-            }}>🚫</div>
-            <h3 style={{
-              margin: '0 0 8px 0',
-              fontSize: '1.3rem',
-              fontWeight: '600',
-              color: 'white'
-            }}>Чорний список</h3>
-            <p style={{
-              margin: '0',
-              fontSize: '0.9rem',
-              opacity: '0.9',
-              color: 'white'
-            }}>Заблоковані клієнти</p>
           </div>
 
           {/* Analytics Card */}

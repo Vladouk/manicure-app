@@ -556,6 +556,18 @@ app.post(
       const tgIdNum = parseInt(tg_id, 10);
       const bonusPointsToUse = parseInt(bonus_points_to_use || 0, 10);
 
+      // Check if client is in blacklist
+      const blacklistResult = await pool.query(`SELECT id, reason FROM blacklist WHERE tg_id = $1`, [tgIdNum]);
+      if (blacklistResult.rows.length > 0) {
+        const blacklistEntry = blacklistResult.rows[0];
+        console.error(`🚫 Blacklisted client attempted to book: ${client} (${tgIdNum})`);
+        return res.status(403).json({ 
+          error: "Вибачте, ви не можете створювати записи", 
+          blacklisted: true,
+          reason: blacklistEntry.reason 
+        });
+      }
+
       // Ensure required fields are present
       const invalidService = !service || !String(service).trim() || ['не вказано', '(не вказана)', 'not specified'].includes(String(service).trim().toLowerCase());
 
@@ -1313,9 +1325,17 @@ app.post(
       WHERE status != 'canceled'
       GROUP BY COALESCE(tg_id::text, LOWER(client))
     )
-    SELECT tg_id, client, NULLIF(username, '') as username, last_visit, total_visits
-    FROM dedup
-    ORDER BY last_visit DESC
+    SELECT 
+      d.tg_id, 
+      d.client, 
+      NULLIF(d.username, '') as username, 
+      d.last_visit, 
+      d.total_visits,
+      CASE WHEN b.tg_id IS NOT NULL THEN true ELSE false END as is_blacklisted,
+      b.reason as blacklist_reason
+    FROM dedup d
+    LEFT JOIN blacklist b ON d.tg_id = b.tg_id
+    ORDER BY d.last_visit DESC
     `,
             []
           )
