@@ -1426,7 +1426,7 @@ function App() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm('Видалити клієнта з чорного списку?')) {
+                      if (window.confirm('Видалити клієнта з чорного списку?')) {
                         fetch(`${API}/api/admin/blacklist/remove`, {
                           method: 'POST',
                           headers: {
