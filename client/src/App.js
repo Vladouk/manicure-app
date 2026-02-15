@@ -108,7 +108,7 @@ function App() {
 
   // BOOKING INTERFACE HOOKS
   const [bookingStep, setBookingStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 6;
 
   const nextStep = () => setBookingStep(prev => Math.min(prev + 1, totalSteps));
   const prevStep = () => setBookingStep(prev => Math.max(prev - 1, 1));
@@ -6895,7 +6895,7 @@ function App() {
             </div>
           )}
 
-          {/* Step 3: Size, Design & Details */}
+          {/* Step 3: Size */}
           {bookingStep === 3 && (
             <div style={{
               background: 'rgba(255,255,255,0.95)',
@@ -6905,9 +6905,9 @@ function App() {
               backdropFilter: 'blur(10px)'
             }}>
               <div style={{ textAlign: 'center', marginBottom: 30 }}>
-                <div style={{ fontSize: 48, marginBottom: 10 }}>✨</div>
-                <h2 style={{ color: '#333', marginBottom: 10 }}>Розмір, дизайн та покриття</h2>
-                <p style={{ color: '#666' }}>Виберіть деталі для вашого манікюру</p>
+                <div style={{ fontSize: 48, marginBottom: 10 }}>📏</div>
+                <h2 style={{ color: '#333', marginBottom: 10 }}>Довжина нігтів</h2>
+                <p style={{ color: '#666' }}>Оберіть розмір нігтів</p>
               </div>
 
               <div style={{ display: 'grid', gap: 25 }}>
@@ -6977,7 +6977,142 @@ function App() {
                         )}
                       </div>
                     </div>
+                  </>
+                )}
 
+                {/* ===== НАРОЩЕННЯ MENU ===== */}
+                {serviceCategory.includes("Нарощення") && !serviceCategory.includes("Укріплення") && (
+                  <>
+                    {/* Size Selection - НАРОЩЕННЯ ONLY */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
+                        Довжина нігтів:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+                        {priceListServices.length > 0 && priceListServices.find(s => (s.title || s.name) === "Нарощення")?.lengthOptions ? (
+                          priceListServices.find(s => (s.title || s.name) === "Нарощення").lengthOptions.map(item => (
+                            <button
+                              key={item.size}
+                              onClick={() => {
+                                setSizeCategory(item.size);
+                                setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
+                              }}
+                              style={{
+                                padding: 15,
+                                borderRadius: 12,
+                                border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                                background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                              {item.length && <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>}
+                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                            </button>
+                          ))
+                        ) : (
+                          /* Fallback to hardcoded */
+                          [
+                            { size: 'S', length: '±1cm', price: 130 },
+                            { size: 'M', length: '±1.5cm', price: 150 },
+                            { size: 'L', length: '±2cm', price: 170 },
+                            { size: 'XL', length: '±2.5cm', price: 190 },
+                            { size: '2XL', length: '±3cm', price: 210 },
+                            { size: '3XL', length: '±3.5cm', price: 230 }
+                          ].map(item => (
+                            <button
+                              key={item.size}
+                              onClick={() => {
+                                setSizeCategory(item.size);
+                                setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
+                              }}
+                              style={{
+                                padding: 15,
+                                borderRadius: 12,
+                                border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
+                                background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
+                              <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
+                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 30 }}>
+                <button
+                  onClick={prevStep}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: 25,
+                    border: 'none',
+                    background: '#f0f0f0',
+                    color: '#666',
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  ← Назад
+                </button>
+
+                <button
+                  onClick={() => {
+                    const needsSize = serviceCategory.includes('Укріплення') || serviceCategory.includes('Нарощення');
+                    if (needsSize && !sizeCategory) {
+                      alert('❗ Оберіть довжину перед продовженням');
+                      return;
+                    }
+                    nextStep();
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: 25,
+                    border: 'none',
+                    background: 'linear-gradient(45deg, #FF6B9D, #C44569)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Далі →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Design */}
+          {bookingStep === 4 && (
+            <div style={{
+              background: 'rgba(255,255,255,0.95)',
+              borderRadius: 20,
+              padding: 30,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: 30 }}>
+                <div style={{ fontSize: 48, marginBottom: 10 }}>🎨</div>
+                <h2 style={{ color: '#333', marginBottom: 10 }}>Дизайн</h2>
+                <p style={{ color: '#666' }}>Оберіть тип дизайну</p>
+              </div>
+
+              <div style={{ display: 'grid', gap: 25 }}>
+                {/* ===== УКРІПЛЕННЯ MENU ===== */}
+                {serviceCategory.includes("Укріплення") && !serviceCategory.includes("Нарощення") && (
+                  <>
                     {/* Design Selection - УКРІПЛЕННЯ */}
                     <div>
                       <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
@@ -7051,70 +7186,6 @@ function App() {
                 {/* ===== НАРОЩЕННЯ MENU ===== */}
                 {serviceCategory.includes("Нарощення") && !serviceCategory.includes("Укріплення") && (
                   <>
-                    {/* Size Selection - НАРОЩЕННЯ ONLY */}
-                    <div>
-                      <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
-                        Довжина нігтів:
-                      </label>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-                        {priceListServices.length > 0 && priceListServices.find(s => (s.title || s.name) === "Нарощення")?.lengthOptions ? (
-                          priceListServices.find(s => (s.title || s.name) === "Нарощення").lengthOptions.map(item => (
-                            <button
-                              key={item.size}
-                              onClick={() => {
-                                setSizeCategory(item.size);
-                                setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
-                              }}
-                              style={{
-                                padding: 15,
-                                borderRadius: 12,
-                                border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                                background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                textAlign: 'center'
-                              }}
-                            >
-                              <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                              {item.length && <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>}
-                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                            </button>
-                          ))
-                        ) : (
-                          /* Fallback to hardcoded */
-                          [
-                            { size: 'S', length: '±1cm', price: 130 },
-                            { size: 'M', length: '±1.5cm', price: 150 },
-                            { size: 'L', length: '±2cm', price: 170 },
-                            { size: 'XL', length: '±2.5cm', price: 190 },
-                            { size: '2XL', length: '±3cm', price: 210 },
-                            { size: '3XL', length: '±3.5cm', price: 230 }
-                          ].map(item => (
-                            <button
-                              key={item.size}
-                              onClick={() => {
-                                setSizeCategory(item.size);
-                                setPrice(calculatePrice("Нарощення", item.size, designCategory, mattingCategory));
-                              }}
-                              style={{
-                                padding: 15,
-                                borderRadius: 12,
-                                border: sizeCategory === item.size ? '2px solid #FF6B9D' : '2px solid #e0e0e0',
-                                background: sizeCategory === item.size ? 'rgba(255,107,157,0.1)' : 'white',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                textAlign: 'center'
-                              }}
-                            >
-                              <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 3 }}>{item.size}</div>
-                              <div style={{ fontSize: 12, color: '#666', marginBottom: 5 }}>{item.length}</div>
-                              <div style={{ fontSize: 12, fontWeight: 'bold', color: '#667eea' }}>{item.price} zł</div>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
                     {/* Design Selection - НАРОЩЕННЯ */}
                     <div>
                       <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
@@ -7184,7 +7255,68 @@ function App() {
                     </div>
                   </>
                 )}
+              </div>
 
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 30 }}>
+                <button
+                  onClick={prevStep}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: 25,
+                    border: 'none',
+                    background: '#f0f0f0',
+                    color: '#666',
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  ← Назад
+                </button>
+
+                <button
+                  onClick={() => {
+                    const needsDesign = serviceCategory.includes('Укріплення') || serviceCategory.includes('Нарощення');
+                    if (needsDesign && !designCategory) {
+                      alert('❗ Оберіть дизайн перед продовженням');
+                      return;
+                    }
+                    nextStep();
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: 25,
+                    border: 'none',
+                    background: 'linear-gradient(45deg, #FF6B9D, #C44569)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Далі →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Photos & Notes */}
+          {bookingStep === 5 && (
+            <div style={{
+              background: 'rgba(255,255,255,0.95)',
+              borderRadius: 20,
+              padding: 30,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: 30 }}>
+                <div style={{ fontSize: 48, marginBottom: 10 }}>📷</div>
+                <h2 style={{ color: '#333', marginBottom: 10 }}>Фото та побажання</h2>
+                <p style={{ color: '#666' }}>Додайте фото та коментарі за бажанням</p>
+              </div>
+
+              <div style={{ display: 'grid', gap: 25 }}>
                 {/* Current Hands Photos */}
                 <div>
                   <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold', color: '#555' }}>
@@ -7333,18 +7465,7 @@ function App() {
                 </button>
 
                 <button
-                  onClick={() => {
-                    const needsSize = serviceCategory.includes('Укріплення') || serviceCategory.includes('Нарощення');
-                    if (needsSize && !sizeCategory) {
-                      alert('❗ Оберіть довжину перед продовженням');
-                      return;
-                    }
-                    if (needsSize && !designCategory) {
-                      alert('❗ Оберіть дизайн перед продовженням');
-                      return;
-                    }
-                    nextStep();
-                  }}
+                  onClick={nextStep}
                   style={{
                     padding: '12px 24px',
                     borderRadius: 25,
@@ -7363,8 +7484,8 @@ function App() {
             </div>
           )}
 
-          {/* Step 4: Confirmation */}
-          {bookingStep === 4 && (
+          {/* Step 6: Confirmation */}
+          {bookingStep === 6 && (
             <div style={{
               background: 'rgba(255,255,255,0.95)',
               borderRadius: 20,
