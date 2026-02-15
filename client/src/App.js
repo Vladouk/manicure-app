@@ -109,6 +109,7 @@ function App() {
   // BOOKING INTERFACE HOOKS
   const [bookingStep, setBookingStep] = useState(1);
   const totalSteps = 6;
+  const nailLengthChartUrl = `${API}/uploads/nail-length-chart.png`;
 
   const nextStep = () => setBookingStep(prev => Math.min(prev + 1, totalSteps));
   const prevStep = () => setBookingStep(prev => Math.max(prev - 1, 1));
@@ -6908,6 +6909,21 @@ function App() {
                 <div style={{ fontSize: 48, marginBottom: 10 }}>📏</div>
                 <h2 style={{ color: '#333', marginBottom: 10 }}>Довжина нігтів</h2>
                 <p style={{ color: '#666' }}>Оберіть розмір нігтів</p>
+                <div style={{ marginTop: 16 }}>
+                  <img
+                    src={nailLengthChartUrl}
+                    alt="Nail length chart"
+                    style={{
+                      width: '100%',
+                      maxWidth: 520,
+                      borderRadius: 12,
+                      boxShadow: '0 8px 18px rgba(0,0,0,0.12)'
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'grid', gap: 25 }}>
