@@ -2093,29 +2093,35 @@ function App() {
           }}>
             {myHistory.map(h => {
               const label = getSlotLabel(h.date);
+              
+              // Status-based color coding
+              const getStatusColor = (status) => {
+                switch(status) {
+                  case 'approved':
+                    return { bg: 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)', shadow: '0 8px 25px rgba(76, 175, 80, 0.3)', text: '#1e5631', statusBg: '#28a745', statusColor: '#fff' };
+                  case 'canceled':
+                    return { bg: 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)', shadow: '0 8px 25px rgba(220, 53, 69, 0.3)', text: '#721c24', statusBg: '#dc3545', statusColor: '#fff' };
+                  case 'pending':
+                  default:
+                    return { bg: 'linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%)', shadow: '0 8px 25px rgba(255, 193, 7, 0.3)', text: '#856404', statusBg: '#ffc107', statusColor: '#333' };
+                }
+              };
+              
+              const statusColor = getStatusColor(h.status);
+              
               return (
                 <div
                   key={h.id}
                   className="menu-card"
                   style={{
-                    background:
-                      label === "today"
-                        ? "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)"
-                        : label === "tomorrow"
-                          ? "linear-gradient(135deg, #2196F3 0%, #1976D2 100%)"
-                          : "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                    background: statusColor.bg,
                     borderRadius: '16px',
                     padding: '25px',
-                    boxShadow:
-                      label === "today"
-                        ? "0 8px 25px rgba(76, 175, 80, 0.3)"
-                        : label === "tomorrow"
-                          ? "0 8px 25px rgba(33, 150, 243, 0.3)"
-                          : "0 8px 25px rgba(0,0,0,0.1)",
+                    boxShadow: statusColor.shadow,
                     border: 'none',
                     position: 'relative',
                     overflow: 'hidden',
-                    color: (label === "today" || label === "tomorrow") ? 'white' : '#333'
+                    color: statusColor.text
                   }}
                 >
                   {/* Status indicator */}
@@ -2123,15 +2129,16 @@ function App() {
                     position: 'absolute',
                     top: '15px',
                     right: '15px',
-                    background: 'rgba(255,255,255,0.2)',
-                    color: (label === "today" || label === "tomorrow") ? 'white' : '#666',
-                    padding: '5px 12px',
+                    background: statusColor.statusBg,
+                    color: statusColor.statusColor,
+                    padding: '6px 14px',
                     borderRadius: '20px',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    textTransform: 'uppercase'
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
                   }}>
-                    {h.status}
+                    {h.status === 'approved' ? '✅ Затвер.' : h.status === 'canceled' ? '❌ Скасов.' : '⏳ Очікує'}
                   </div>
 
                   {/* Date and time */}
@@ -2147,7 +2154,7 @@ function App() {
                       <div>{h.date} — {h.time}</div>
                       {label === "today" && (
                         <div style={{
-                          color: (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.9)' : '#4CAF50',
+                          color: statusColor.text,
                           fontSize: '0.9rem',
                           fontWeight: '500',
                           marginTop: '2px'
@@ -2157,7 +2164,7 @@ function App() {
                       )}
                       {label === "tomorrow" && (
                         <div style={{
-                          color: (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.9)' : '#2196F3',
+                          color: statusColor.text,
                           fontSize: '0.9rem',
                           fontWeight: '500',
                           marginTop: '2px'
@@ -2170,9 +2177,7 @@ function App() {
 
                   {/* Service details */}
                   <div style={{
-                    background: (label === "today" || label === "tomorrow")
-                      ? 'rgba(255,255,255,0.1)'
-                      : 'rgba(0,0,0,0.05)',
+                    background: 'rgba(0,0,0,0.05)',
                     borderRadius: '12px',
                     padding: '15px',
                     marginBottom: '15px'
@@ -2207,7 +2212,7 @@ function App() {
                       marginBottom: '10px',
                       fontSize: '1rem',
                       fontWeight: '600',
-                      color: (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.95)' : '#27ae60'
+                      color: statusColor.text
                     }}>
                       <span style={{ marginRight: '8px' }}>💰</span>
                       <span>{h.price} zł</span>
@@ -2240,7 +2245,7 @@ function App() {
                         fontSize: '0.9rem',
                         opacity: 0.8,
                         paddingTop: '10px',
-                        borderTop: (label === "today" || label === "tomorrow") ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)'
+                        borderTop: '1px solid rgba(0,0,0,0.1)'
                       }}>
                         <span style={{ marginRight: '8px', marginTop: '2px' }}>💬</span>
                         <span>{h.comment}</span>
@@ -2255,9 +2260,7 @@ function App() {
                       if (Array.isArray(images) && images.length > 0) {
                         return (
                           <div style={{
-                            background: (label === "today" || label === "tomorrow")
-                              ? 'rgba(255,255,255,0.1)'
-                              : 'rgba(0,0,0,0.05)',
+                            background: 'rgba(0,0,0,0.05)',
                             borderRadius: '12px',
                             padding: '15px',
                             marginBottom: '15px'
@@ -2306,9 +2309,7 @@ function App() {
                       if (Array.isArray(images) && images.length > 0) {
                         return (
                           <div style={{
-                            background: (label === "today" || label === "tomorrow")
-                              ? 'rgba(255,255,255,0.1)'
-                              : 'rgba(0,0,0,0.05)',
+                            background: 'rgba(0,0,0,0.05)',
                             borderRadius: '12px',
                             padding: '15px',
                             marginBottom: '15px'
@@ -2383,22 +2384,22 @@ function App() {
                         }
                       }}
                       style={{
-                        background: (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.2)' : 'rgba(231, 76, 60, 0.1)',
-                        border: (label === "today" || label === "tomorrow") ? '2px solid rgba(255,255,255,0.4)' : '2px solid #e74c3c',
+                        background: 'rgba(231, 76, 60, 0.1)',
+                        border: '2px solid #e74c3c',
                         borderRadius: '10px',
                         padding: '12px 16px',
                         fontSize: '0.95rem',
                         fontWeight: '600',
-                        color: (label === "today" || label === "tomorrow") ? 'white' : '#e74c3c',
+                        color: '#e74c3c',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease'
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.background = (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.3)' : 'rgba(231, 76, 60, 0.2)';
+                        e.target.style.background = 'rgba(231, 76, 60, 0.2)';
                         e.target.style.transform = 'translateY(-2px)';
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.background = (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.2)' : 'rgba(231, 76, 60, 0.1)';
+                        e.target.style.background = 'rgba(231, 76, 60, 0.1)';
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
@@ -2426,22 +2427,22 @@ function App() {
                           });
                       }}
                       style={{
-                        background: (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.2)' : 'rgba(52, 152, 219, 0.1)',
-                        border: (label === "today" || label === "tomorrow") ? '2px solid rgba(255,255,255,0.4)' : '2px solid #3498db',
+                        background: 'rgba(52, 152, 219, 0.1)',
+                        border: '2px solid #3498db',
                         borderRadius: '10px',
                         padding: '12px 16px',
                         fontSize: '0.95rem',
                         fontWeight: '600',
-                        color: (label === "today" || label === "tomorrow") ? 'white' : '#3498db',
+                        color: '#3498db',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease'
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.background = (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.3)' : 'rgba(52, 152, 219, 0.2)';
+                        e.target.style.background = 'rgba(52, 152, 219, 0.2)';
                         e.target.style.transform = 'translateY(-2px)';
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.background = (label === "today" || label === "tomorrow") ? 'rgba(255,255,255,0.2)' : 'rgba(52, 152, 219, 0.1)';
+                        e.target.style.background = 'rgba(52, 152, 219, 0.1)';
                         e.target.style.transform = 'translateY(0)';
                       }}
                     >
