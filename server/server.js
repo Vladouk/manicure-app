@@ -1184,7 +1184,7 @@ app.post(
 
         // ====== ADMIN: APPROVE ======
         app.post('/api/admin/status', (req, res) => {
-          const { id, status } = req.body;
+          const { id, status, notify_client } = req.body;
           const initData = req.headers['x-init-data'];
 
           if (!initData || !validateInitData(initData))
@@ -1221,7 +1221,7 @@ app.post(
 Якщо хочете — можете записатись знову`;
               }
 
-              if (text) {
+              if (text && notify_client) {
                 bot.sendMessage(row.tg_id, text, { parse_mode: "Markdown" });
               }
 
@@ -1460,7 +1460,7 @@ ORDER BY ws.date, ws.time
 
         // =============== ADMIN: DELETE APPOINTMENT ===============
         app.post('/api/admin/delete', (req, res) => {
-          const { id } = req.body;
+          const { id, notify_client } = req.body;
           const initData = req.headers['x-init-data'];
 
           if (!initData || !validateInitData(initData))
@@ -1491,16 +1491,18 @@ ORDER BY ws.date, ws.time
                 })
                 .catch(err => console.error("Delete appointment error:", err));
 
-              bot.sendMessage(
-                row.tg_id,
-                `🗑 *Ваш запис було видалено адміністратором*
+              if (notify_client) {
+                bot.sendMessage(
+                  row.tg_id,
+                  `🗑 *Ваш запис було видалено адміністратором*
 
 📅 ${row.date}
 ⏰ ${row.time}
 
 Буду рада новому запису 💅`,
-                { parse_mode: "Markdown" }
-              );
+                  { parse_mode: "Markdown" }
+                );
+              }
 
               res.json({ ok: true });
             })
