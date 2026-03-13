@@ -3726,17 +3726,6 @@ function App() {
   }
 
   if (mode === "adminMenu") {
-    // Separate appointments into current and archive
-    const now = new Date();
-    const archiveAppointments = appointments.filter(a => {
-      const appointmentDate = new Date(`${a.date}T${a.time}`);
-      return appointmentDate < now;
-    });
-    const currentAppointments = appointments.filter(a => {
-      const appointmentDate = new Date(`${a.date}T${a.time}`);
-      return appointmentDate >= now;
-    });
-
     return (
       <div className="app-container">
         {/* Modern Header */}
