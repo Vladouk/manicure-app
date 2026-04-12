@@ -124,6 +124,12 @@ const notifyAllAdmins = (message, parseMode = "Markdown") => {
   );
 };
 
+// Helper function to escape Markdown characters
+function escapeMarkdown(text) {
+  if (!text) return text;
+  return text.toString().replace(/([*_`\[\]()~>#+\-=|{}!.])/g, '\\$1');
+}
+
 const broadcastToClients = async (message, parseMode = "Markdown") => {
   try {
     const result = await pool.query(`SELECT DISTINCT tg_id FROM appointments WHERE tg_id IS NOT NULL`);
@@ -823,10 +829,10 @@ app.post(
 📅 Дата: ${slot.date}  
 ⏰ Час: ${slot.time}  
 
-🎨 Дизайн: ${design || 'Не вказано'}  
-📏 Довжина: ${length || 'Не вказано'}  
-💎 Тип: ${type || 'Не вказано'}  
-💼 Послуга: ${service || 'Не вказано'}  
+🎨 Дизайн: ${escapeMarkdown(design) || 'Не вказано'}  
+📏 Довжина: ${escapeMarkdown(length) || 'Не вказано'}  
+💎 Тип: ${escapeMarkdown(type) || 'Не вказано'}  
+💼 Послуга: ${escapeMarkdown(service) || 'Не вказано'}  
 
 💰 Ціна: ${finalPrice} zł`;
 
@@ -865,18 +871,18 @@ app.post(
         .catch(err => console.error("❌ Client notification error:", err));
 
       // 🔥 Admin notification
-      let clientLink = username ? `[@${username}](https://t.me/${username})` : `[${client}](tg://user?id=${tgIdNum})`;
+      let clientLink = username ? `[@${escapeMarkdown(username)}](https://t.me/${username})` : `[${escapeMarkdown(client)}](tg://user?id=${tgIdNum})`;
       let adminMessage = `🔔 *Новий запис!*
 
 👤 Клієнт: ${clientLink}
-📝 Ім'я: *${client}*
+📝 Ім'я: *${escapeMarkdown(client)}*
 
 📅 Дата: *${slot.date}*
 ⏰ Час: *${slot.time}*
 
-🎨 Дизайн: *${design || 'Не вказано'}*
-📏 Довжина: *${length || 'Не вказано'}*
-💼 Послуга: *${service || 'Не вказано'}*
+🎨 Дизайн: *${escapeMarkdown(design) || 'Не вказано'}*
+📏 Довжина: *${escapeMarkdown(length) || 'Не вказано'}*
+💼 Послуга: *${escapeMarkdown(service) || 'Не вказано'}*
 💰 Ціна: *${finalPrice} zł*`;
 
       if (referenceCount > 0 || currentHandsCount > 0) {
@@ -908,7 +914,7 @@ app.post(
       }
 
       if (comment && comment.trim() !== "") {
-        adminMessage += `\n💬 *Коментар клієнта:*\n${comment}`;
+        adminMessage += `\n💬 *Коментар клієнта:*\n${escapeMarkdown(comment)}`;
       }
 
       notifyAllAdmins(adminMessage)
@@ -1002,17 +1008,17 @@ app.post('/api/appointment/cancel', (req, res) => {
       );
 
       // 4️⃣ Повідомляємо адміну
-      let cancelLink = row.username ? `[@${row.username}](https://t.me/${row.username})` : `[Клієнт](tg://user?id=${tg_id})`;
+      let cancelLink = row.username ? `[@${escapeMarkdown(row.username)}](https://t.me/${row.username})` : `[Клієнт](tg://user?id=${tg_id})`;
       notifyAllAdmins(
         `❗ *Клієнт сам скасував запис*  
 
 👤 ${cancelLink}
-📝 Ім'я: *${row.client}*
+📝 Ім'я: *${escapeMarkdown(row.client)}*
 📅 ${row.date}  
 ⏰ ${row.time}
 
-🎨 ${row.design}
-📏 ${row.length}
+🎨 ${escapeMarkdown(row.design)}
+📏 ${escapeMarkdown(row.length)}
 `);
 
       return res.json({ ok: true });
