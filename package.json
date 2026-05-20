@@ -10,7 +10,6 @@
     "@testing-library/user-event": "^13.5.0",
     "@twa-dev/sdk": "^8.0.2",
     "cors": "^2.8.5",
-    "crypto-js": "^4.2.0",
     "express": "^5.2.1",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
@@ -20,8 +19,6 @@
     "react-calendar": "^6.0.0",
     "react-dom": "^19.2.3",
     "react-scripts": "5.0.1",
-    "serve": "^14.2.1",
-    "sqlite3": "^5.1.7",
     "web-vitals": "^2.1.4"
   }
 }

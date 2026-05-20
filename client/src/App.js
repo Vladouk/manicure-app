@@ -7,30 +7,6 @@ const ADMIN_TG_IDS = [1342762796, 1248276494];
 
 const API = process.env.REACT_APP_API_URL || '';
 
-// 🔧 API Helper - centralizes fetch logic & auto-adds auth header
-// eslint-disable-next-line no-unused-vars
-const apiCall = async (url, options = {}) => {
-  const headers = {
-    ...options.headers,
-    'x-init-data': WebApp.initData
-  };
-
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  const response = await fetch(`${API}${url}`, {
-    ...options,
-    headers
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
-  }
-
-  return response.json();
-};
-
 const getSlotLabel = (dateStr) => {
   const today = new Date();
   const slotDate = new Date(dateStr);

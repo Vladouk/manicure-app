@@ -9,19 +9,6 @@ const multer = require("multer");
 const cors = require('cors');
 
 // ===== 🔧 OPTIMIZATION HELPERS =====
-// Telegram WebApp Security Middleware
-function validateInitData(initData) {
-  if (!initData) return false;
-
-  try {
-    // У production використовуй крипто перевірку
-    // Для dev достатньо базової перевірки
-    const params = new URLSearchParams(initData);
-    return params.has('user') && params.has('auth_date');
-  } catch (e) {
-    return false;
-  }
-}
 
 const tgAuth = (req, res, next) => {
   const initData = req.headers['x-init-data'];
