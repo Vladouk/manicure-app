@@ -57,11 +57,12 @@ function App() {
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
   const [bonusPointsToUse, setBonusPointsToUse] = useState(0);
   const [selectedBonusReward, setSelectedBonusReward] = useState(null);
-  const [analyticsHours, setAnalyticsHours] = useState([]);
-  const [analyticsDays, setAnalyticsDays] = useState([]);
-  const [analyticsRevenue, setAnalyticsRevenue] = useState(null);
-  const [analyticsForecast, setAnalyticsForecast] = useState(null);
-  const [analyticsNewClients, setAnalyticsNewClients] = useState([]);
+  const [analyticsHours, setAnalyticsHours] = useState([]); // eslint-disable-line no-unused-vars
+  const [analyticsDays, setAnalyticsDays] = useState([]); // eslint-disable-line no-unused-vars
+  const [analyticsRevenue, setAnalyticsRevenue] = useState(null); // eslint-disable-line no-unused-vars
+  const [analyticsForecast, setAnalyticsForecast] = useState(null); // eslint-disable-line no-unused-vars
+  const [analyticsNewClients, setAnalyticsNewClients] = useState([]); // eslint-disable-line no-unused-vars
+  const [analyticsDashboard, setAnalyticsDashboard] = useState(null);
   const [adminPricesDraft, setAdminPricesDraft] = useState([]);
   const [isLoadingAdminPrices, setIsLoadingAdminPrices] = useState(false);
   const [isSavingAdminPrices, setIsSavingAdminPrices] = useState(false);
@@ -4084,29 +4085,12 @@ function App() {
           <div
             className="menu-card"
             onClick={() => {
-              Promise.all([
-                fetch(`${API}/api/admin/analytics/hours`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-                fetch(`${API}/api/admin/analytics/days`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-                fetch(`${API}/api/admin/analytics/monthly-revenue`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-                fetch(`${API}/api/admin/analytics/forecast`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-                fetch(`${API}/api/admin/analytics/new-clients`, {
-                  headers: { "x-init-data": WebApp.initData }
-                }).then(r => r.json()),
-              ])
-                .then(([hours, days, revenue, forecast, newClients]) => {
-                  setAnalyticsHours(hours);
-                  setAnalyticsDays(days);
-                  setAnalyticsRevenue(revenue);
-                  setAnalyticsForecast(forecast);
-                  setAnalyticsNewClients(newClients);
+              fetch(`${API}/api/admin/analytics/dashboard`, {
+                headers: { "x-init-data": WebApp.initData }
+              })
+                .then(r => r.json())
+                .then(data => {
+                  setAnalyticsDashboard(data);
                   setMode("analytics");
                 })
                 .catch(err => {
@@ -4344,469 +4328,456 @@ function App() {
   }
 
   if (mode === "analytics") {
+    const dash = analyticsDashboard || {};
+    const monthly = dash.monthly || [];
+    const topHours = dash.top_hours || [];
+    const topDays = dash.top_days || [];
+    const topServices = dash.top_services || [];
+    const allTime = dash.all_time || {};
+
+    const dayNames = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+    const dayNamesLong = ["Неділя", "Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота"];
+
+    const maxMonthlyRevenue = Math.max(...monthly.map(m => Number(m.revenue) || 0), 1);
+    const maxHourCount = Math.max(...topHours.map(h => Number(h.count) || 0), 1);
+
+    // Current month vs previous month comparison
+    const currentMonthData = monthly[monthly.length - 1] || {};
+    const prevMonthData = monthly[monthly.length - 2] || null;
+    const revenueDiff = prevMonthData
+      ? Number(currentMonthData.revenue || 0) - Number(prevMonthData.revenue || 0)
+      : null;
+    const appointmentsDiff = prevMonthData
+      ? Number(currentMonthData.approved || 0) - Number(prevMonthData.approved || 0)
+      : null;
+
+    const cardStyle = {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '20px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+      border: '1px solid #f0f0f0',
+      marginBottom: '16px'
+    };
+
+    const sectionTitleStyle = {
+      fontSize: '0.75rem',
+      fontWeight: '700',
+      color: '#999',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      marginBottom: '14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
+    };
+
     return (
-      <div className="app-container">
-        {/* Modern Header */}
-        <div className="card" style={{
+      <div className="app-container" style={{ background: '#f5f5f7', minHeight: '100vh', padding: '0 0 30px 0' }}>
+
+        {/* Header */}
+        <div style={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          padding: '24px 20px 20px',
           color: 'white',
-          textAlign: 'center',
-          padding: '30px 20px',
-          marginBottom: '30px',
-          borderRadius: '20px',
-          boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
-          position: 'relative',
-          overflow: 'hidden'
+          marginBottom: '16px'
         }}>
-          <div style={{
-            position: 'absolute',
-            top: '-50%',
-            left: '-50%',
-            width: '200%',
-            height: '200%',
-            background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-            animation: 'pulse 3s ease-in-out infinite'
-          }}></div>
-          <h2 style={{
-            fontSize: '2.5rem',
-            margin: '0 0 10px 0',
-            fontWeight: '700',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            zIndex: 1,
-            position: 'relative'
-          }}>
-            💎 Аналітика 🔥
-          </h2>
-          <p style={{
-            fontSize: '1rem',
-            margin: '0',
-            opacity: 0.9,
-            fontWeight: '300',
-            zIndex: 1,
-            position: 'relative'
-          }}>
-            Статистика вашого бізнесу
+          <button
+            onClick={() => setMode("adminMenu")}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              marginBottom: '12px'
+            }}
+          >
+            ← Назад
+          </button>
+          <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700' }}>📊 Аналітика</h1>
+          <p style={{ margin: '4px 0 0 0', opacity: 0.85, fontSize: '0.95rem' }}>
+            Статистика бізнесу
           </p>
         </div>
 
-        {/* Back Button */}
-        <div style={{ textAlign: 'center', margin: '20px 0' }}>
-          <button
-            className="primary-btn"
-            onClick={() => setMode("adminMenu")}
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '15px 30px',
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: 'white',
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
-            }}
-          >
-            ← Назад в адмінку
-          </button>
-        </div>
+        <div style={{ padding: '0 16px' }}>
 
-        {/* Analytics Grid */}
-        <div style={{
-          display: 'grid',
-          gap: '25px',
-          padding: '0 10px'
-        }}>
-          {/* Monthly Revenue */}
-          {analyticsRevenue && (
-            <div
-              className="menu-card"
-              style={{
-                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                borderRadius: '16px',
-                padding: '25px',
-                boxShadow: '0 8px 25px rgba(79, 172, 254, 0.3)',
-                border: 'none',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: '15px',
-                left: '15px',
-                background: 'rgba(255,255,255,0.9)',
-                color: '#3498db',
-                padding: '5px 12px',
-                borderRadius: '20px',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>
-                💰 Дохід
-              </div>
-
-              <div style={{ paddingTop: '20px', textAlign: 'center' }}>
-                <div style={{
-                  fontSize: '3rem',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  marginBottom: '15px',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}>
-                  {analyticsRevenue.total_revenue} zł
+          {/* ── ALL TIME TOTALS ── */}
+          <div style={cardStyle}>
+            <div style={sectionTitleStyle}>
+              🏆 Всього за весь час
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+              <div style={{ textAlign: 'center', background: '#f0f4ff', borderRadius: '12px', padding: '14px 8px' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#667eea' }}>
+                  {Number(allTime.total_revenue || 0).toLocaleString('uk-UA')}
                 </div>
-                <div style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '15px',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                  gap: '10px'
-                }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2c3e50' }}>
-                      📅 {analyticsRevenue.year}-{String(analyticsRevenue.month).padStart(2, '0')}
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#666' }}>Поточний місяць</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2c3e50' }}>
-                      📋 {analyticsRevenue.total_appointments}
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#666' }}>Всього записів</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2c3e50' }}>
-                      👥 {analyticsRevenue.unique_clients}
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#666' }}>Унікальних клієнтів</div>
-                  </div>
+                <div style={{ fontSize: '0.65rem', color: '#888', marginTop: '2px', fontWeight: '600' }}>
+                  zł доходу
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', background: '#f0faf4', borderRadius: '12px', padding: '14px 8px' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#27ae60' }}>
+                  {allTime.total_approved || 0}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#888', marginTop: '2px', fontWeight: '600' }}>
+                  записів
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', background: '#fef9f0', borderRadius: '12px', padding: '14px 8px' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#f39c12' }}>
+                  {allTime.total_clients || 0}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#888', marginTop: '2px', fontWeight: '600' }}>
+                  клієнтів
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Forecast */}
-          {analyticsForecast && (
-            <div
-              className="menu-card"
-              style={{
-                background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-                borderRadius: '16px',
-                padding: '25px',
-                boxShadow: '0 8px 25px rgba(255, 154, 158, 0.3)',
-                border: 'none',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: '15px',
-                left: '15px',
-                background: 'rgba(255,255,255,0.9)',
-                color: '#ff6b6b',
-                padding: '5px 12px',
-                borderRadius: '20px',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>
-                🔮 Прогноз
-              </div>
-
-              <div style={{ paddingTop: '20px', textAlign: 'center' }}>
-                <div style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  marginBottom: '15px',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}>
-                  💵 {analyticsForecast.forecast_revenue} zł
-                </div>
-                <div style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '15px'
-                }}>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2c3e50', marginBottom: '8px' }}>
-                    📊 Очікується записів: {analyticsForecast.forecast_appointments}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                    Розраховано на основі {analyticsForecast.based_on_months} місяців
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Popular Hours & Days Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px' }}>
-            {/* Popular Hours */}
-            {analyticsHours && analyticsHours.length > 0 && (
-              <div
-                className="menu-card"
-                style={{
-                  background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-                  borderRadius: '16px',
-                  padding: '25px',
-                  boxShadow: '0 8px 25px rgba(168, 237, 234, 0.3)',
-                  border: 'none',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: '15px',
-                  left: '15px',
-                  background: 'rgba(255,255,255,0.9)',
-                  color: '#9b59b6',
-                  padding: '5px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  textTransform: 'uppercase'
-                }}>
-                  ⏰ Популярні години
-                </div>
-
-                <div style={{ paddingTop: '20px' }}>
-                  <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                    justifyContent: 'center'
-                  }}>
-                    {analyticsHours.slice(0, 5).map((item, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          padding: '12px 18px',
-                          background: 'rgba(255,255,255,0.9)',
-                          borderRadius: '12px',
-                          fontWeight: 'bold',
-                          color: '#8e44ad',
-                          textAlign: 'center',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          transition: 'all 0.3s ease',
-                          cursor: 'pointer'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.transform = 'translateY(-2px)';
-                          e.target.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.transform = 'translateY(0)';
-                          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                        }}
-                      >
-                        <div style={{ fontSize: '1.1rem', marginBottom: '4px' }}>
-                          {Math.round(item.hour)}:00
-                        </div>
-                        <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                          {item.count} записів
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Popular Days */}
-            {analyticsDays && analyticsDays.length > 0 && (
-              <div
-                className="menu-card"
-                style={{
-                  background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-                  borderRadius: '16px',
-                  padding: '25px',
-                  boxShadow: '0 8px 25px rgba(255, 236, 210, 0.3)',
-                  border: 'none',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: '15px',
-                  left: '15px',
-                  background: 'rgba(255,255,255,0.9)',
-                  color: '#e74c3c',
-                  padding: '5px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  textTransform: 'uppercase'
-                }}>
-                  📅 Популярні дні
-                </div>
-
-                <div style={{ paddingTop: '20px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {analyticsDays.map((item, idx) => {
-                      const dayNames = ["Неділя", "Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота"];
-                      return (
-                        <div
-                          key={idx}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px 18px',
-                            background: 'rgba(255,255,255,0.9)',
-                            borderRadius: '10px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                            transition: 'all 0.3s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.transform = 'translateX(5px)';
-                            e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = 'translateX(0)';
-                            e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                          }}
-                        >
-                          <span style={{ fontWeight: '600', color: '#2c3e50' }}>
-                            {dayNames[item.day_num]}
-                          </span>
-                          <span style={{
-                            fontWeight: 'bold',
-                            color: '#c0392b',
-                            background: '#fadbd8',
-                            padding: '4px 10px',
-                            borderRadius: '15px',
-                            fontSize: '0.9rem'
-                          }}>
-                            {item.count} записів
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* New Clients Graph */}
-          {analyticsNewClients && analyticsNewClients.length > 0 && (
-            <div
-              className="menu-card"
-              style={{
-                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                borderRadius: '16px',
-                padding: '25px',
-                boxShadow: '0 8px 25px rgba(67, 233, 123, 0.3)',
-                border: 'none',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: '15px',
-                left: '15px',
-                background: 'rgba(255,255,255,0.9)',
-                color: '#16a085',
-                padding: '5px 12px',
-                borderRadius: '20px',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>
-                📈 Нові клієнти
+          {/* ── CURRENT MONTH vs PREV ── */}
+          {currentMonthData.month && (
+            <div style={cardStyle}>
+              <div style={sectionTitleStyle}>
+                📅 Поточний місяць: {(currentMonthData.month_label || '').trim()}
               </div>
-
-              <div style={{ paddingTop: '20px' }}>
-                <h4 style={{ color: 'white', marginBottom: '20px', textAlign: 'center', fontSize: '1.2rem' }}>
-                  Нові клієнти (останні 30 днів)
-                </h4>
-
-                <div style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '12px',
-                  padding: '20px'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    gap: '3px',
-                    height: '150px',
-                    justifyContent: 'space-around',
-                    paddingTop: '20px',
-                    marginBottom: '15px'
-                  }}>
-                    {analyticsNewClients.map((item, idx) => {
-                      const maxClients = Math.max(...analyticsNewClients.map(x => x.new_clients || 0)) || 1;
-                      const height = (item.new_clients / maxClients) * 120;
-                      return (
-                        <div
-                          key={idx}
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '5px',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '20px',
-                              height: height,
-                              backgroundColor: '#16a085',
-                              borderRadius: '4px 4px 0 0',
-                              minHeight: item.new_clients > 0 ? '10px' : '2px',
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.backgroundColor = '#138f7a';
-                              e.target.style.transform = 'scale(1.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.backgroundColor = '#16a085';
-                              e.target.style.transform = 'scale(1)';
-                            }}
-                          />
-                          <span style={{
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold',
-                            color: '#2c3e50'
-                          }}>
-                            {item.new_clients}
-                          </span>
-                        </div>
-                      );
-                    })}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ background: '#f0f4ff', borderRadius: '12px', padding: '16px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#667eea' }}>
+                    {Number(currentMonthData.revenue || 0).toLocaleString('uk-UA')} zł
                   </div>
-                  <p style={{
-                    fontSize: '0.9rem',
-                    color: '#666',
-                    textAlign: 'center',
-                    margin: '0',
-                    fontStyle: 'italic'
-                  }}>
-                    Графік показує нових клієнтів за день
-                  </p>
+                  <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '4px' }}>Дохід</div>
+                  {revenueDiff !== null && (
+                    <div style={{
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      color: revenueDiff >= 0 ? '#27ae60' : '#e74c3c',
+                      marginTop: '4px'
+                    }}>
+                      {revenueDiff >= 0 ? '▲' : '▼'} {Math.abs(revenueDiff).toLocaleString('uk-UA')} zł vs мин.міс.
+                    </div>
+                  )}
+                </div>
+                <div style={{ background: '#f0faf4', borderRadius: '12px', padding: '16px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#27ae60' }}>
+                    {currentMonthData.approved || 0}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '4px' }}>Записів ✅</div>
+                  {appointmentsDiff !== null && (
+                    <div style={{
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      color: appointmentsDiff >= 0 ? '#27ae60' : '#e74c3c',
+                      marginTop: '4px'
+                    }}>
+                      {appointmentsDiff >= 0 ? '▲' : '▼'} {Math.abs(appointmentsDiff)} vs мин.міс.
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                <div style={{ background: '#fff3cd', borderRadius: '10px', padding: '10px 6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#856404' }}>{currentMonthData.pending || 0}</div>
+                  <div style={{ fontSize: '0.65rem', color: '#888' }}>⏳ Очікують</div>
+                </div>
+                <div style={{ background: '#fde8e8', borderRadius: '10px', padding: '10px 6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#c0392b' }}>{currentMonthData.canceled || 0}</div>
+                  <div style={{ fontSize: '0.65rem', color: '#888' }}>❌ Скасовано</div>
+                </div>
+                <div style={{ background: '#e8f4f8', borderRadius: '10px', padding: '10px 6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#2980b9' }}>{currentMonthData.unique_clients || 0}</div>
+                  <div style={{ fontSize: '0.65rem', color: '#888' }}>👥 Клієнтів</div>
                 </div>
               </div>
             </div>
           )}
-        </div>
 
+          {/* ── MONTHLY HISTORY TABLE ── */}
+          {monthly.length > 0 && (
+            <div style={cardStyle}>
+              <div style={sectionTitleStyle}>
+                📆 Статистика по місяцях
+              </div>
+
+              {/* Bar chart */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: '6px',
+                height: '80px',
+                marginBottom: '16px',
+                padding: '0 4px'
+              }}>
+                {monthly.map((m, idx) => {
+                  const rev = Number(m.revenue) || 0;
+                  const barH = Math.max((rev / maxMonthlyRevenue) * 70, 4);
+                  const isLast = idx === monthly.length - 1;
+                  return (
+                    <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ fontSize: '0.6rem', color: '#999', fontWeight: '600' }}>
+                        {rev > 0 ? `${Math.round(rev / 1000)}k` : ''}
+                      </div>
+                      <div style={{
+                        width: '100%',
+                        height: `${barH}px`,
+                        background: isLast
+                          ? 'linear-gradient(to top, #667eea, #764ba2)'
+                          : 'linear-gradient(to top, #b0bec5, #cfd8dc)',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'height 0.3s ease'
+                      }} />
+                      <div style={{ fontSize: '0.55rem', color: '#aaa', fontWeight: '600', textAlign: 'center' }}>
+                        {m.month ? m.month.slice(5) : ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Table */}
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9fa' }}>
+                      <th style={{ padding: '8px 6px', textAlign: 'left', color: '#666', fontWeight: '700', borderBottom: '2px solid #eee' }}>Місяць</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'center', color: '#666', fontWeight: '700', borderBottom: '2px solid #eee' }}>Дохід</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'center', color: '#666', fontWeight: '700', borderBottom: '2px solid #eee' }}>✅</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'center', color: '#666', fontWeight: '700', borderBottom: '2px solid #eee' }}>❌</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'center', color: '#666', fontWeight: '700', borderBottom: '2px solid #eee' }}>👥</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...monthly].reverse().map((m, idx) => {
+                      const isCurrentMonth = idx === 0;
+                      return (
+                        <tr key={m.month} style={{
+                          background: isCurrentMonth ? '#f0f4ff' : (idx % 2 === 0 ? 'white' : '#fafafa'),
+                          fontWeight: isCurrentMonth ? '700' : '400'
+                        }}>
+                          <td style={{ padding: '10px 6px', color: '#2c3e50', borderBottom: '1px solid #f0f0f0' }}>
+                            {isCurrentMonth && <span style={{ color: '#667eea', marginRight: '4px' }}>●</span>}
+                            {(m.month_label || m.month || '').trim()}
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', color: '#667eea', borderBottom: '1px solid #f0f0f0' }}>
+                            {Number(m.revenue || 0).toLocaleString('uk-UA')} zł
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', color: '#27ae60', borderBottom: '1px solid #f0f0f0' }}>
+                            {m.approved || 0}
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', color: '#e74c3c', borderBottom: '1px solid #f0f0f0' }}>
+                            {m.canceled || 0}
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', color: '#f39c12', borderBottom: '1px solid #f0f0f0' }}>
+                            {m.unique_clients || 0}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ── TOP SERVICES ── */}
+          {topServices.length > 0 && (
+            <div style={cardStyle}>
+              <div style={sectionTitleStyle}>
+                💅 Топ послуги
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {topServices.map((s, idx) => {
+                  const maxCount = Number(topServices[0].count) || 1;
+                  const barW = Math.round((Number(s.count) / maxCount) * 100);
+                  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.9rem', color: '#2c3e50', fontWeight: '600' }}>
+                          {medals[idx]} {s.service}
+                        </span>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.8rem', color: '#667eea', fontWeight: '700' }}>
+                            {Number(s.revenue || 0).toLocaleString('uk-UA')} zł
+                          </span>
+                          <span style={{ fontSize: '0.8rem', color: '#888' }}>
+                            {s.count}×
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${barW}%`,
+                          background: 'linear-gradient(to right, #667eea, #764ba2)',
+                          borderRadius: '3px',
+                          transition: 'width 0.4s ease'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── POPULAR HOURS ── */}
+          {topHours.length > 0 && (
+            <div style={cardStyle}>
+              <div style={sectionTitleStyle}>
+                ⏰ Популярні години
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: '6px',
+                height: '80px',
+                padding: '0 4px',
+                marginBottom: '12px'
+              }}>
+                {topHours.map((h, idx) => {
+                  const barH = Math.max((Number(h.count) / maxHourCount) * 64, 4);
+                  return (
+                    <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ fontSize: '0.6rem', color: '#999', fontWeight: '600' }}>{h.count}</div>
+                      <div style={{
+                        width: '100%',
+                        height: `${barH}px`,
+                        background: idx === 0
+                          ? 'linear-gradient(to top, #f39c12, #f1c40f)'
+                          : 'linear-gradient(to top, #a8edea, #fed6e3)',
+                        borderRadius: '4px 4px 0 0'
+                      }} />
+                      <div style={{ fontSize: '0.65rem', color: '#555', fontWeight: '700' }}>
+                        {h.hour}:00
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#888', textAlign: 'center' }}>
+                🔥 Найбільш завантажена година: <b style={{ color: '#f39c12' }}>{topHours[0]?.hour}:00</b> ({topHours[0]?.count} записів)
+              </div>
+            </div>
+          )}
+
+          {/* ── POPULAR DAYS ── */}
+          {topDays.length > 0 && (
+            <div style={cardStyle}>
+              <div style={sectionTitleStyle}>
+                📅 Активність по днях тижня
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '12px' }}>
+                {Array.from({ length: 7 }, (_, i) => {
+                  const dayData = topDays.find(d => d.day_num === i);
+                  const count = dayData ? Number(dayData.count) : 0;
+                  const maxCount = Math.max(...topDays.map(d => Number(d.count) || 0), 1);
+                  const intensity = count / maxCount;
+                  return (
+                    <div key={i} style={{ textAlign: 'center' }}>
+                      <div style={{
+                        width: '100%',
+                        paddingBottom: '100%',
+                        position: 'relative',
+                        borderRadius: '8px',
+                        background: count > 0
+                          ? `rgba(102, 126, 234, ${0.15 + intensity * 0.85})`
+                          : '#f5f5f5',
+                        marginBottom: '4px'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: '0.75rem',
+                          fontWeight: '800',
+                          color: intensity > 0.5 ? 'white' : '#667eea'
+                        }}>
+                          {count || ''}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.6rem', color: '#888', fontWeight: '600' }}>
+                        {dayNames[i]}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {topDays.slice(0, 3).map((d, idx) => {
+                  const medals = ['🔥', '🌟', '👍'];
+                  return (
+                    <div key={idx} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#f8f9fa',
+                      borderRadius: '8px',
+                      padding: '8px 12px'
+                    }}>
+                      <span style={{ fontSize: '0.9rem', color: '#2c3e50', fontWeight: '600' }}>
+                        {medals[idx]} {dayNamesLong[d.day_num]}
+                      </span>
+                      <span style={{
+                        fontSize: '0.85rem',
+                        fontWeight: '700',
+                        color: '#667eea',
+                        background: '#f0f4ff',
+                        padding: '2px 10px',
+                        borderRadius: '12px'
+                      }}>
+                        {d.count} записів
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── CANCELLATION RATE ── */}
+          {allTime.total_all > 0 && (
+            <div style={cardStyle}>
+              <div style={sectionTitleStyle}>
+                📈 Загальна конверсія
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { label: 'Підтверджено', value: Number(allTime.total_approved), color: '#27ae60', bg: '#d4efdf' },
+                  { label: 'Скасовано', value: Number(allTime.total_canceled), color: '#e74c3c', bg: '#fde8e8' },
+                  { label: 'Очікують', value: Number(allTime.total_pending), color: '#f39c12', bg: '#fdebd0' },
+                ].map(item => {
+                  const pct = Math.round((item.value / Number(allTime.total_all)) * 100) || 0;
+                  return (
+                    <div key={item.label}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#555', fontWeight: '600' }}>{item.label}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: item.color }}>
+                          {item.value} ({pct}%)
+                        </span>
+                      </div>
+                      <div style={{ height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${pct}%`,
+                          background: item.color,
+                          borderRadius: '4px',
+                          transition: 'width 0.4s ease'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+        </div>
         {modal}
       </div>
     );

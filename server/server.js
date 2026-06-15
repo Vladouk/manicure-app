@@ -2273,6 +2273,100 @@ app.get('/api/admin/analytics', (req, res) => {
     .catch(err => res.status(500).json({ error: 'DB error' }));
 });
 
+// =============== FULL ANALYTICS DASHBOARD ===============
+app.get('/api/admin/analytics/dashboard', async (req, res) => {
+  const initData = req.headers['x-init-data'];
+
+  if (!initData || !validateInitData(initData))
+    return res.status(403).json({ error: 'Access denied' });
+
+  const user = JSON.parse(new URLSearchParams(initData).get('user'));
+  if (!ADMIN_TG_IDS.includes(user.id))
+    return res.status(403).json({ error: 'Not admin' });
+
+  try {
+    const [
+      monthlyStats,
+      topHours,
+      topDays,
+      topServices,
+      allTimeStats
+    ] = await Promise.all([
+      // Last 6 months breakdown
+      pool.query(`
+        SELECT
+          TO_CHAR(date::date, 'YYYY-MM') as month,
+          TO_CHAR(date::date, 'Month YYYY') as month_label,
+          COUNT(*) FILTER (WHERE status = 'approved') as approved,
+          COUNT(*) FILTER (WHERE status = 'pending') as pending,
+          COUNT(*) FILTER (WHERE status = 'canceled') as canceled,
+          COUNT(*) as total,
+          COALESCE(SUM(price) FILTER (WHERE status = 'approved'), 0) as revenue,
+          COUNT(DISTINCT tg_id) FILTER (WHERE status = 'approved') as unique_clients
+        FROM appointments
+        WHERE date::date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '5 months')
+        GROUP BY TO_CHAR(date::date, 'YYYY-MM'), TO_CHAR(date::date, 'Month YYYY')
+        ORDER BY month ASC
+      `),
+      // Top hours all time
+      pool.query(`
+        SELECT
+          EXTRACT(HOUR FROM time::time)::int as hour,
+          COUNT(*) as count
+        FROM appointments
+        WHERE status != 'canceled'
+        GROUP BY EXTRACT(HOUR FROM time::time)
+        ORDER BY count DESC
+        LIMIT 8
+      `),
+      // Top days of week all time
+      pool.query(`
+        SELECT
+          EXTRACT(DOW FROM date::date)::int as day_num,
+          COUNT(*) as count
+        FROM appointments
+        WHERE status != 'canceled'
+        GROUP BY EXTRACT(DOW FROM date::date)
+        ORDER BY count DESC
+      `),
+      // Top services
+      pool.query(`
+        SELECT
+          service,
+          COUNT(*) as count,
+          COALESCE(SUM(price), 0) as revenue
+        FROM appointments
+        WHERE status = 'approved' AND service IS NOT NULL AND service != ''
+        GROUP BY service
+        ORDER BY count DESC
+        LIMIT 5
+      `),
+      // All time totals
+      pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE status = 'approved') as total_approved,
+          COUNT(*) FILTER (WHERE status = 'canceled') as total_canceled,
+          COUNT(*) FILTER (WHERE status = 'pending') as total_pending,
+          COUNT(*) as total_all,
+          COALESCE(SUM(price) FILTER (WHERE status = 'approved'), 0) as total_revenue,
+          COUNT(DISTINCT tg_id) FILTER (WHERE status != 'canceled') as total_clients
+        FROM appointments
+      `)
+    ]);
+
+    res.json({
+      monthly: monthlyStats.rows,
+      top_hours: topHours.rows,
+      top_days: topDays.rows,
+      top_services: topServices.rows,
+      all_time: allTimeStats.rows[0]
+    });
+  } catch (err) {
+    console.error('Analytics dashboard error:', err);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
 // =============== DAILY REMINDERS (18:00 Europe/Warsaw) ===============
 cron.schedule('0 18 * * *', () => {
   console.log("⏰ Запускаю нагадування...");
