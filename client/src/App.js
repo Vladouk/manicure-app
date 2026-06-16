@@ -869,6 +869,35 @@ function App() {
     WebApp.expand();
     WebApp.MainButton.hide();
 
+    // Handle start_param for deep linking (e.g. admin opens client from bot notification)
+    // Format: "client_<tg_id>"
+    const startParam = WebApp.initDataUnsafe?.start_param;
+    if (startParam && startParam.startsWith('client_') && isAdmin) {
+      const clientTgId = startParam.replace('client_', '');
+      fetch(`${API}/api/admin/clients`, {
+        headers: { 'x-init-data': WebApp.initData }
+      })
+        .then(r => r.json())
+        .then(clients => {
+          const found = clients.find(c => String(c.tg_id) === String(clientTgId));
+          if (found) {
+            setSelectedClient(found);
+            fetch(`${API}/api/admin/client-history?tg_id=${found.tg_id}`, {
+              headers: { 'x-init-data': WebApp.initData }
+            })
+              .then(r => r.json())
+              .then(data => {
+                setClientHistory(data);
+                setMode('clientHistory');
+              });
+          } else {
+            setMode('clients');
+          }
+        })
+        .catch(() => setMode('clients'));
+      return; // skip rest of init
+    }
+
     fetch(`${API}/api/slots`)
       .then(r => r.json())
       .then(data => setSlots(data.filter(s => s.is_booked === false)))
@@ -951,7 +980,7 @@ function App() {
     }
 
     WebApp.MainButton.hide();
-  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id]);
+  }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, isAdmin]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {

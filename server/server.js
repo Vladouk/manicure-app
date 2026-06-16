@@ -905,12 +905,14 @@ app.post(
       }
 
       // Build inline keyboard for admin notification
-      const clientUrl = username ? `https://t.me/${username}` : `tg://user?id=${tgIdNum}`;
       const adminKeyboard = {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '👤 Відкрити клієнта', url: clientUrl }
+              {
+                text: '👤 Відкрити клієнта',
+                web_app: { url: `${process.env.CLIENT_URL}?startapp=client_${tgIdNum}` }
+              }
             ]
           ]
         }
