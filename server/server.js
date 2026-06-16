@@ -963,14 +963,18 @@ app.get('/api/appointment/my', (req, res) => {
 
 // ============== CLIENT CANCEL APPOINTMENT1 ===============
 app.post('/api/appointment/cancel', (req, res) => {
-  const { tg_id } = req.body;
+  const { tg_id, appointment_id } = req.body;
 
   if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
-  pool.query(
-    `SELECT id, date, time, design, length, comment, type, client, username FROM appointments WHERE tg_id = $1 AND status != 'canceled'`,
-    [tg_id]
-  )
+  // Build query — if appointment_id provided, cancel that specific one;
+  // otherwise fall back to the first active appointment (legacy behaviour)
+  const query = appointment_id
+    ? `SELECT id, date, time, design, length, comment, type, client, username FROM appointments WHERE id = $1 AND tg_id = $2 AND status != 'canceled'`
+    : `SELECT id, date, time, design, length, comment, type, client, username FROM appointments WHERE tg_id = $1 AND status != 'canceled' ORDER BY created_at DESC LIMIT 1`;
+  const params = appointment_id ? [appointment_id, tg_id] : [tg_id];
+
+  pool.query(query, params)
     .then(result => {
       const row = result.rows[0];
       if (!row)

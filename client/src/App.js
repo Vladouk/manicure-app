@@ -2427,7 +2427,7 @@ function App() {
                           fetch(`${API}/api/appointment/cancel`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'x-init-data': WebApp.initData },
-                            body: JSON.stringify({ tg_id: tgUser.id })
+                            body: JSON.stringify({ tg_id: tgUser.id, appointment_id: h.id })
                           })
                             .then(r => r.json())
                             .then(data => {
