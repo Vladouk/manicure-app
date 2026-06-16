@@ -102,10 +102,10 @@ function parseDateTimeInTimeZone(dateStr, timeStr, timeZone = APP_TIMEZONE) {
 }
 
 // Helper function to send message to all admins
-const notifyAllAdmins = (message, parseMode = "Markdown") => {
+const notifyAllAdmins = (message, parseMode = "Markdown", extra = {}) => {
   return Promise.all(
     ADMIN_TG_IDS.map(adminId =>
-      bot.sendMessage(adminId, message, { parse_mode: parseMode })
+      bot.sendMessage(adminId, message, { parse_mode: parseMode, ...extra })
         .catch(err => console.error(`Error notifying admin ${adminId}:`, err))
     )
   );
@@ -904,7 +904,19 @@ app.post(
         adminMessage += `\n💬 *Коментар клієнта:*\n${escapeMarkdown(comment)}`;
       }
 
-      notifyAllAdmins(adminMessage)
+      // Build inline keyboard for admin notification
+      const clientUrl = username ? `https://t.me/${username}` : `tg://user?id=${tgIdNum}`;
+      const adminKeyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '👤 Відкрити клієнта', url: clientUrl }
+            ]
+          ]
+        }
+      };
+
+      notifyAllAdmins(adminMessage, "Markdown", adminKeyboard)
         .then(() => console.log("✅ Admin notification sent"))
         .catch(err => console.error("❌ Admin notification error:", err));
 
