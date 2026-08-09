@@ -2892,47 +2892,31 @@ app.get('/api/admin/clients', (req, res) => {
   if (!ADMIN_TG_IDS.includes(user.id))
     return res.status(403).json({ error: 'Not admin' });
 
-  // Простий запит для діагностики
+  console.log('📊 Fetching clients list...');
+
   pool.query(`
     SELECT 
-      tg_id,
-      client,
-      username,
-      status,
-      price,
-      date
-    FROM appointments
-    WHERE tg_id IS NOT NULL
-    ORDER BY tg_id, created_at DESC
-    LIMIT 20
+      a.tg_id,
+      MAX(a.client) as client_name,
+      MAX(a.username) as username,
+      COALESCE(MAX(cp.points), 0) as points,
+      COUNT(a.id) as total_appointments,
+      COUNT(CASE WHEN a.status = 'approved' THEN 1 END) as completed_appointments,
+      MAX(a.date) as last_appointment_date,
+      COALESCE(SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END), 0) as total_spent
+    FROM appointments a
+    LEFT JOIN client_points cp ON a.tg_id = cp.tg_id
+    WHERE a.tg_id IS NOT NULL
+    GROUP BY a.tg_id
+    ORDER BY points DESC NULLS LAST, last_appointment_date DESC NULLS LAST
   `)
-    .then(debugResult => {
-      console.log('🔍 DEBUG - Raw appointments data:', JSON.stringify(debugResult.rows, null, 2));
-      
-      // Тепер реальний запит
-      return pool.query(`
-        SELECT 
-          a.tg_id,
-          MAX(a.client) as client_name,
-          MAX(a.username) as username,
-          COALESCE(cp.points, 0) as points,
-          COUNT(a.id) as total_appointments,
-          COUNT(CASE WHEN a.status = 'approved' THEN 1 END) as completed_appointments,
-          MAX(a.date) as last_appointment_date,
-          SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END) as total_spent
-        FROM appointments a
-        LEFT JOIN client_points cp ON a.tg_id = cp.tg_id
-        WHERE a.tg_id IS NOT NULL
-        GROUP BY a.tg_id, cp.points
-        ORDER BY cp.points DESC NULLS LAST, last_appointment_date DESC NULLS LAST
-      `);
-    })
     .then(result => {
-      console.log(`📊 Final result - ${result.rows.length} clients:`, JSON.stringify(result.rows, null, 2));
+      console.log(`✅ Returning ${result.rows.length} clients`);
+      console.log('First 3 clients:', JSON.stringify(result.rows.slice(0, 3), null, 2));
       res.json(result.rows);
     })
     .catch(err => {
-      console.error('Clients fetch error:', err);
+      console.error('❌ Clients fetch error:', err);
       res.status(500).json({ error: 'DB error', details: err.message });
     });
 });

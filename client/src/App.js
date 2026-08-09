@@ -4242,11 +4242,22 @@ function App() {
           <div
             className="menu-card"
             onClick={() => {
+              console.log('🔵 Fetching clients...');
               fetch(`${API}/api/admin/clients`, {
                 headers: { "x-init-data": WebApp.initData }
               })
-                .then(r => r.json())
-                .then(setClientList);
+                .then(r => {
+                  console.log('🔵 Response status:', r.status);
+                  return r.json();
+                })
+                .then(data => {
+                  console.log('🔵 Received clients:', data);
+                  setClientList(data);
+                })
+                .catch(err => {
+                  console.error('❌ Error fetching clients:', err);
+                  alert('Помилка завантаження клієнтів: ' + err.message);
+                });
               setMode("clients");
             }}
             style={{
