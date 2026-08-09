@@ -2855,22 +2855,45 @@ app.get('/api/admin/clients', (req, res) => {
     return res.status(403).json({ error: 'Not admin' });
 
   pool.query(`
+    WITH client_data AS (
+      SELECT DISTINCT ON (tg_id)
+        tg_id,
+        client as client_name,
+        username,
+        created_at
+      FROM appointments
+      WHERE tg_id IS NOT NULL
+      ORDER BY tg_id, created_at DESC
+    ),
+    client_stats AS (
+      SELECT 
+        tg_id,
+        COUNT(id) as total_appointments,
+        COUNT(CASE WHEN status = 'approved' THEN 1 END) as completed_appointments,
+        MAX(date) as last_appointment_date,
+        COALESCE(SUM(CASE WHEN status = 'approved' THEN price ELSE 0 END), 0) as total_spent
+      FROM appointments
+      WHERE tg_id IS NOT NULL
+      GROUP BY tg_id
+    )
     SELECT 
-      a.tg_id,
-      (SELECT client FROM appointments WHERE tg_id = a.tg_id ORDER BY created_at DESC LIMIT 1) as client_name,
-      (SELECT username FROM appointments WHERE tg_id = a.tg_id ORDER BY created_at DESC LIMIT 1) as username,
+      cd.tg_id,
+      cd.client_name,
+      cd.username,
       COALESCE(cp.points, 0) as points,
-      COUNT(DISTINCT a.id) as total_appointments,
-      COUNT(DISTINCT CASE WHEN a.status = 'approved' THEN a.id END) as completed_appointments,
-      MAX(a.date) as last_appointment_date,
-      COALESCE(SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END), 0) as total_spent
-    FROM appointments a
-    LEFT JOIN client_points cp ON a.tg_id = cp.tg_id
-    WHERE a.tg_id IS NOT NULL
-    GROUP BY a.tg_id, cp.points
-    ORDER BY cp.points DESC NULLS LAST, last_appointment_date DESC
+      cs.total_appointments,
+      cs.completed_appointments,
+      cs.last_appointment_date,
+      cs.total_spent
+    FROM client_data cd
+    LEFT JOIN client_stats cs ON cd.tg_id = cs.tg_id
+    LEFT JOIN client_points cp ON cd.tg_id = cp.tg_id
+    ORDER BY cp.points DESC NULLS LAST, cs.last_appointment_date DESC NULLS LAST
   `)
-    .then(result => res.json(result.rows))
+    .then(result => {
+      console.log(`📊 Fetched ${result.rows.length} clients`);
+      res.json(result.rows);
+    })
     .catch(err => {
       console.error('Clients fetch error:', err);
       res.status(500).json({ error: 'DB error' });
