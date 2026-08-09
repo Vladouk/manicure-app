@@ -2854,49 +2854,48 @@ app.get('/api/admin/clients', (req, res) => {
   if (!ADMIN_TG_IDS.includes(user.id))
     return res.status(403).json({ error: 'Not admin' });
 
+  // Простий запит для діагностики
   pool.query(`
-    WITH client_data AS (
-      SELECT DISTINCT ON (tg_id)
-        tg_id,
-        client as client_name,
-        username,
-        created_at
-      FROM appointments
-      WHERE tg_id IS NOT NULL
-      ORDER BY tg_id, created_at DESC
-    ),
-    client_stats AS (
-      SELECT 
-        tg_id,
-        COUNT(id) as total_appointments,
-        COUNT(CASE WHEN status = 'approved' THEN 1 END) as completed_appointments,
-        MAX(date) as last_appointment_date,
-        COALESCE(SUM(CASE WHEN status = 'approved' THEN price ELSE 0 END), 0) as total_spent
-      FROM appointments
-      WHERE tg_id IS NOT NULL
-      GROUP BY tg_id
-    )
     SELECT 
-      cd.tg_id,
-      cd.client_name,
-      cd.username,
-      COALESCE(cp.points, 0) as points,
-      cs.total_appointments,
-      cs.completed_appointments,
-      cs.last_appointment_date,
-      cs.total_spent
-    FROM client_data cd
-    LEFT JOIN client_stats cs ON cd.tg_id = cs.tg_id
-    LEFT JOIN client_points cp ON cd.tg_id = cp.tg_id
-    ORDER BY cp.points DESC NULLS LAST, cs.last_appointment_date DESC NULLS LAST
+      tg_id,
+      client,
+      username,
+      status,
+      price,
+      date
+    FROM appointments
+    WHERE tg_id IS NOT NULL
+    ORDER BY tg_id, created_at DESC
+    LIMIT 20
   `)
+    .then(debugResult => {
+      console.log('🔍 DEBUG - Raw appointments data:', JSON.stringify(debugResult.rows, null, 2));
+      
+      // Тепер реальний запит
+      return pool.query(`
+        SELECT 
+          a.tg_id,
+          MAX(a.client) as client_name,
+          MAX(a.username) as username,
+          COALESCE(cp.points, 0) as points,
+          COUNT(a.id) as total_appointments,
+          COUNT(CASE WHEN a.status = 'approved' THEN 1 END) as completed_appointments,
+          MAX(a.date) as last_appointment_date,
+          SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END) as total_spent
+        FROM appointments a
+        LEFT JOIN client_points cp ON a.tg_id = cp.tg_id
+        WHERE a.tg_id IS NOT NULL
+        GROUP BY a.tg_id, cp.points
+        ORDER BY cp.points DESC NULLS LAST, last_appointment_date DESC NULLS LAST
+      `);
+    })
     .then(result => {
-      console.log(`📊 Fetched ${result.rows.length} clients`);
+      console.log(`📊 Final result - ${result.rows.length} clients:`, JSON.stringify(result.rows, null, 2));
       res.json(result.rows);
     })
     .catch(err => {
       console.error('Clients fetch error:', err);
-      res.status(500).json({ error: 'DB error' });
+      res.status(500).json({ error: 'DB error', details: err.message });
     });
 });
 
