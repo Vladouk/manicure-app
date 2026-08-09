@@ -1004,14 +1004,14 @@ app.post('/api/appointment/cancel', (req, res) => {
       pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [row.date, row.time])
         .catch(err => console.error("Free slot error:", err));
 
-      // 3️⃣ Повертаємо бал, якщо запис був підтверджений
+      // 3️⃣ Забираємо бал назад, якщо запис був підтверджений
       if (wasApproved) {
-        pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [tg_id])
+        pool.query(`UPDATE client_points SET points = points - 1 WHERE tg_id = $1`, [tg_id])
           .then(() => {
-            bot.sendMessage(tg_id, `💰 Тобі повернувся 1 бал за скасований запис`, { parse_mode: "Markdown" })
-              .catch(err => console.error("Points return notification error:", err));
+            bot.sendMessage(tg_id, `⚠️ У тебе забрали 1 бал за скасований підтверджений запис`, { parse_mode: "Markdown" })
+              .catch(err => console.error("Points removal notification error:", err));
           })
-          .catch(err => console.error("Points return error:", err));
+          .catch(err => console.error("Points removal error:", err));
       }
 
       // 4️⃣ Повідомляємо клієнту
@@ -1317,11 +1317,11 @@ app.post('/api/admin/status', (req, res) => {
         pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [row.date, row.time])
           .catch(err => console.error("Slot unbook error:", err));
 
-        // Return points if appointment was approved before cancellation
+        // Remove points if appointment was approved before cancellation
         if (row.status === 'approved') {
-          pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [row.tg_id])
-            .then(() => bot.sendMessage(row.tg_id, `💰 Тобі повернувся 1 балл за скасований запис`, { parse_mode: "Markdown" }))
-            .catch(err => console.error("Points return error:", err));
+          pool.query(`UPDATE client_points SET points = points - 1 WHERE tg_id = $1`, [row.tg_id])
+            .then(() => bot.sendMessage(row.tg_id, `⚠️ У тебе забрали 1 бал за скасований запис`, { parse_mode: "Markdown" }))
+            .catch(err => console.error("Points removal error:", err));
         }
       }
 
