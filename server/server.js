@@ -2843,6 +2843,44 @@ cron.schedule('0 2 * * 0', async () => {
 console.log('✅ Cron jobs initialized');
 // ===== END CRON JOBS =====
 
+// =============== DEBUG: CHECK DATABASE CONTENT ===============
+app.get('/api/admin/debug-db', (req, res) => {
+  const initData = req.headers['x-init-data'];
+
+  if (!initData || !validateInitData(initData))
+    return res.status(403).json({ error: 'Access denied' });
+
+  const user = JSON.parse(new URLSearchParams(initData).get('user'));
+  if (!ADMIN_TG_IDS.includes(user.id))
+    return res.status(403).json({ error: 'Not admin' });
+
+  Promise.all([
+    pool.query('SELECT COUNT(*) as total FROM appointments'),
+    pool.query('SELECT COUNT(*) as with_tg_id FROM appointments WHERE tg_id IS NOT NULL'),
+    pool.query('SELECT status, COUNT(*) as count FROM appointments GROUP BY status'),
+    pool.query('SELECT tg_id, COUNT(*) as count FROM appointments WHERE tg_id IS NOT NULL GROUP BY tg_id ORDER BY count DESC LIMIT 5'),
+    pool.query('SELECT * FROM appointments WHERE tg_id IS NOT NULL ORDER BY created_at DESC LIMIT 3'),
+    pool.query('SELECT * FROM client_points LIMIT 5')
+  ])
+    .then(([total, withTgId, byStatus, topClients, recentAppts, points]) => {
+      const debug = {
+        total_appointments: total.rows[0].total,
+        appointments_with_tg_id: withTgId.rows[0].with_tg_id,
+        by_status: byStatus.rows,
+        top_clients_by_appointments: topClients.rows,
+        recent_appointments: recentAppts.rows,
+        client_points: points.rows
+      };
+      
+      console.log('🔍 DATABASE DEBUG:', JSON.stringify(debug, null, 2));
+      res.json(debug);
+    })
+    .catch(err => {
+      console.error('Debug query error:', err);
+      res.status(500).json({ error: err.message });
+    });
+});
+
 // =============== ADMIN: GET ALL CLIENTS WITH POINTS ===============
 app.get('/api/admin/clients', (req, res) => {
   const initData = req.headers['x-init-data'];

@@ -1390,6 +1390,42 @@ function App() {
           </button>
         </div>
 
+        {/* DEBUG Button */}
+        <div style={{ textAlign: 'center', margin: '20px 0' }}>
+          <button
+            onClick={() => {
+              fetch(`${API}/api/admin/debug-db`, {
+                headers: { "x-init-data": WebApp.initData }
+              })
+                .then(r => r.json())
+                .then(data => {
+                  console.log('🔍 DEBUG DATA:', data);
+                  alert('Debug info: \n' + 
+                    `Всього записів: ${data.total_appointments}\n` +
+                    `З tg_id: ${data.appointments_with_tg_id}\n` +
+                    `Статуси: ${JSON.stringify(data.by_status)}\n\n` +
+                    'Дивись консоль для деталей'
+                  );
+                })
+                .catch(err => alert('Помилка: ' + err.message));
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '12px 25px',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              color: 'white',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(231, 76, 60, 0.3)',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            🔍 DEBUG: Перевірити БД
+          </button>
+        </div>
+
         {/* Sorting Controls */}
         <div style={{
           background: 'white',
