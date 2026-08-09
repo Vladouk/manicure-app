@@ -1380,49 +1380,6 @@ app.get('/api/slots', (req, res) => {
     .catch(err => res.status(500).json({ error: "DB error" }));
 });
 
-// =============== ADMIN: GET ALL CLIENTS ===============
-app.get('/api/admin/clients', (req, res) => {
-  const initData = req.headers['x-init-data'];
-
-  if (!initData || !validateInitData(initData))
-    return res.status(403).json({ error: 'Access denied' });
-
-  const user = JSON.parse(new URLSearchParams(initData).get('user'));
-  if (!ADMIN_TG_IDS.includes(user.id))
-    return res.status(403).json({ error: 'Not admin' });
-
-  pool.query(
-    `
-    WITH dedup AS (
-      SELECT 
-        COALESCE(tg_id::text, LOWER(client)) AS client_key,
-        MAX(tg_id) AS tg_id,
-        MAX(client) FILTER (WHERE client IS NOT NULL AND client <> '') AS client,
-        MAX(username) FILTER (WHERE username IS NOT NULL AND username <> '') AS username,
-        MAX(date || ' ' || time) AS last_visit,
-        COUNT(*) AS total_visits
-      FROM appointments
-      WHERE status != 'canceled'
-      GROUP BY COALESCE(tg_id::text, LOWER(client))
-    )
-    SELECT 
-      d.tg_id, 
-      d.client, 
-      NULLIF(d.username, '') as username, 
-      d.last_visit, 
-      d.total_visits,
-      CASE WHEN b.tg_id IS NOT NULL THEN true ELSE false END as is_blacklisted,
-      b.reason as blacklist_reason
-    FROM dedup d
-    LEFT JOIN blacklist b ON d.tg_id = b.tg_id
-    ORDER BY d.last_visit DESC
-    `,
-    []
-  )
-    .then(result => res.json(result.rows))
-    .catch(err => res.status(500).json({ error: "DB error" }));
-});
-
 app.post('/api/admin/broadcast', async (req, res) => {
   const initData = req.headers['x-init-data'];
   const { message } = req.body;
@@ -1445,6 +1402,7 @@ app.post('/api/admin/broadcast', async (req, res) => {
     res.status(500).json({ error: 'Broadcast failed' });
   }
 });
+
 // =============== ADMIN: GET CLIENT HISTORY ===============
 app.get('/api/admin/client-history', (req, res) => {
   const initData = req.headers['x-init-data'];
