@@ -71,6 +71,15 @@ function App() {
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcastStatus, setBroadcastStatus] = useState('');
 
+  // CLIENT POINTS EDITING
+  const [editPointsModalOpen, setEditPointsModalOpen] = useState(false);
+  const [editPointsClient, setEditPointsClient] = useState(null);
+  const [editPointsValue, setEditPointsValue] = useState('');
+
+  // CLIENT LIST SORTING
+  const [clientSortBy, setClientSortBy] = useState('points'); // 'points', 'name', 'visits', 'spent'
+  const [clientSortOrder, setClientSortOrder] = useState('desc'); // 'asc' or 'desc'
+
   // RESCHEDULE APPOINTMENT
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [rescheduleOldDate, setRescheduleOldDate] = useState(null);
@@ -1249,9 +1258,83 @@ function App() {
       })
       .catch((err) => {
         console.error('Broadcast error:', err);
-        setBroadcastStatus(`❌ ${err.message || 'Помилка'}`);
+        setBroadcastStatus('❌ Помилка відправки');
       });
   };
+
+  // UPDATE CLIENT POINTS
+  const updateClientPoints = (tg_id, newPoints) => {
+    if (newPoints === undefined || newPoints === null || newPoints < 0) {
+      alert("❌ Введіть коректну кількість балів");
+      return;
+    }
+
+    fetch(`${API}/api/admin/clients/update-points`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-init-data": WebApp.initData
+      },
+      body: JSON.stringify({ tg_id, points: newPoints })
+    })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(() => {
+        alert("✅ Бали оновлено!");
+        setEditPointsModalOpen(false);
+        setEditPointsValue('');
+        setEditPointsClient(null);
+        // Reload clients list
+        fetch(`${API}/api/admin/clients`, {
+          headers: { "x-init-data": WebApp.initData }
+        })
+          .then(r => r.json())
+          .then(setClientList);
+      })
+      .catch(err => {
+        console.error("Points update error:", err);
+        alert(`❌ Помилка оновлення балів: ${err.message}`);
+      });
+  };
+
+  // SORT CLIENTS
+  const sortedClientList = useMemo(() => {
+    const sorted = [...clientList];
+    sorted.sort((a, b) => {
+      let valueA, valueB;
+      
+      switch (clientSortBy) {
+        case 'points':
+          valueA = a.points || 0;
+          valueB = b.points || 0;
+          break;
+        case 'name':
+          valueA = (a.client_name || '').toLowerCase();
+          valueB = (b.client_name || '').toLowerCase();
+          break;
+        case 'visits':
+          valueA = a.total_appointments || 0;
+          valueB = b.total_appointments || 0;
+          break;
+        case 'spent':
+          valueA = a.total_spent || 0;
+          valueB = b.total_spent || 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (clientSortOrder === 'asc') {
+        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+      } else {
+        return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+      }
+    });
+    
+    return sorted;
+  }, [clientList, clientSortBy, clientSortOrder]);
 
   // ADMIN PANEL
 
@@ -1307,20 +1390,81 @@ function App() {
           </button>
         </div>
 
+        {/* Sorting Controls */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '20px',
+          marginBottom: '20px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.08)'
+        }}>
+          <div style={{
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: '#2c3e50',
+            marginBottom: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            🔀 Сортування
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto',
+            gap: '10px'
+          }}>
+            <select
+              value={clientSortBy}
+              onChange={(e) => setClientSortBy(e.target.value)}
+              style={{
+                padding: '12px',
+                borderRadius: '10px',
+                border: '2px solid #e0e0e0',
+                fontSize: '0.95rem',
+                fontWeight: '500',
+                color: '#2c3e50',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="points">💎 За балами</option>
+              <option value="name">👤 За ім'ям</option>
+              <option value="visits">📊 За кількістю візитів</option>
+              <option value="spent">💰 За витраченою сумою</option>
+            </select>
+            <button
+              onClick={() => setClientSortOrder(clientSortOrder === 'asc' ? 'desc' : 'asc')}
+              style={{
+                padding: '12px 20px',
+                borderRadius: '10px',
+                border: '2px solid #667eea',
+                background: 'white',
+                color: '#667eea',
+                fontSize: '1.2rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              title={clientSortOrder === 'asc' ? 'За зростанням' : 'За спаданням'}
+            >
+              {clientSortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </div>
+        </div>
+
         {/* Clients Grid */}
         <div style={{
           display: 'grid',
           gap: '15px',
           marginBottom: '25px'
         }}>
-          {clientList.map(c => (
+          {sortedClientList.map(c => (
             <div
               key={c.tg_id}
               className="menu-card"
               style={{
-                background: c.is_blacklisted
-                  ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)'
-                  : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
                 borderRadius: '16px',
                 padding: '20px',
                 transition: 'all 0.3s ease',
@@ -1345,7 +1489,7 @@ function App() {
                     alignItems: 'center',
                     gap: '8px'
                   }}>
-                    👤 {c.client}
+                    👤 {c.client_name || c.client}
                   </div>
                   {c.username && (
                     <a
@@ -1368,92 +1512,91 @@ function App() {
                       📱 @{c.username} →
                     </a>
                   )}
-                  {!c.username && c.tg_id && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        WebApp.openTelegramLink(`tg://user?id=${c.tg_id}`);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        color: '#0088cc',
-                        textDecoration: 'none',
-                        fontSize: '0.9rem',
-                        fontWeight: '500',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer'
-                      }}
-                      onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                      onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-                    >
-                      📱 Відкрити профіль →
-                    </button>
-                  )}
-                </div>
-                <div style={{
-                  background: 'rgba(102, 126, 234, 0.15)',
-                  color: '#667eea',
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem',
-                  fontWeight: '600'
-                }}>
-                  {c.total_visits || 0} {c.total_visits === 1 ? 'візит' : 'візитів'}
                 </div>
               </div>
 
-              {c.is_blacklisted && (
+              {/* Stats Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '10px',
+                marginBottom: '15px'
+              }}>
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  color: '#d32f2f',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>💎 Бали</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#667eea' }}>
+                    {c.points || 0}
+                  </div>
+                </div>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>📊 Візитів</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#27ae60' }}>
+                    {c.total_appointments || 0}
+                  </div>
+                </div>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>✅ Завершено</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#3498db' }}>
+                    {c.completed_appointments || 0}
+                  </div>
+                </div>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>💰 Витрачено</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#e74c3c' }}>
+                    {c.total_spent || 0} zł
+                  </div>
+                </div>
+              </div>
+
+              {c.last_appointment_date && (
+                <div style={{
                   fontSize: '0.85rem',
-                  fontWeight: '600',
-                  marginBottom: '12px',
+                  color: '#666',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '6px',
+                  marginBottom: '15px',
+                  justifyContent: 'center'
                 }}>
-                  <span>🚫</span>
-                  <span>У чорному списку{c.blacklist_reason ? `: ${c.blacklist_reason}` : ''}</span>
+                  <span>📅</span>
+                  <span>
+                    Останній візит: <strong>{c.last_appointment_date}</strong>
+                  </span>
                 </div>
               )}
 
               <div style={{
-                fontSize: '0.9rem',
-                color: c.is_blacklisted ? '#fff' : '#666',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginBottom: '12px'
-              }}>
-                <span style={{ opacity: 0.7 }}>📅</span>
-                <span>
-                  Останній візит: <strong>{c.last_visit ? new Date(c.last_visit.replace(' ', 'T')).toLocaleDateString('uk-UA', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  }) : "немає"}</strong>
-                </span>
-              </div>
-
-              <div style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
                 gap: '10px',
-                marginTop: '12px'
+                marginTop: '15px'
               }}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedClient(c);
                     setMode("clientHistory");
-                    fetch(`${API}/api/admin/client-history?tg_id=${c.tg_id}`, {
+                    fetch(`${API}/api/admin/clients/${c.tg_id}/history`, {
                       headers: { "x-init-data": WebApp.initData }
                     })
                       .then(r => r.json())
@@ -1462,12 +1605,11 @@ function App() {
                       });
                   }}
                   style={{
-                    flex: 1,
-                    background: c.is_blacklisted ? 'rgba(255, 255, 255, 0.2)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     border: 'none',
                     borderRadius: '10px',
-                    padding: '12px',
-                    fontSize: '0.9rem',
+                    padding: '12px 8px',
+                    fontSize: '0.85rem',
                     fontWeight: '600',
                     color: 'white',
                     cursor: 'pointer',
@@ -1477,110 +1619,220 @@ function App() {
                   📋 Історія
                 </button>
 
-                {!c.is_blacklisted ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const reason = prompt('Введіть причину додавання в чорний список (необов\'язково):');
-                      if (reason !== null) {
-                        fetch(`${API}/api/admin/blacklist`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'x-init-data': WebApp.initData
-                          },
-                          body: JSON.stringify({ tg_id: c.tg_id, reason })
-                        })
-                          .then(r => r.json())
-                          .then(() => {
-                            // Refresh client list
-                            fetch(`${API}/api/admin/clients`, {
-                              headers: { "x-init-data": WebApp.initData }
-                            })
-                              .then(r => r.json())
-                              .then(setClientList);
-                            alert('Клієнта додано в чорний список');
-                          })
-                          .catch(err => alert('Помилка: ' + err.message));
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '12px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    🚫 Заблокувати
-                  </button>
-                ) : (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm('Видалити клієнта з чорного списку?')) {
-                        fetch(`${API}/api/admin/blacklist/remove`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'x-init-data': WebApp.initData
-                          },
-                          body: JSON.stringify({ tg_id: c.tg_id })
-                        })
-                          .then(r => r.json())
-                          .then(() => {
-                            // Refresh client list
-                            fetch(`${API}/api/admin/clients`, {
-                              headers: { "x-init-data": WebApp.initData }
-                            })
-                              .then(r => r.json())
-                              .then(setClientList);
-                            alert('Клієнта видалено з чорного списку');
-                          })
-                          .catch(err => alert('Помилка: ' + err.message));
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      background: 'linear-gradient(135deg, #51cf66 0%, #40c057 100%)',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '12px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    ✅ Розблокувати
-                  </button>
-                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditPointsClient(c);
+                    setEditPointsValue((c.points || 0).toString());
+                    setEditPointsModalOpen(true);
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 8px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  💎 Бали
+                </button>
               </div>
             </div>
           ))}
         </div>
 
+        {/* Empty State */}
         {clientList.length === 0 && (
-          <div className="card" style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-            borderRadius: '20px'
-          }}>
-            <div style={{ fontSize: '4rem', marginBottom: '20px', opacity: 0.5 }}>👥</div>
-            <h3 style={{ color: '#666', margin: '0 0 10px 0' }}>Поки немає клієнтів</h3>
-            <p style={{ color: '#888', margin: 0 }}>Клієнти з'являться після перших записів</p>
+          <div
+            className="menu-card"
+            style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              borderRadius: '16px',
+              padding: '40px 25px',
+              boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
+              border: 'none',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{
+              fontSize: '4rem',
+              marginBottom: '20px',
+              opacity: 0.7
+            }}>
+              📭
+            </div>
+            <div style={{
+              fontSize: '1.2rem',
+              fontWeight: 'bold',
+              color: 'white',
+              marginBottom: '10px',
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+            }}>
+              Клієнтів поки що немає
+            </div>
           </div>
         )}
 
-        {modal}
-        {priceEditModal}
+        {/* Edit Points Modal */}
+        {editPointsModalOpen && editPointsClient && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1001,
+            }}
+            onClick={() => setEditPointsModalOpen(false)}
+          >
+            <div
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '30px',
+                maxWidth: '400px',
+                width: '90%',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#2c3e50',
+                marginBottom: '10px',
+                textAlign: 'center'
+              }}>
+                💎 Редагувати бали
+              </h2>
+
+              <div style={{
+                background: '#f8f9fa',
+                borderRadius: '12px',
+                padding: '15px',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: '#666',
+                  marginBottom: '5px'
+                }}>
+                  Клієнт:
+                </div>
+                <div style={{
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  color: '#2c3e50'
+                }}>
+                  {editPointsClient.client_name || editPointsClient.client}
+                </div>
+              </div>
+
+              <div style={{
+                background: '#ecf0f1',
+                borderRadius: '10px',
+                padding: '15px',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: '#666',
+                  marginBottom: '5px'
+                }}>
+                  Поточні бали:
+                </div>
+                <div style={{
+                  fontSize: '1.8rem',
+                  fontWeight: 'bold',
+                  color: '#667eea'
+                }}>
+                  {editPointsClient.points || 0}
+                </div>
+              </div>
+
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '600',
+                color: '#2c3e50',
+                fontSize: '0.95rem'
+              }}>
+                Нова кількість балів:
+              </label>
+
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={editPointsValue}
+                onChange={(e) => setEditPointsValue(e.target.value)}
+                placeholder="Введіть кількість балів"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: '2px solid #667eea',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box',
+                  marginBottom: '20px',
+                  fontWeight: '500'
+                }}
+              />
+
+              <div style={{
+                display: 'flex',
+                gap: '10px'
+              }}>
+                <button
+                  onClick={() => setEditPointsModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: '2px solid #bdc3c7',
+                    background: 'white',
+                    color: '#2c3e50',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Скасувати
+                </button>
+                <button
+                  onClick={() => updateClientPoints(editPointsClient.tg_id, parseInt(editPointsValue, 10))}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                  }}
+                >
+                  ✓ Зберегти
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

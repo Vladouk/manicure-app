@@ -2762,6 +2762,119 @@ app.post('/api/admin/blacklist/remove', (req, res) => {
 console.log('✅ Cron jobs initialized');
 // ===== END CRON JOBS =====
 
+// =============== ADMIN: GET ALL CLIENTS WITH POINTS ===============
+app.get('/api/admin/clients', (req, res) => {
+  const initData = req.headers['x-init-data'];
+
+  if (!initData || !validateInitData(initData))
+    return res.status(403).json({ error: 'Access denied' });
+
+  const user = JSON.parse(new URLSearchParams(initData).get('user'));
+  if (!ADMIN_TG_IDS.includes(user.id))
+    return res.status(403).json({ error: 'Not admin' });
+
+  pool.query(`
+    SELECT 
+      a.tg_id,
+      a.client as client_name,
+      a.username,
+      COALESCE(cp.points, 0) as points,
+      COUNT(DISTINCT a.id) as total_appointments,
+      COUNT(DISTINCT CASE WHEN a.status = 'approved' THEN a.id END) as completed_appointments,
+      MAX(a.date) as last_appointment_date,
+      SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END) as total_spent
+    FROM appointments a
+    LEFT JOIN client_points cp ON a.tg_id = cp.tg_id
+    WHERE a.tg_id IS NOT NULL
+    GROUP BY a.tg_id, a.client, a.username, cp.points
+    ORDER BY cp.points DESC, a.client ASC
+  `)
+    .then(result => res.json(result.rows))
+    .catch(err => {
+      console.error('Clients fetch error:', err);
+      res.status(500).json({ error: 'DB error' });
+    });
+});
+
+// =============== ADMIN: UPDATE CLIENT POINTS ===============
+app.post('/api/admin/clients/update-points', (req, res) => {
+  const initData = req.headers['x-init-data'];
+  const { tg_id, points } = req.body;
+
+  if (!initData || !validateInitData(initData))
+    return res.status(403).json({ error: 'Access denied' });
+
+  const user = JSON.parse(new URLSearchParams(initData).get('user'));
+  if (!ADMIN_TG_IDS.includes(user.id))
+    return res.status(403).json({ error: 'Not admin' });
+
+  if (!tg_id || points === undefined)
+    return res.status(400).json({ error: 'Missing tg_id or points' });
+
+  const pointsNum = parseInt(points, 10);
+  if (isNaN(pointsNum) || pointsNum < 0)
+    return res.status(400).json({ error: 'Invalid points value' });
+
+  // First ensure the client exists in client_points table
+  pool.query(`
+    INSERT INTO client_points (tg_id, points) 
+    VALUES ($1, $2)
+    ON CONFLICT (tg_id) 
+    DO UPDATE SET points = $2
+  `, [tg_id, pointsNum])
+    .then(() => {
+      console.log(`✅ Updated points for client ${tg_id}: ${pointsNum}`);
+      
+      // Notify the client about the points change
+      bot.sendMessage(
+        tg_id,
+        `🎁 *Зміна балів*\n\nАдміністратор змінив ваші бонусні бали.\nПоточний баланс: *${pointsNum}* балів 💎`,
+        { parse_mode: 'Markdown' }
+      ).catch(err => console.error('Client points notification error:', err));
+
+      res.json({ ok: true });
+    })
+    .catch(err => {
+      console.error('Update points error:', err);
+      res.status(500).json({ error: 'DB error' });
+    });
+});
+
+// =============== ADMIN: GET CLIENT HISTORY ===============
+app.get('/api/admin/clients/:tg_id/history', (req, res) => {
+  const initData = req.headers['x-init-data'];
+  const { tg_id } = req.params;
+
+  if (!initData || !validateInitData(initData))
+    return res.status(403).json({ error: 'Access denied' });
+
+  const user = JSON.parse(new URLSearchParams(initData).get('user'));
+  if (!ADMIN_TG_IDS.includes(user.id))
+    return res.status(403).json({ error: 'Not admin' });
+
+  pool.query(`
+    SELECT 
+      id,
+      client,
+      date,
+      time,
+      service,
+      price,
+      status,
+      bonus_points_spent,
+      bonus_reward,
+      created_at
+    FROM appointments
+    WHERE tg_id = $1
+    ORDER BY date DESC, time DESC
+  `, [tg_id])
+    .then(result => res.json(result.rows))
+    .catch(err => {
+      console.error('Client history fetch error:', err);
+      res.status(500).json({ error: 'DB error' });
+    });
+});
+
 // =============== START SERVER ===============
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
