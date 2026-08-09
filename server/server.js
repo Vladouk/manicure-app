@@ -2759,6 +2759,87 @@ app.post('/api/admin/blacklist/remove', (req, res) => {
     });
 });
 
+// 5️⃣ Update client usernames weekly (every Sunday at 02:00)
+cron.schedule('0 2 * * 0', async () => {
+  console.log('🔄 Запуск оновлення username клієнтів...');
+  
+  try {
+    // Get all unique tg_ids from appointments
+    const result = await pool.query(`
+      SELECT DISTINCT tg_id 
+      FROM appointments 
+      WHERE tg_id IS NOT NULL
+    `);
+
+    let updatedCount = 0;
+    let errorCount = 0;
+
+    for (const row of result.rows) {
+      try {
+        // Get user info from Telegram
+        const chatMember = await bot.getChatMember(row.tg_id, row.tg_id).catch(() => null);
+        
+        if (chatMember && chatMember.user) {
+          const newUsername = chatMember.user.username || null;
+          const newFirstName = chatMember.user.first_name || null;
+          
+          // Get current username from latest appointment
+          const currentData = await pool.query(
+            `SELECT username, client FROM appointments WHERE tg_id = $1 ORDER BY created_at DESC LIMIT 1`,
+            [row.tg_id]
+          );
+          
+          const currentUsername = currentData.rows[0]?.username;
+          const currentName = currentData.rows[0]?.client;
+          
+          let changed = false;
+          
+          // Update username if changed
+          if (newUsername && newUsername !== currentUsername) {
+            await pool.query(
+              `UPDATE appointments SET username = $1 WHERE tg_id = $2`,
+              [newUsername, row.tg_id]
+            );
+            console.log(`✅ Updated username for ${row.tg_id}: ${currentUsername || 'null'} -> ${newUsername}`);
+            changed = true;
+          }
+          
+          // Update name if changed and we have new first name
+          if (newFirstName && newFirstName !== currentName) {
+            await pool.query(
+              `UPDATE appointments SET client = $1 WHERE tg_id = $2`,
+              [newFirstName, row.tg_id]
+            );
+            console.log(`✅ Updated name for ${row.tg_id}: ${currentName} -> ${newFirstName}`);
+            changed = true;
+          }
+          
+          if (changed) {
+            updatedCount++;
+          }
+        }
+      } catch (err) {
+        console.error(`❌ Error updating user ${row.tg_id}:`, err.message);
+        errorCount++;
+      }
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.log(`✅ Username update completed: ${updatedCount} updated, ${errorCount} errors`);
+    
+    // Notify admins if there were updates
+    if (updatedCount > 0) {
+      notifyAllAdmins(
+        `🔄 *Оновлення username клієнтів*\n\n✅ Оновлено: ${updatedCount}\n❌ Помилок: ${errorCount}`
+      );
+    }
+  } catch (err) {
+    console.error('❌ Username update job error:', err);
+  }
+});
+
 console.log('✅ Cron jobs initialized');
 // ===== END CRON JOBS =====
 
@@ -2776,18 +2857,18 @@ app.get('/api/admin/clients', (req, res) => {
   pool.query(`
     SELECT 
       a.tg_id,
-      a.client as client_name,
-      a.username,
+      (SELECT client FROM appointments WHERE tg_id = a.tg_id ORDER BY created_at DESC LIMIT 1) as client_name,
+      (SELECT username FROM appointments WHERE tg_id = a.tg_id ORDER BY created_at DESC LIMIT 1) as username,
       COALESCE(cp.points, 0) as points,
       COUNT(DISTINCT a.id) as total_appointments,
       COUNT(DISTINCT CASE WHEN a.status = 'approved' THEN a.id END) as completed_appointments,
       MAX(a.date) as last_appointment_date,
-      SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END) as total_spent
+      COALESCE(SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END), 0) as total_spent
     FROM appointments a
     LEFT JOIN client_points cp ON a.tg_id = cp.tg_id
     WHERE a.tg_id IS NOT NULL
-    GROUP BY a.tg_id, a.client, a.username, cp.points
-    ORDER BY cp.points DESC, a.client ASC
+    GROUP BY a.tg_id, cp.points
+    ORDER BY cp.points DESC NULLS LAST, last_appointment_date DESC
   `)
     .then(result => res.json(result.rows))
     .catch(err => {
