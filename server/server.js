@@ -2801,8 +2801,8 @@ cron.schedule('0 2 * * 0', async () => {
 console.log('✅ Cron jobs initialized');
 // ===== END CRON JOBS =====
 
-// =============== DEBUG: CHECK DATABASE CONTENT ===============
-app.get('/api/admin/debug-db', (req, res) => {
+// =============== ADMIN: GET ALL CLIENTS WITH POINTS ===============
+app.get('/api/admin/clients', (req, res) => {
   const initData = req.headers['x-init-data'];
 
   if (!initData || !validateInitData(initData))
@@ -2811,55 +2811,6 @@ app.get('/api/admin/debug-db', (req, res) => {
   const user = JSON.parse(new URLSearchParams(initData).get('user'));
   if (!ADMIN_TG_IDS.includes(user.id))
     return res.status(403).json({ error: 'Not admin' });
-
-  Promise.all([
-    pool.query('SELECT COUNT(*) as total FROM appointments'),
-    pool.query('SELECT COUNT(*) as with_tg_id FROM appointments WHERE tg_id IS NOT NULL'),
-    pool.query('SELECT status, COUNT(*) as count FROM appointments GROUP BY status'),
-    pool.query('SELECT tg_id, COUNT(*) as count FROM appointments WHERE tg_id IS NOT NULL GROUP BY tg_id ORDER BY count DESC LIMIT 5'),
-    pool.query('SELECT * FROM appointments WHERE tg_id IS NOT NULL ORDER BY created_at DESC LIMIT 3'),
-    pool.query('SELECT * FROM client_points LIMIT 5')
-  ])
-    .then(([total, withTgId, byStatus, topClients, recentAppts, points]) => {
-      const debug = {
-        total_appointments: total.rows[0].total,
-        appointments_with_tg_id: withTgId.rows[0].with_tg_id,
-        by_status: byStatus.rows,
-        top_clients_by_appointments: topClients.rows,
-        recent_appointments: recentAppts.rows,
-        client_points: points.rows
-      };
-      
-      console.log('🔍 DATABASE DEBUG:', JSON.stringify(debug, null, 2));
-      res.json(debug);
-    })
-    .catch(err => {
-      console.error('Debug query error:', err);
-      res.status(500).json({ error: err.message });
-    });
-});
-
-// =============== ADMIN: GET ALL CLIENTS WITH POINTS ===============
-app.get('/api/admin/clients', (req, res) => {
-  console.log('🟢 /api/admin/clients endpoint HIT');
-  
-  const initData = req.headers['x-init-data'];
-  console.log('🔑 initData present:', !!initData);
-
-  if (!initData || !validateInitData(initData)) {
-    console.log('❌ Auth failed - initData invalid');
-    return res.status(403).json({ error: 'Access denied' });
-  }
-
-  const user = JSON.parse(new URLSearchParams(initData).get('user'));
-  console.log('👤 User ID:', user?.id);
-  
-  if (!ADMIN_TG_IDS.includes(user.id)) {
-    console.log('❌ Not admin - user.id:', user.id);
-    return res.status(403).json({ error: 'Not admin' });
-  }
-
-  console.log('✅ Auth passed, executing query...');
 
   pool.query(`
     SELECT 
@@ -2877,16 +2828,10 @@ app.get('/api/admin/clients', (req, res) => {
     GROUP BY a.tg_id
     ORDER BY points DESC NULLS LAST, last_appointment_date DESC NULLS LAST
   `)
-    .then(result => {
-      console.log(`✅ Query success! Returning ${result.rows.length} clients`);
-      if (result.rows.length > 0) {
-        console.log('First client sample:', JSON.stringify(result.rows[0], null, 2));
-      }
-      res.json(result.rows);
-    })
+    .then(result => res.json(result.rows))
     .catch(err => {
-      console.error('❌ Query error:', err.message);
-      res.status(500).json({ error: 'DB error', details: err.message });
+      console.error('❌ Clients fetch error:', err);
+      res.status(500).json({ error: 'DB error' });
     });
 });
 
