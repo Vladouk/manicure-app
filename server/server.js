@@ -984,8 +984,8 @@ app.post('/api/appointment/cancel', (req, res) => {
   // Build query — if appointment_id provided, cancel that specific one;
   // otherwise fall back to the first active appointment (legacy behaviour)
   const query = appointment_id
-    ? `SELECT id, date, time, design, length, comment, type, client, username FROM appointments WHERE id = $1 AND tg_id = $2 AND status != 'canceled'`
-    : `SELECT id, date, time, design, length, comment, type, client, username FROM appointments WHERE tg_id = $1 AND status != 'canceled' ORDER BY created_at DESC LIMIT 1`;
+    ? `SELECT id, date, time, design, length, comment, type, client, username, status FROM appointments WHERE id = $1 AND tg_id = $2 AND status != 'canceled'`
+    : `SELECT id, date, time, design, length, comment, type, client, username, status FROM appointments WHERE tg_id = $1 AND status != 'canceled' ORDER BY created_at DESC LIMIT 1`;
   const params = appointment_id ? [appointment_id, tg_id] : [tg_id];
 
   pool.query(query, params)
@@ -993,6 +993,8 @@ app.post('/api/appointment/cancel', (req, res) => {
       const row = result.rows[0];
       if (!row)
         return res.status(400).json({ error: "No active appointment" });
+
+      const wasApproved = row.status === 'approved';
 
       // 1️⃣ Позначаємо запис як скасований
       pool.query(`UPDATE appointments SET status='canceled' WHERE id = $1`, [row.id])
@@ -1002,7 +1004,17 @@ app.post('/api/appointment/cancel', (req, res) => {
       pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [row.date, row.time])
         .catch(err => console.error("Free slot error:", err));
 
-      // 3️⃣ Повідомляємо клієнту
+      // 3️⃣ Повертаємо бал, якщо запис був підтверджений
+      if (wasApproved) {
+        pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [tg_id])
+          .then(() => {
+            bot.sendMessage(tg_id, `💰 Тобі повернувся 1 бал за скасований запис`, { parse_mode: "Markdown" })
+              .catch(err => console.error("Points return notification error:", err));
+          })
+          .catch(err => console.error("Points return error:", err));
+      }
+
+      // 4️⃣ Повідомляємо клієнту
       bot.sendMessage(
         tg_id,
         `❌ *Ваш запис скасовано!*
@@ -1012,7 +1024,7 @@ app.post('/api/appointment/cancel', (req, res) => {
         , { parse_mode: "Markdown" }
       );
 
-      // 4️⃣ Повідомляємо адміну
+      // 5️⃣ Повідомляємо адміну
       let cancelLink = row.username ? `[@${escapeMarkdown(row.username)}](https://t.me/${row.username})` : `[Клієнт](tg://user?id=${tg_id})`;
       notifyAllAdmins(
         `❗ *Клієнт сам скасував запис*  
