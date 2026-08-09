@@ -2883,16 +2883,25 @@ app.get('/api/admin/debug-db', (req, res) => {
 
 // =============== ADMIN: GET ALL CLIENTS WITH POINTS ===============
 app.get('/api/admin/clients', (req, res) => {
+  console.log('🟢 /api/admin/clients endpoint HIT');
+  
   const initData = req.headers['x-init-data'];
+  console.log('🔑 initData present:', !!initData);
 
-  if (!initData || !validateInitData(initData))
+  if (!initData || !validateInitData(initData)) {
+    console.log('❌ Auth failed - initData invalid');
     return res.status(403).json({ error: 'Access denied' });
+  }
 
   const user = JSON.parse(new URLSearchParams(initData).get('user'));
-  if (!ADMIN_TG_IDS.includes(user.id))
+  console.log('👤 User ID:', user?.id);
+  
+  if (!ADMIN_TG_IDS.includes(user.id)) {
+    console.log('❌ Not admin - user.id:', user.id);
     return res.status(403).json({ error: 'Not admin' });
+  }
 
-  console.log('📊 Fetching clients list...');
+  console.log('✅ Auth passed, executing query...');
 
   pool.query(`
     SELECT 
@@ -2911,12 +2920,14 @@ app.get('/api/admin/clients', (req, res) => {
     ORDER BY points DESC NULLS LAST, last_appointment_date DESC NULLS LAST
   `)
     .then(result => {
-      console.log(`✅ Returning ${result.rows.length} clients`);
-      console.log('First 3 clients:', JSON.stringify(result.rows.slice(0, 3), null, 2));
+      console.log(`✅ Query success! Returning ${result.rows.length} clients`);
+      if (result.rows.length > 0) {
+        console.log('First client sample:', JSON.stringify(result.rows[0], null, 2));
+      }
       res.json(result.rows);
     })
     .catch(err => {
-      console.error('❌ Clients fetch error:', err);
+      console.error('❌ Query error:', err.message);
       res.status(500).json({ error: 'DB error', details: err.message });
     });
 });
