@@ -1561,6 +1561,44 @@ app.post('/api/admin/delete-slot', (req, res) => {
     .catch(err => res.status(500).json({ error: 'DB error' }));
 });
 
+// ====== ADD WORK SLOT ======
+app.post('/api/admin/add-slot', (req, res) => {
+  const { date, time } = req.body;
+  const initData = req.headers['x-init-data'];
+
+  if (!initData || !validateInitData(initData))
+    return res.status(403).json({ error: 'Access denied' });
+
+  const user = JSON.parse(new URLSearchParams(initData).get('user'));
+  if (!ADMIN_TG_IDS.includes(user.id))
+    return res.status(403).json({ error: 'Not admin' });
+
+  if (!date || !time) {
+    return res.status(400).json({ error: 'Date and time are required' });
+  }
+
+  // Check if slot already exists
+  pool.query(`SELECT id FROM work_slots WHERE date = $1 AND time = $2`, [date, time])
+    .then(result => {
+      if (result.rows.length > 0) {
+        return res.status(400).json({ error: 'Slot already exists at this date and time' });
+      }
+
+      // Insert new slot
+      return pool.query(
+        `INSERT INTO work_slots (date, time, is_booked) VALUES ($1, $2, false) RETURNING id, date, time, is_booked`,
+        [date, time]
+      )
+        .then(insertResult => {
+          res.json({ ok: true, slot: insertResult.rows[0] });
+        });
+    })
+    .catch(err => {
+      console.error('Add slot error:', err);
+      res.status(500).json({ error: 'DB error' });
+    });
+});
+
 // =============== ADMIN: DELETE APPOINTMENT ===============
 app.post('/api/admin/delete', (req, res) => {
   const { id, notify_client } = req.body;

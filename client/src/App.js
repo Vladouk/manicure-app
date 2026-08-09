@@ -98,6 +98,12 @@ function App() {
   // ADMIN TABS - ALL vs ARCHIVE
   const [adminActiveTab, setAdminActiveTab] = useState('all'); // 'all' or 'archive'
 
+  // ADD SLOT MODAL
+  const [addSlotModalOpen, setAddSlotModalOpen] = useState(false);
+  const [newSlotTime, setNewSlotTime] = useState('');
+  const [newSlotDate, setNewSlotDate] = useState('');
+
+
   // BOOKING INTERFACE HOOKS
   const [bookingStep, setBookingStep] = useState(1);
   const totalSteps = 6;
@@ -3531,6 +3537,51 @@ function App() {
       .catch(() => alert("❌ Помилка видалення"));
   };
 
+  const addSlot = (date, time) => {
+    if (!time || !date) {
+      alert("❗ Введіть час");
+      return;
+    }
+
+    fetch(`${API}/api/admin/add-slot`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-init-data": WebApp.initData,
+      },
+      body: JSON.stringify({ date, time }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          alert("✅ Слот додано!");
+          setAddSlotModalOpen(false);
+          setNewSlotTime('');
+
+          // Reload slots
+          fetch(`${API}/api/admin/slots`, {
+            headers: { "x-init-data": WebApp.initData },
+          })
+            .then(r => r.json())
+            .then(data => {
+              setSlotsAdmin(
+                data.sort(
+                  (a, b) =>
+                    new Date(`${a.date} ${a.time}`) -
+                    new Date(`${b.date} ${b.time}`)
+                )
+              );
+            });
+        } else {
+          alert(`❌ ${data.error || 'Помилка додавання слоту'}`);
+        }
+      })
+      .catch(err => {
+        console.error('Add slot error:', err);
+        alert("❌ Помилка додавання слоту");
+      });
+  };
+
   if (mode === "rescheduleAppointment") {
     return (
       <div className="app-container">
@@ -5537,8 +5588,44 @@ function App() {
               ))}
             </div>
           ) : (
-            <p style={{ color: '#999', margin: '0' }}>Немає слотів на цей день</p>
+            <p style={{ color: '#999', margin: '0 0 15px 0' }}>Немає слотів на цей день</p>
           )}
+
+          {/* Add Slot Button */}
+          <button
+            onClick={() => {
+              // Convert calendar date to YYYY-MM-DD format
+              const year = calendarDate.getFullYear();
+              const month = String(calendarDate.getMonth() + 1).padStart(2, '0');
+              const day = String(calendarDate.getDate()).padStart(2, '0');
+              setNewSlotDate(`${year}-${month}-${day}`);
+              setAddSlotModalOpen(true);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '12px 20px',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              color: 'white',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              transition: 'all 0.3s ease',
+              width: '100%',
+              marginTop: '15px'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+            }}
+          >
+            ➕ Додати слот
+          </button>
         </div>
 
         {/* Back Button */}
@@ -5572,6 +5659,164 @@ function App() {
         </div>
 
         {modal}
+
+        {/* Add Slot Modal */}
+        {addSlotModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1001,
+            }}
+            onClick={() => {
+              setAddSlotModalOpen(false);
+              setNewSlotTime('');
+            }}
+          >
+            <div
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '30px',
+                maxWidth: '400px',
+                width: '90%',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#2c3e50',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                ➕ Додати новий слот
+              </h2>
+
+              <div style={{
+                background: '#f0f4ff',
+                borderRadius: '10px',
+                padding: '15px',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: '#666',
+                  marginBottom: '5px'
+                }}>
+                  Дата:
+                </div>
+                <div style={{
+                  fontSize: '1.3rem',
+                  fontWeight: 'bold',
+                  color: '#667eea'
+                }}>
+                  {calendarDate.toLocaleDateString('uk-UA', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })}
+                </div>
+              </div>
+
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '600',
+                color: '#2c3e50',
+                fontSize: '0.95rem'
+              }}>
+                Час слоту:
+              </label>
+
+              <input
+                type="time"
+                value={newSlotTime}
+                onChange={(e) => setNewSlotTime(e.target.value)}
+                placeholder="Наприклад: 10:00"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: '2px solid #667eea',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box',
+                  marginBottom: '20px',
+                  fontWeight: '500'
+                }}
+              />
+
+              <div style={{
+                display: 'flex',
+                gap: '10px'
+              }}>
+                <button
+                  onClick={() => {
+                    setAddSlotModalOpen(false);
+                    setNewSlotTime('');
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: '2px solid #bdc3c7',
+                    background: 'white',
+                    color: '#2c3e50',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#ecf0f1';
+                    e.target.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'white';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Скасувати
+                </button>
+                <button
+                  onClick={() => addSlot(newSlotDate, newSlotTime)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                  }}
+                >
+                  ✓ Додати
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
