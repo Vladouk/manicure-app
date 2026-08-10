@@ -95,6 +95,11 @@ function App() {
   // APPOINTMENT DETAILS MODAL
   const [selectedDetailedAppointment, setSelectedDetailedAppointment] = useState(null);
 
+  // CANCEL APPOINTMENT MODAL
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelAppointmentId, setCancelAppointmentId] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+
   // NOTIFICATION DIALOG FOR ADMIN ACTIONS
   const [notificationDialog, setNotificationDialog] = useState({
     isOpen: false,
@@ -449,6 +454,104 @@ function App() {
             }}
           >
             ✓ Зберегти
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  // CLIENT: Cancel appointment modal
+  const cancelModal = cancelModalOpen ? (
+    <div
+      style={{
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        zIndex: 1004,
+      }}
+      onClick={() => { setCancelModalOpen(false); setCancelReason(''); setCancelAppointmentId(null); }}
+    >
+      <div
+        style={{
+          background: 'white', borderRadius: '16px', padding: '28px',
+          maxWidth: '400px', width: '90%',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#2c3e50', marginBottom: '8px', textAlign: 'center' }}>
+          ❌ Скасувати запис
+        </h2>
+        <p style={{ color: '#666', fontSize: '0.95rem', textAlign: 'center', marginBottom: '20px' }}>
+          Ви впевнені, що хочете скасувати запис?
+        </p>
+
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#2c3e50', fontSize: '0.95rem' }}>
+          Причина скасування <span style={{ color: '#999', fontWeight: '400' }}>(необов'язково)</span>
+        </label>
+        <textarea
+          value={cancelReason}
+          onChange={(e) => setCancelReason(e.target.value)}
+          placeholder="Наприклад: зайнята, захворіла, змінились плани..."
+          rows={3}
+          style={{
+            width: '100%', padding: '12px', borderRadius: '10px',
+            border: '2px solid #e0e0e0', fontSize: '0.95rem',
+            boxSizing: 'border-box', resize: 'none', marginBottom: '20px',
+            fontFamily: 'inherit', outline: 'none',
+            transition: 'border-color 0.2s'
+          }}
+          onFocus={(e) => e.target.style.borderColor = '#e74c3c'}
+          onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+        />
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => { setCancelModalOpen(false); setCancelReason(''); setCancelAppointmentId(null); }}
+            style={{
+              flex: 1, padding: '12px', borderRadius: '10px',
+              border: '2px solid #bdc3c7', background: 'white',
+              color: '#2c3e50', fontWeight: '600', fontSize: '1rem', cursor: 'pointer'
+            }}
+          >
+            Назад
+          </button>
+          <button
+            onClick={() => {
+              fetch(`${API}/api/appointment/cancel`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-init-data': WebApp.initData },
+                body: JSON.stringify({ tg_id: tgUser.id, appointment_id: cancelAppointmentId, cancel_reason: cancelReason.trim() || null })
+              })
+                .then(r => r.json())
+                .then(data => {
+                  if (data.ok) {
+                    alert('✅ Запис скасовано!');
+                    setMyHistory(myHistory.filter(a => a.id !== cancelAppointmentId));
+                  } else {
+                    alert('❌ Помилка: ' + data.error);
+                  }
+                  setCancelModalOpen(false);
+                  setCancelReason('');
+                  setCancelAppointmentId(null);
+                })
+                .catch(err => {
+                  console.error('Cancel error:', err);
+                  alert('❌ Помилка скасування');
+                  setCancelModalOpen(false);
+                  setCancelReason('');
+                  setCancelAppointmentId(null);
+                });
+            }}
+            style={{
+              flex: 1, padding: '12px', borderRadius: '10px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+              color: 'white', fontWeight: '600', fontSize: '1rem', cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(231, 76, 60, 0.3)'
+            }}
+          >
+            ❌ Скасувати
           </button>
         </div>
       </div>
@@ -2709,27 +2812,9 @@ function App() {
                     {/* Cancel Button */}
                     <button
                       onClick={() => {
-                        const shouldCancel = window.confirm('Ви впевнені, що хочете скасувати цей запис?');
-                        if (shouldCancel) {
-                          fetch(`${API}/api/appointment/cancel`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'x-init-data': WebApp.initData },
-                            body: JSON.stringify({ tg_id: tgUser.id, appointment_id: h.id })
-                          })
-                            .then(r => r.json())
-                            .then(data => {
-                              if (data.ok) {
-                                alert('✅ Запис скасовано!');
-                                setMyHistory(myHistory.filter(a => a.id !== h.id));
-                              } else {
-                                alert('❌ Помилка: ' + data.error);
-                              }
-                            })
-                            .catch(err => {
-                              console.error('Cancel error:', err);
-                              alert('❌ Помилка скасування');
-                            });
-                        }
+                        setCancelAppointmentId(h.id);
+                        setCancelReason('');
+                        setCancelModalOpen(true);
                       }}
                       style={{
                         background: 'rgba(231, 76, 60, 0.1)',
@@ -2804,6 +2889,7 @@ function App() {
         )}
 
         {modal}
+        {cancelModal}
       </div>
     );
   }
@@ -9451,7 +9537,7 @@ function App() {
                           </div>
                           {/* Action buttons */}
                           <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                            {apt.status !== 'approved' && (
+                            {apt.status !== 'approved' && apt.status !== 'canceled' && (
                               <button
                                 onClick={() => changeStatus(apt.id, 'approved')}
                                 style={{

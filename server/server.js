@@ -977,7 +977,7 @@ app.get('/api/appointment/my', (req, res) => {
 
 // ============== CLIENT CANCEL APPOINTMENT1 ===============
 app.post('/api/appointment/cancel', (req, res) => {
-  const { tg_id, appointment_id } = req.body;
+  const { tg_id, appointment_id, cancel_reason } = req.body;
 
   if (!tg_id) return res.status(400).json({ error: "Missing tg_id" });
 
@@ -1036,6 +1036,7 @@ app.post('/api/appointment/cancel', (req, res) => {
 
 🎨 ${escapeMarkdown(row.design)}
 📏 ${escapeMarkdown(row.length)}
+${cancel_reason ? `\n💬 Причина: _${escapeMarkdown(cancel_reason)}_` : ''}
 `);
 
       return res.json({ ok: true });
