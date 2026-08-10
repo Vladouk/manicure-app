@@ -2802,86 +2802,92 @@ function App() {
                     return null;
                   })()}
 
-                  {/* Action Buttons */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '10px',
-                    marginTop: '20px'
-                  }}>
-                    {/* Cancel Button */}
-                    <button
-                      onClick={() => {
-                        setCancelAppointmentId(h.id);
-                        setCancelReason('');
-                        setCancelModalOpen(true);
-                      }}
-                      style={{
-                        background: 'rgba(231, 76, 60, 0.1)',
-                        border: '2px solid #e74c3c',
-                        borderRadius: '10px',
-                        padding: '12px 16px',
-                        fontSize: '0.95rem',
-                        fontWeight: '600',
-                        color: '#e74c3c',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = 'rgba(231, 76, 60, 0.2)';
-                        e.target.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = 'rgba(231, 76, 60, 0.1)';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      ❌ Скасувати
-                    </button>
-                    {/* Reschedule Button */}
-                    <button
-                      onClick={() => {
-                        // Завантажимо доступні слоти
-                        fetch(`${API}/api/slots`, {
-                          headers: { "x-init-data": WebApp.initData }
-                        })
-                          .then(r => r.json())
-                          .then(data => {
-                            setSlots(data);
-                            setMode("rescheduleAppointment");
-                            setSelectedAppointmentId(h.id);
-                            setRescheduleOldDate(h.date);
-                            setRescheduleOldTime(h.time);
-                            setRescheduleSelectedSlotId(null);
-                          })
-                          .catch(err => {
-                            console.error('Error loading slots:', err);
-                            alert('❌ Помилка завантаження часів');
-                          });
-                      }}
-                      style={{
-                        background: 'rgba(52, 152, 219, 0.1)',
-                        border: '2px solid #3498db',
-                        borderRadius: '10px',
-                        padding: '12px 16px',
-                        fontSize: '0.95rem',
-                        fontWeight: '600',
-                        color: '#3498db',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = 'rgba(52, 152, 219, 0.2)';
-                        e.target.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = 'rgba(52, 152, 219, 0.1)';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      📅 Перенести
-                    </button>
-                  </div>
+                  {/* Action Buttons — only for future, non-canceled appointments */}
+                  {(() => {
+                    const isPast = new Date(`${h.date}T${h.time}`) < new Date();
+                    const isCanceled = h.status === 'canceled';
+                    if (isPast || isCanceled) return null;
+                    return (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '10px',
+                        marginTop: '20px'
+                      }}>
+                        {/* Cancel Button */}
+                        <button
+                          onClick={() => {
+                            setCancelAppointmentId(h.id);
+                            setCancelReason('');
+                            setCancelModalOpen(true);
+                          }}
+                          style={{
+                            background: 'rgba(231, 76, 60, 0.1)',
+                            border: '2px solid #e74c3c',
+                            borderRadius: '10px',
+                            padding: '12px 16px',
+                            fontSize: '0.95rem',
+                            fontWeight: '600',
+                            color: '#e74c3c',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(231, 76, 60, 0.2)';
+                            e.target.style.transform = 'translateY(-2px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'rgba(231, 76, 60, 0.1)';
+                            e.target.style.transform = 'translateY(0)';
+                          }}
+                        >
+                          ❌ Скасувати
+                        </button>
+                        {/* Reschedule Button */}
+                        <button
+                          onClick={() => {
+                            fetch(`${API}/api/slots`, {
+                              headers: { "x-init-data": WebApp.initData }
+                            })
+                              .then(r => r.json())
+                              .then(data => {
+                                setSlots(data);
+                                setMode("rescheduleAppointment");
+                                setSelectedAppointmentId(h.id);
+                                setRescheduleOldDate(h.date);
+                                setRescheduleOldTime(h.time);
+                                setRescheduleSelectedSlotId(null);
+                              })
+                              .catch(err => {
+                                console.error('Error loading slots:', err);
+                                alert('❌ Помилка завантаження часів');
+                              });
+                          }}
+                          style={{
+                            background: 'rgba(52, 152, 219, 0.1)',
+                            border: '2px solid #3498db',
+                            borderRadius: '10px',
+                            padding: '12px 16px',
+                            fontSize: '0.95rem',
+                            fontWeight: '600',
+                            color: '#3498db',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(52, 152, 219, 0.2)';
+                            e.target.style.transform = 'translateY(-2px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'rgba(52, 152, 219, 0.1)';
+                            e.target.style.transform = 'translateY(0)';
+                          }}
+                        >
+                          📅 Перенести
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
