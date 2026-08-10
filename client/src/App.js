@@ -9416,11 +9416,11 @@ function App() {
                               borderRadius: '8px',
                               fontSize: '0.85rem',
                               fontWeight: '600',
-                              background: apt.status === 'confirmed' ? '#d4edda' : apt.status === 'approved' ? '#cce5ff' : '#fff3cd',
-                              color: apt.status === 'confirmed' ? '#155724' : apt.status === 'approved' ? '#004085' : '#856404',
+                              background: apt.status === 'confirmed' ? '#d4edda' : apt.status === 'approved' ? '#cce5ff' : apt.status === 'canceled' ? '#f8d7da' : '#fff3cd',
+                              color: apt.status === 'confirmed' ? '#155724' : apt.status === 'approved' ? '#004085' : apt.status === 'canceled' ? '#721c24' : '#856404',
                               whiteSpace: 'nowrap'
                             }}>
-                              {apt.status === 'confirmed' ? '✅ Підтверджено' : apt.status === 'approved' ? '✔️ Затверджено' : '⏳ Очікує'}
+                              {apt.status === 'confirmed' ? '✅ Підтверджено' : apt.status === 'approved' ? '✔️ Затверджено' : apt.status === 'canceled' ? '❌ Скасовано' : '⏳ Очікує'}
                             </div>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
