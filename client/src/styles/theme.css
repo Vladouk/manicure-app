@@ -472,6 +472,18 @@ body {
   font-weight: 600 !important;
 }
 
+.calendar-date-pending {
+  background: rgba(255, 193, 7, 0.4) !important;
+  color: #f57c00 !important;
+  font-weight: 600 !important;
+}
+
+.calendar-date-approved {
+  background: rgba(76, 175, 80, 0.4) !important;
+  color: #2d5016 !important;
+  font-weight: 600 !important;
+}
+
 /* Pulse animation for new appointments */
 @keyframes pulse {
   0% {

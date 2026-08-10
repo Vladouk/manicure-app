@@ -1466,7 +1466,8 @@ app.get('/api/admin/slots', (req, res) => {
   ws.is_booked,
   a.client AS client_name,
   a.username AS client_username,
-  a.tg_id AS client_tg_id
+  a.tg_id AS client_tg_id,
+  a.status AS appointment_status
 FROM work_slots ws
 LEFT JOIN appointments a
   ON ws.date = a.date AND ws.time = a.time AND a.status != 'canceled'

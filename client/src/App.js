@@ -5718,6 +5718,16 @@ function App() {
       slotsAdmin.map(slot => formatDateForComparison(slot.date))
     );
 
+    // Групуємо слоти по датах та перевіряємо статуси записів
+    const slotsByDate = {};
+    slotsAdmin.forEach(slot => {
+      const dateKey = formatDateForComparison(slot.date);
+      if (!slotsByDate[dateKey]) {
+        slotsByDate[dateKey] = [];
+      }
+      slotsByDate[dateKey].push(slot);
+    });
+
     const tileClassName = ({ date, view }) => {
       if (view === 'month') {
         const dateStr = formatDateForComparison(
@@ -5727,7 +5737,22 @@ function App() {
             year: 'numeric'
           })
         );
-        if (datesWithSlots.has(dateStr)) {
+        
+        const slotsOnDate = slotsByDate[dateStr];
+        if (slotsOnDate && slotsOnDate.length > 0) {
+          // Перевіряємо чи є непідтверджені записи
+          const hasPending = slotsOnDate.some(slot => slot.is_booked && slot.appointment_status === 'pending');
+          const hasApproved = slotsOnDate.some(slot => slot.is_booked && slot.appointment_status === 'approved');
+          
+          // Якщо є хоч один непідтверджений - показуємо жовтий
+          if (hasPending) {
+            return 'calendar-date-pending';
+          }
+          // Якщо є підтверджені (і немає непідтверджених) - зелений
+          if (hasApproved) {
+            return 'calendar-date-approved';
+          }
+          // Якщо є слоти на цю дату - показуємо базовий колір
           return 'calendar-date-with-appointments';
         }
       }
@@ -9381,6 +9406,16 @@ function App() {
               sortedAppointments.map(apt => formatDateForComparison(apt.date))
             );
 
+            // Групуємо записи по датах та перевіряємо їх статуси
+            const appointmentsByDate = {};
+            sortedAppointments.forEach(apt => {
+              const dateKey = formatDateForComparison(apt.date);
+              if (!appointmentsByDate[dateKey]) {
+                appointmentsByDate[dateKey] = [];
+              }
+              appointmentsByDate[dateKey].push(apt);
+            });
+
             const tileClassName = ({ date, view }) => {
               if (view === 'month') {
                 const dateStr = formatDateForComparison(
@@ -9390,8 +9425,21 @@ function App() {
                     year: 'numeric'
                   })
                 );
-                if (datesWithAppointments.has(dateStr)) {
-                  return 'calendar-date-with-appointments';
+                
+                const appointmentsOnDate = appointmentsByDate[dateStr];
+                if (appointmentsOnDate && appointmentsOnDate.length > 0) {
+                  // Перевіряємо чи є непідтверджені записи
+                  const hasPending = appointmentsOnDate.some(apt => apt.status === 'pending');
+                  const hasApproved = appointmentsOnDate.some(apt => apt.status === 'approved');
+                  
+                  // Якщо є хоч один непідтверджений - показуємо жовтий
+                  if (hasPending) {
+                    return 'calendar-date-pending';
+                  }
+                  // Якщо всі підтверджені - зелений
+                  if (hasApproved) {
+                    return 'calendar-date-approved';
+                  }
                 }
               }
               return null;
