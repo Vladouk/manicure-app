@@ -1483,27 +1483,6 @@ ORDER BY ws.date, ws.time
 });
 
 
-// ====== ADD WORK SLOT ======
-app.post('/api/admin/add-slot', (req, res) => {
-  const { date, time } = req.body;
-  const initData = req.headers['x-init-data'];
-
-  if (!initData || !validateInitData(initData))
-    return res.status(403).json({ error: 'Access denied' });
-
-  const user = JSON.parse(new URLSearchParams(initData).get('user'));
-  if (!ADMIN_TG_IDS.includes(user.id))
-    return res.status(403).json({ error: 'Not admin' });
-
-  pool.query(`INSERT INTO work_slots (date, time) VALUES ($1, $2) RETURNING id`, [date, time])
-    .then(result => {
-      res.json({ ok: true, id: result.rows[0].id });
-    })
-    .catch(err => {
-      console.error('Error adding slot:', err);
-      res.status(500).json({ error: 'DB error' });
-    });
-});
 // ====== DELETE WORK SLOT ======
 app.post('/api/admin/delete-slot', (req, res) => {
   const { id } = req.body;
