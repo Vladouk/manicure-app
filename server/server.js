@@ -855,12 +855,14 @@ app.post(
 
       // Send notification to client (handle chat not found error)
       let clientNotificationSent = false;
+      console.log(`📤 Attempting to send notification to client: tgIdNum=${tgIdNum}, type=${typeof tgIdNum}`);
       try {
         await bot.sendMessage(tgIdNum, clientMessage, { parse_mode: "Markdown" });
         console.log("✅ Client notification sent");
         clientNotificationSent = true;
       } catch (err) {
         console.error("❌ Client notification error:", err.message);
+        console.error("❌ Full error object:", JSON.stringify(err, null, 2));
         // Chat not found means user never started the bot or blocked it
         const errorMsg = err.message ? err.message.toLowerCase() : '';
         if (errorMsg.includes('chat not found') || errorMsg.includes('bot was blocked') || errorMsg.includes('user is deactivated')) {
