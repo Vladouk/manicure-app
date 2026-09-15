@@ -853,9 +853,20 @@ app.post(
 
       clientMessage += `\n\n⏳ *Статус:* очікує підтвердження`;
 
-      bot.sendMessage(tgIdNum, clientMessage, { parse_mode: "Markdown" })
-        .then(() => console.log("✅ Client notification sent"))
-        .catch(err => console.error("❌ Client notification error:", err));
+      // Send notification to client (handle chat not found error)
+      let clientNotificationSent = false;
+      await bot.sendMessage(tgIdNum, clientMessage, { parse_mode: "Markdown" })
+        .then(() => {
+          console.log("✅ Client notification sent");
+          clientNotificationSent = true;
+        })
+        .catch(err => {
+          console.error("❌ Client notification error:", err.message);
+          // Chat not found means user never started the bot or blocked it
+          if (err.message.includes('chat not found')) {
+            console.warn(`⚠️ Client ${client} (${tgIdNum}) has not started the bot yet`);
+          }
+        });
 
       // 🔥 Admin notification
       let clientLink = username ? `[@${escapeMarkdown(username)}](https://t.me/${username})` : `[${escapeMarkdown(client)}](tg://user?id=${tgIdNum})`;
@@ -898,6 +909,11 @@ app.post(
 
       if (referralInfo) {
         adminMessage += `\n🎉 *Рефералка від користувача ${referralInfo.referrer_tg_id}*`;
+      }
+
+      // Add warning if client notification failed
+      if (!clientNotificationSent) {
+        adminMessage += `\n\n⚠️ *УВАГА:* Клієнту НЕ вдалося відправити повідомлення!\nМожливо, користувач не запустив бота або заблокував його.\nЗв'яжіться з клієнтом вручну: ${username ? `@${username}` : `ID: ${tgIdNum}`}`;
       }
 
       if (comment && comment.trim() !== "") {
