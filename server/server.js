@@ -855,18 +855,18 @@ app.post(
 
       // Send notification to client (handle chat not found error)
       let clientNotificationSent = false;
-      await bot.sendMessage(tgIdNum, clientMessage, { parse_mode: "Markdown" })
-        .then(() => {
-          console.log("✅ Client notification sent");
-          clientNotificationSent = true;
-        })
-        .catch(err => {
-          console.error("❌ Client notification error:", err.message);
-          // Chat not found means user never started the bot or blocked it
-          if (err.message.includes('chat not found')) {
-            console.warn(`⚠️ Client ${client} (${tgIdNum}) has not started the bot yet`);
-          }
-        });
+      try {
+        await bot.sendMessage(tgIdNum, clientMessage, { parse_mode: "Markdown" });
+        console.log("✅ Client notification sent");
+        clientNotificationSent = true;
+      } catch (err) {
+        console.error("❌ Client notification error:", err.message);
+        // Chat not found means user never started the bot or blocked it
+        const errorMsg = err.message ? err.message.toLowerCase() : '';
+        if (errorMsg.includes('chat not found') || errorMsg.includes('bot was blocked') || errorMsg.includes('user is deactivated')) {
+          console.warn(`⚠️ Client ${client} (${tgIdNum}) has not started the bot yet or blocked it`);
+        }
+      }
 
       // 🔥 Admin notification
       let clientLink = username ? `[@${escapeMarkdown(username)}](https://t.me/${username})` : `[${escapeMarkdown(client)}](tg://user?id=${tgIdNum})`;
