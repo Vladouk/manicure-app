@@ -1228,7 +1228,7 @@ app.post('/api/appointment/reschedule', (req, res) => {
   }
 
   // 1️⃣ Перевіримо, що запис належить клієнту
-  pool.query(`SELECT id, date, time FROM appointments WHERE id = $1 AND tg_id = $2 AND status != 'canceled'`, [appointment_id, tg_id])
+  pool.query(`SELECT id, date, time, client FROM appointments WHERE id = $1 AND tg_id = $2 AND status != 'canceled'`, [appointment_id, tg_id])
     .then(result => {
       const appointment = result.rows[0];
       if (!appointment) {
@@ -1270,7 +1270,7 @@ app.post('/api/appointment/reschedule', (req, res) => {
               notifyAllAdmins(
                 `🔄 *Клієнт перенес запис*
 
-👤 Клієнт ID: ${tg_id}
+👤 Клієнт: *${escapeMarkdown(appointment.client || 'Невідомий клієнт')}*
 📅 Було: ${appointment.date} — ${appointment.time}
 📅 Тепер: ${new_date} — ${new_time}`
               ).catch(err => console.error("Admin notification error:", err));
