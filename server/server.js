@@ -3132,6 +3132,7 @@ app.get('/api/admin/clients', (req, res) => {
       COUNT(a.id) as total_appointments,
       COUNT(CASE WHEN a.status = 'approved' THEN 1 END) as completed_appointments,
       MAX(a.date) as last_appointment_date,
+      MAX(a.created_at) as last_appointment_created_at,
       COALESCE(SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END), 0) as total_spent,
       media.manicure_history
     FROM appointments a
@@ -3161,7 +3162,7 @@ app.get('/api/admin/clients', (req, res) => {
     ) media ON true
     WHERE a.tg_id IS NOT NULL
     GROUP BY a.tg_id, media.manicure_history
-    ORDER BY points DESC NULLS LAST, last_appointment_date DESC NULLS LAST
+    ORDER BY last_appointment_created_at DESC NULLS LAST, points DESC NULLS LAST
   `)
     .then(result => res.json(result.rows))
     .catch(err => {

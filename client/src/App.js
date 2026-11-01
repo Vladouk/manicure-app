@@ -84,7 +84,7 @@ function App() {
   const [editPointsValue, setEditPointsValue] = useState('');
 
   // CLIENT LIST SORTING
-  const [clientSortBy, setClientSortBy] = useState('points'); // 'points', 'name', 'visits', 'spent'
+  const [clientSortBy, setClientSortBy] = useState('recent'); // 'recent', 'points', 'name', 'visits', 'spent'
   const [clientSortOrder, setClientSortOrder] = useState('desc'); // 'asc' or 'desc'
 
   // RESCHEDULE APPOINTMENT
@@ -1132,6 +1132,7 @@ function App() {
   useEffect(() => {
     WebApp.ready();
     WebApp.expand();
+    WebApp.disableVerticalSwipes();
     WebApp.MainButton.hide();
 
     // Handle start_param for deep linking (e.g. admin opens client from bot notification)
@@ -1704,6 +1705,10 @@ function App() {
       let valueA, valueB;
       
       switch (clientSortBy) {
+        case 'recent':
+          valueA = a.last_appointment_created_at ? new Date(a.last_appointment_created_at).getTime() : 0;
+          valueB = b.last_appointment_created_at ? new Date(b.last_appointment_created_at).getTime() : 0;
+          break;
         case 'points':
           valueA = a.points || 0;
           valueB = b.points || 0;
@@ -1845,6 +1850,7 @@ function App() {
                 outline: 'none'
               }}
             >
+              <option value="recent">🕒 За останнім записом</option>
               <option value="points">💎 За балами</option>
               <option value="name">👤 За ім'ям</option>
               <option value="visits">📊 За кількістю візитів</option>
