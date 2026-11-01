@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import Calendar from 'react-calendar';
 import "./styles/theme.css";
@@ -49,6 +49,7 @@ function App() {
   const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [mode, setMode] = useState("menu");
+  const deepLinkHandledRef = useRef(false);
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
   const [modalImage, setModalImage] = useState(null);
@@ -1137,7 +1138,8 @@ function App() {
     // Format: "client_<tg_id>"
     const startParam = WebApp.initDataUnsafe?.start_param
       || new URLSearchParams(window.location.search).get('startapp');
-    if (startParam && startParam.startsWith('client_') && isAdmin) {
+    if (startParam && startParam.startsWith('client_') && isAdmin && !deepLinkHandledRef.current) {
+      deepLinkHandledRef.current = true;
       const clientTgId = startParam.replace('client_', '');
       fetch(`${API}/api/admin/clients`, {
         headers: { 'x-init-data': WebApp.initData }
@@ -3203,9 +3205,10 @@ function App() {
                   )}
                   {/* Status indicator */}
                   <div style={{
-                    position: 'absolute',
-                    top: '15px',
-                    right: '15px',
+                    position: 'relative',
+                    display: 'table',
+                    marginLeft: 'auto',
+                    marginBottom: '12px',
                     background: statusColor.statusBg,
                     color: statusColor.statusColor,
                     padding: '6px 14px',
@@ -8227,7 +8230,7 @@ function App() {
 
   if (mode === "booking") {
     return (
-      <div className="app-container" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', minHeight: '100vh', padding: '20px 0' }}>
+      <div className="app-container booking-screen" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', minHeight: '100vh', padding: '20px 0' }}>
 
         {isAdmin && (
           <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
@@ -8242,7 +8245,7 @@ function App() {
         )}
 
         {/* Progress Indicator */}
-        <div style={{
+        <div className="booking-progress" style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -8250,8 +8253,8 @@ function App() {
           padding: '0 20px'
         }}>
           {Array.from({ length: totalSteps }, (_, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{
+            <div className="booking-progress-item" key={i} style={{ display: 'flex', alignItems: 'center' }}>
+              <div className="booking-progress-node" style={{
                 width: 40,
                 height: 40,
                 borderRadius: '50%',
@@ -8267,7 +8270,7 @@ function App() {
                 {i + 1}
               </div>
               {i < totalSteps - 1 && (
-                <div style={{
+                <div className="booking-progress-line" style={{
                   width: 60,
                   height: 2,
                   background: bookingStep > i + 1 ? '#4CAF50' : 'rgba(255,255,255,0.3)',
@@ -8280,7 +8283,7 @@ function App() {
         </div>
 
         {/* Step Content */}
-        <div style={{
+        <div className="booking-step-content" style={{
           maxWidth: 800,
           margin: '0 auto',
           padding: '0 20px'
@@ -8288,7 +8291,7 @@ function App() {
 
           {/* Step 1: Welcome & Service Selection */}
           {bookingStep === 1 && (
-            <div style={{
+            <div className="booking-step-card" style={{
               background: 'rgba(255,255,255,0.95)',
               borderRadius: 20,
               padding: 30,
@@ -8307,7 +8310,7 @@ function App() {
                 <h3 style={{ color: '#333', marginBottom: 20, textAlign: 'center' }}>Оберіть послугу</h3>
 
                 {/* Service Options */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 15 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 15 }}>
                   {/* Dynamic services from priceListServices */}
                   {priceListServices.length > 0 ? (
                     priceListServices.map((service) => (
@@ -8484,7 +8487,7 @@ function App() {
 
           {/* Step 2: Date & Time Selection */}
           {bookingStep === 2 && (
-            <div style={{
+            <div className="booking-step-card" style={{
               background: 'rgba(255,255,255,0.95)',
               borderRadius: 20,
               padding: 30,
@@ -8570,7 +8573,7 @@ function App() {
 
           {/* Step 3: Size */}
           {bookingStep === 3 && (
-            <div style={{
+            <div className="booking-step-card" style={{
               background: 'rgba(255,255,255,0.95)',
               borderRadius: 20,
               padding: 30,
@@ -8784,7 +8787,7 @@ function App() {
 
           {/* Step 4: Design */}
           {bookingStep === 4 && (
-            <div style={{
+            <div className="booking-step-card" style={{
               background: 'rgba(255,255,255,0.95)',
               borderRadius: 20,
               padding: 30,
@@ -8991,7 +8994,7 @@ function App() {
 
           {/* Step 5: Photos & Notes */}
           {bookingStep === 5 && (
-            <div style={{
+            <div className="booking-step-card" style={{
               background: 'rgba(255,255,255,0.95)',
               borderRadius: 20,
               padding: 30,
@@ -9174,7 +9177,7 @@ function App() {
 
           {/* Step 6: Confirmation */}
           {bookingStep === 6 && (
-            <div style={{
+            <div className="booking-step-card" style={{
               background: 'rgba(255,255,255,0.95)',
               borderRadius: 20,
               padding: 30,
