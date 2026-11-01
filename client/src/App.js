@@ -1037,22 +1037,6 @@ function App() {
           >
             Закрити
           </button>
-          <button
-            type="button"
-            onClick={() => WebApp.close()}
-            style={{
-              padding: '12px 18px',
-              borderRadius: '10px',
-              border: '1px solid #d8deea',
-              background: 'white',
-              color: '#526078',
-              fontWeight: '600',
-              fontSize: '1rem',
-              cursor: 'pointer'
-            }}
-          >
-            ↩ До бота
-          </button>
         </div>
       </div>
     </div>
@@ -1748,6 +1732,25 @@ function App() {
     return sorted;
   }, [clientList, clientSortBy, clientSortOrder]);
 
+  const returnToClientList = () => {
+    setMode('clients');
+    fetch(`${API}/api/admin/clients`, {
+      headers: { 'x-init-data': WebApp.initData }
+    })
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (!Array.isArray(data)) throw new Error('Некоректна відповідь зі списком клієнтів');
+        setClientList(data);
+      })
+      .catch(error => {
+        console.error('Could not return to the client list:', error);
+        alert('❌ Не вдалося відкрити список клієнтів. Спробуйте ще раз.');
+      });
+  };
+
   // ADMIN PANEL
 
 
@@ -2331,7 +2334,9 @@ function App() {
   if (effectiveMode === "clientHistory") {
     const totalVisits = clientHistory.length;
     const completedVisits = clientHistory.filter(h => h.status === 'approved').length;
-    const totalSpent = clientHistory.filter(h => h.status === 'approved').reduce((sum, h) => sum + (h.price || 0), 0);
+    const totalSpent = clientHistory
+      .filter(h => h.status === 'approved')
+      .reduce((sum, h) => sum + (Number(h.price) || 0), 0);
     const avgPrice = completedVisits > 0 ? Math.round(totalSpent / completedVisits) : 0;
 
     return (
@@ -2431,7 +2436,6 @@ function App() {
             </div>
           </section>
 
-          {/* Statistics Grid */}
           <div className="client-profile-stats">
             {[{
               label: 'Всього візитів',
@@ -2453,8 +2457,8 @@ function App() {
               value: `${avgPrice} zł`,
               icon: '💳',
               color: '#f093fb',
-            }].map((stat, idx) => (
-              <div key={idx} className="client-profile-stat">
+            }].map(stat => (
+              <div key={stat.label} className="client-profile-stat">
                 <span className="client-profile-stat-icon" style={{ color: stat.color }}>{stat.icon}</span>
                 <div>
                   <div className="client-profile-stat-label">{stat.label}</div>
@@ -2504,25 +2508,11 @@ function App() {
             margin: '18px 0 28px 0'
           }}>
             <button
+              type="button"
               className="primary-btn client-profile-back-button"
-              onClick={() => setMode("clients")}
+              onClick={returnToClientList}
             >
               ⬅ Назад до клієнтів
-            </button>
-            <button
-              type="button"
-              onClick={() => WebApp.close()}
-              style={{
-                border: '1px solid #d8deea',
-                borderRadius: 10,
-                padding: '11px 18px',
-                background: 'white',
-                color: '#526078',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              ↩ Повернутися до бота
             </button>
           </div>
 
@@ -2975,8 +2965,13 @@ function App() {
       .sort((a, b) =>
         new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)
       );
-    const pendingAppointments = myHistory.filter(appointment => appointment.status === 'pending').length;
-    const approvedAppointments = myHistory.filter(appointment => appointment.status === 'approved').length;
+    const upcomingAppointmentIds = new Set(upcomingAppointments.map(appointment => String(appointment.id)));
+    const historyAppointments = myHistory
+      .filter(appointment => !upcomingAppointmentIds.has(String(appointment.id)))
+      .sort((a, b) =>
+        new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`)
+      );
+    const orderedAppointments = [...upcomingAppointments, ...historyAppointments];
     const formatAppointmentDate = dateValue => {
       const date = new Date(`${dateValue}T12:00:00`);
       return Number.isNaN(date.getTime())
@@ -3025,7 +3020,7 @@ function App() {
             zIndex: 1,
             position: 'relative'
           }}>
-            Майбутні записи, підтвердження та історія візитів
+            Ваші плани на візит — усе в одному місці 💅
           </p>
         </div>
 
@@ -3059,62 +3054,28 @@ function App() {
           </button>
         </div>
 
-        {myHistory.length > 0 && (
+        {upcomingAppointments[0] && (
           <section style={{
             margin: '0 10px 24px',
-            padding: 20,
-            borderRadius: 18,
-            background: 'linear-gradient(135deg, #ffffff 0%, #f6f7ff 100%)',
-            boxShadow: '0 8px 24px rgba(49, 61, 110, 0.1)',
-            border: '1px solid rgba(102, 126, 234, 0.12)'
+            padding: '22px 20px',
+            borderRadius: 20,
+            background: 'linear-gradient(135deg, #fff4f8 0%, #f0edff 100%)',
+            boxShadow: '0 10px 26px rgba(102, 74, 150, 0.12)',
+            border: '1px solid rgba(196, 69, 105, 0.12)',
+            position: 'relative',
+            overflow: 'hidden'
           }}>
-            <h3 style={{ margin: '0 0 14px', color: '#303954', fontSize: '1.1rem' }}>
-              ✨ Коротко про ваші записи
-            </h3>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-              gap: 10,
-              marginBottom: 14
-            }}>
-              {[
-                { label: 'Найближчі', value: upcomingAppointments.length, color: '#5265c5' },
-                { label: 'Очікують', value: pendingAppointments, color: '#d58a13' },
-                { label: 'Підтверджені', value: approvedAppointments, color: '#239454' }
-              ].map(item => (
-                <div key={item.label} style={{
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  background: 'white',
-                  border: '1px solid #edf0f7'
-                }}>
-                  <div style={{ color: '#778098', fontSize: '0.8rem', marginBottom: 4 }}>{item.label}</div>
-                  <strong style={{ color: item.color, fontSize: '1.35rem' }}>{item.value}</strong>
-                </div>
-              ))}
+            <div style={{ color: '#a9647b', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              ✨ Найближчий візит
             </div>
-            {upcomingAppointments[0] ? (
-              <div style={{
-                padding: '13px 15px',
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white'
-              }}>
-                <div style={{ fontSize: '0.8rem', opacity: 0.86, marginBottom: 4 }}>Наступний візит</div>
-                <strong style={{ display: 'block', fontSize: '1rem' }}>
-                  {formatAppointmentDate(upcomingAppointments[0].date)}
-                </strong>
-                <span>
-                  🕒 {upcomingAppointments[0].time}
-                  {upcomingAppointments[0].service ? ` · ${upcomingAppointments[0].service}` : ''}
-                  {upcomingAppointments[0].price ? ` · ${upcomingAppointments[0].price} zł` : ''}
-                </span>
-              </div>
-            ) : (
-              <p style={{ margin: 0, color: '#778098', fontSize: '0.9rem' }}>
-                Немає майбутніх візитів. Перегляньте записи нижче або оберіть новий час.
-              </p>
-            )}
+            <div style={{ marginTop: 8, color: '#3e3554', fontSize: '1.2rem', fontWeight: 750 }}>
+              {formatAppointmentDate(upcomingAppointments[0].date)}
+            </div>
+            <div style={{ marginTop: 5, color: '#675c78', fontSize: '1rem' }}>
+              🕒 {upcomingAppointments[0].time}
+              {upcomingAppointments[0].service ? `　·　${upcomingAppointments[0].service}` : ''}
+              {upcomingAppointments[0].price ? `　·　${upcomingAppointments[0].price} zł` : ''}
+            </div>
           </section>
         )}
 
@@ -3171,7 +3132,8 @@ function App() {
             gap: '20px',
             padding: '0 10px'
           }}>
-            {myHistory.map(h => {
+            {orderedAppointments.map((h, index) => {
+              const isUpcoming = upcomingAppointmentIds.has(String(h.id));
               const label = getSlotLabel(h.date);
 
               // Status-based color coding
@@ -3190,8 +3152,28 @@ function App() {
               const statusColor = getStatusColor(h.status);
 
               return (
-                <div
-                  key={h.id}
+                <React.Fragment key={h.id}>
+                  {index === 0 && upcomingAppointments.length > 0 && (
+                    <h3 style={{
+                      margin: '0 0 -8px',
+                      color: '#3e3554',
+                      fontSize: '1.1rem',
+                      fontWeight: 750
+                    }}>
+                      🗓 Заплановані візити
+                    </h3>
+                  )}
+                  {index === upcomingAppointments.length && historyAppointments.length > 0 && (
+                    <h3 style={{
+                      margin: upcomingAppointments.length > 0 ? '10px 0 -8px' : '0 0 -8px',
+                      color: '#697184',
+                      fontSize: '1.05rem',
+                      fontWeight: 700
+                    }}>
+                      📖 Історія записів
+                    </h3>
+                  )}
+                  <div
                   className="menu-card"
                   style={{
                     background: statusColor.bg,
@@ -3204,6 +3186,21 @@ function App() {
                     color: statusColor.text
                   }}
                 >
+                  {isUpcoming && index === 0 && (
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      marginBottom: 12,
+                      padding: '6px 10px',
+                      borderRadius: 20,
+                      background: 'rgba(255,255,255,0.68)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700
+                    }}>
+                      ✨ Найближчий запис
+                    </div>
+                  )}
                   {/* Status indicator */}
                   <div style={{
                     position: 'absolute',
@@ -3518,7 +3515,8 @@ function App() {
                       </div>
                     );
                   })()}
-                </div>
+                  </div>
+                </React.Fragment>
               );
             })}
           </div>
