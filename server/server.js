@@ -1439,7 +1439,7 @@ app.post('/api/admin/mark-viewed', (req, res) => {
 });
 
 // ====== ADMIN: APPROVE ======
-app.post('/api/admin/status', (req, res) => {
+app.post('/api/admin/status', async (req, res) => {
   const { id, status, notify_client } = req.body;
   const initData = req.headers['x-init-data'];
 
@@ -1450,60 +1450,73 @@ app.post('/api/admin/status', (req, res) => {
   if (!ADMIN_TG_IDS.includes(user.id))
     return res.status(403).json({ error: 'Not admin' });
 
-  pool.query(`SELECT date, time, tg_id FROM appointments WHERE id = $1`, [id])
-    .then(result => {
-      const row = result.rows[0];
-      if (!row) return res.json({ ok: true });
+  try {
+    const result = await pool.query(
+      `SELECT date, time, tg_id, client, status FROM appointments WHERE id = $1`,
+      [id]
+    );
+    const row = result.rows[0];
+    if (!row) return res.json({ ok: true });
 
-      pool.query(`UPDATE appointments SET status = $1 WHERE id = $2`, [status, id])
-        .catch(err => console.error("Status update error:", err));
-      let text = "";
+    await pool.query(`UPDATE appointments SET status = $1 WHERE id = $2`, [status, id]);
+    let text = "";
 
-      if (status === "approved") {
-        text = `✅ *Ваш запис підтверджено!*
+    if (status === "approved") {
+      text = `✅ *Ваш запис підтверджено!*
 
 📅 ${row.date}
 ⏰ ${row.time}
 
 Чекаю вас 💖`;
-      }
+    }
 
-      if (status === "canceled") {
-        text = `❌ *Ваш запис скасовано*
+    if (status === "canceled") {
+      text = `❌ *Ваш запис скасовано*
 
 📅 ${row.date}
 ⏰ ${row.time}
 
 Якщо хочете — можете записатись знову`;
+    }
+
+    if (text && notify_client) {
+      bot.sendMessage(row.tg_id, text, { parse_mode: "Markdown" })
+        .catch(err => console.error("Appointment status notification error:", err));
+    }
+
+    // Додати бали за підтверджений запис
+    if (status === "approved") {
+      pool.query(`INSERT INTO client_points (tg_id, points) VALUES ($1, 0) ON CONFLICT (tg_id) DO NOTHING`, [row.tg_id])
+        .then(() => pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [row.tg_id]))
+        .catch(err => console.error("Points update error:", err));
+    }
+
+    // ❗ якщо скасовано — розблокувати слот і повернути бали
+    if (status === 'canceled') {
+      await pool.query(
+        `UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`,
+        [row.date, row.time]
+      );
+
+      // Remove points if appointment was approved before cancellation
+      if (row.status === 'approved') {
+        pool.query(`UPDATE client_points SET points = points - 1 WHERE tg_id = $1`, [row.tg_id])
+          .then(() => bot.sendMessage(row.tg_id, `⚠️ У тебе забрали 1 бал за скасований запис`, { parse_mode: "Markdown" }))
+          .catch(err => console.error("Points removal error:", err));
       }
 
-      if (text && notify_client) {
-        bot.sendMessage(row.tg_id, text, { parse_mode: "Markdown" });
+      if (row.status !== 'canceled') {
+        await notifyAllAdmins(
+          `❌ *Ви скасували запис клієнта*\n\n👤 ${escapeMarkdown(row.client || 'Невідомий клієнт')}\n📅 ${escapeMarkdown(row.date)}\n⏰ ${escapeMarkdown(row.time)}`
+        );
       }
+    }
 
-      // Додати бали за підтверджений запис
-      if (status === "approved") {
-        pool.query(`INSERT INTO client_points (tg_id, points) VALUES ($1, 0) ON CONFLICT (tg_id) DO NOTHING`, [row.tg_id])
-          .then(() => pool.query(`UPDATE client_points SET points = points + 1 WHERE tg_id = $1`, [row.tg_id]))
-          .catch(err => console.error("Points update error:", err));
-      }
-
-      // ❗ якщо скасовано — розблокувати слот і повернути бали
-      if (status === 'canceled') {
-        pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [row.date, row.time])
-          .catch(err => console.error("Slot unbook error:", err));
-
-        // Remove points if appointment was approved before cancellation
-        if (row.status === 'approved') {
-          pool.query(`UPDATE client_points SET points = points - 1 WHERE tg_id = $1`, [row.tg_id])
-            .then(() => bot.sendMessage(row.tg_id, `⚠️ У тебе забрали 1 бал за скасований запис`, { parse_mode: "Markdown" }))
-            .catch(err => console.error("Points removal error:", err));
-        }
-      }
-
-      res.json({ ok: true });
-    })
-    .catch(err => res.status(500).json({ error: "DB error" }));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Status update error:", err);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
 // =============== ADMIN: ADD BONUS POINTS TO CLIENT ===============
@@ -1704,6 +1717,7 @@ app.get('/api/admin/slots', (req, res) => {
   ws.date,
   ws.time,
   ws.is_booked,
+  a.id AS appointment_id,
   a.client AS client_name,
   a.username AS client_username,
   a.tg_id AS client_tg_id,
@@ -1787,7 +1801,7 @@ app.post('/api/admin/add-slot', (req, res) => {
 });
 
 // =============== ADMIN: DELETE APPOINTMENT ===============
-app.post('/api/admin/delete', (req, res) => {
+app.post('/api/admin/delete', async (req, res) => {
   const { id, notify_client } = req.body;
   const initData = req.headers['x-init-data'];
 
@@ -1798,43 +1812,47 @@ app.post('/api/admin/delete', (req, res) => {
   if (!ADMIN_TG_IDS.includes(user.id))
     return res.status(403).json({ error: 'Not admin' });
 
-  // 1️⃣ беремо дату і час запису
-  pool.query(`SELECT date, time, tg_id FROM appointments WHERE id = $1`, [id])
-    .then(result => {
-      const row = result.rows[0];
-      if (!row) return res.json({ ok: true });
+  try {
+    // 1️⃣ беремо дані запису до його видалення
+    const result = await pool.query(
+      `SELECT date, time, tg_id, client FROM appointments WHERE id = $1`,
+      [id]
+    );
+    const row = result.rows[0];
+    if (!row) return res.json({ ok: true });
 
-      // 2️⃣ видаляємо залежні записи з referral_uses та bonus_uses
-      Promise.all([
-        pool.query(`DELETE FROM referral_uses WHERE appointment_id = $1`, [id]),
-        pool.query(`DELETE FROM bonus_uses WHERE appointment_id = $1`, [id])
-      ])
-        .then(() => {
-          // 3️⃣ видаляємо запис
-          return pool.query(`DELETE FROM appointments WHERE id = $1`, [id]);
-        })
-        .then(() => {
-          // 4️⃣ розблоковуємо слот
-          return pool.query(`UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`, [row.date, row.time]);
-        })
-        .catch(err => console.error("Delete appointment error:", err));
+    // 2️⃣ видаляємо залежні дані та сам запис, після чого звільняємо слот
+    await Promise.all([
+      pool.query(`DELETE FROM referral_uses WHERE appointment_id = $1`, [id]),
+      pool.query(`DELETE FROM bonus_uses WHERE appointment_id = $1`, [id])
+    ]);
+    await pool.query(`DELETE FROM appointments WHERE id = $1`, [id]);
+    await pool.query(
+      `UPDATE work_slots SET is_booked = false WHERE date::date = $1::date AND time = $2`,
+      [row.date, row.time]
+    );
 
-      if (notify_client) {
-        bot.sendMessage(
-          row.tg_id,
-          `🗑 *Ваш запис було видалено адміністратором*
+    if (notify_client) {
+      bot.sendMessage(
+        row.tg_id,
+        `🗑 *Ваш запис було видалено адміністратором*
 
 📅 ${row.date}
 ⏰ ${row.time}
 
 Буду рада новому запису 💅`,
-          { parse_mode: "Markdown" }
-        );
-      }
+        { parse_mode: "Markdown" }
+      ).catch(err => console.error("Appointment deletion notification error:", err));
+    }
 
-      res.json({ ok: true });
-    })
-    .catch(err => res.status(500).json({ error: "DB error" }));
+    await notifyAllAdmins(
+      `🗑 *Ви видалили запис клієнта*\n\n👤 ${escapeMarkdown(row.client || 'Невідомий клієнт')}\n📅 ${escapeMarkdown(row.date)}\n⏰ ${escapeMarkdown(row.time)}`
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Delete appointment error:", err);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
 // =============== ADMIN: UPDATE APPOINTMENT PRICE ===============

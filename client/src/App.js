@@ -625,21 +625,24 @@ function App() {
               {selectedDetailedAppointment.client || selectedDetailedAppointment.client_name || 'Невідомий'}
             </div>
             {selectedDetailedAppointment.username ? (
-              <a
-                href={`https://t.me/${selectedDetailedAppointment.username}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => WebApp.openTelegramLink(`https://t.me/${selectedDetailedAppointment.username}`)}
                 style={{
+                  padding: 0,
+                  border: 0,
+                  background: 'none',
                   color: '#0088cc',
                   textDecoration: 'none',
                   fontSize: '0.9rem',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  cursor: 'pointer'
                 }}
                 onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
                 onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
               >
                 @{selectedDetailedAppointment.username} →
-              </a>
+              </button>
             ) : selectedDetailedAppointment.tg_id ? (
               <button
                 type="button"
@@ -982,8 +985,33 @@ function App() {
           })()}
         </div>
 
-        {/* Close Button */}
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        {/* Close and approval actions */}
+        <div style={{
+          marginTop: '20px',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 10,
+          flexWrap: 'wrap'
+        }}>
+          {selectedDetailedAppointment.id && selectedDetailedAppointment.status === 'pending' && (
+            <button
+              type="button"
+              onClick={() => changeStatus(selectedDetailedAppointment.id, 'approved', selectedDetailedAppointment)}
+              style={{
+                padding: '12px 20px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(39, 174, 96, 0.3)'
+              }}
+            >
+              ✅ Підтвердити запис
+            </button>
+          )}
           <button
             onClick={() => setSelectedDetailedAppointment(null)}
             style={{
@@ -1008,6 +1036,22 @@ function App() {
             }}
           >
             Закрити
+          </button>
+          <button
+            type="button"
+            onClick={() => WebApp.close()}
+            style={{
+              padding: '12px 18px',
+              borderRadius: '10px',
+              border: '1px solid #d8deea',
+              background: 'white',
+              color: '#526078',
+              fontWeight: '600',
+              fontSize: '1rem',
+              cursor: 'pointer'
+            }}
+          >
+            ↩ До бота
           </button>
         </div>
       </div>
@@ -1354,6 +1398,7 @@ function App() {
   }));
 
   const selectedSlot = slots.find(s => s.id === selectedSlotId);
+  const selectedRescheduleSlot = slots.find(s => s.id === rescheduleSelectedSlotId);
 
   // ADMIN FUNCTIONS
   const applyFilter = (status) => {
@@ -1407,7 +1452,8 @@ function App() {
             new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`)
           )
         );
-        setMode("slots");
+        setCalendarDate(new Date());
+        setMode("slotsCalendar");
       })
       .catch(err => {
         console.error('Error loading slots:', err);
@@ -1419,6 +1465,7 @@ function App() {
     if (!slot.is_booked) return;
 
     setSelectedDetailedAppointment({
+      id: slot.appointment_id,
       client: slot.client_name,
       username: slot.client_username,
       tg_id: slot.client_tg_id,
@@ -1495,12 +1542,33 @@ function App() {
         notify_client: sendNotification
       })
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(() => {
         alert("✅ Статус оновлено!");
+        setClientHistory(current => current.map(appointment =>
+          String(appointment.id) === String(id)
+            ? { ...appointment, status: newStatus }
+            : appointment
+        ));
+        setSelectedDetailedAppointment(current =>
+          current && String(current.id) === String(id)
+            ? { ...current, status: newStatus }
+            : current
+        );
+        setSlotsAdmin(current => current.map(slot =>
+          String(slot.appointment_id) === String(id)
+            ? { ...slot, appointment_status: newStatus }
+            : slot
+        ));
         loadAppointments("all");
       })
-      .catch(() => alert("❌ Помилка оновлення"));
+      .catch(err => {
+        console.error('Appointment status update error:', err);
+        alert("❌ Помилка оновлення");
+      });
   };
 
   const deleteAppointment = (id, appointmentData) => {
@@ -2276,14 +2344,20 @@ function App() {
             <div>
               <h2 className="client-profile-name">{selectedClient?.client_name || selectedClient?.client}</h2>
               {selectedClient?.username && (
-                <a
-                  href={`https://t.me/${selectedClient.username}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => WebApp.openTelegramLink(`https://t.me/${selectedClient.username}`)}
                   className="client-profile-username"
+                  style={{
+                    padding: 0,
+                    border: 0,
+                    background: 'none',
+                    font: 'inherit',
+                    cursor: 'pointer'
+                  }}
                 >
                   @{selectedClient.username}
-                </a>
+                </button>
               )}
               {!selectedClient?.username && selectedClient?.tg_id && (
                 <button
@@ -2422,12 +2496,33 @@ function App() {
           </div>
 
           {/* Back Button */}
-          <div style={{ textAlign: 'center', margin: '18px 0 28px 0' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+            margin: '18px 0 28px 0'
+          }}>
             <button
               className="primary-btn client-profile-back-button"
               onClick={() => setMode("clients")}
             >
               ⬅ Назад до клієнтів
+            </button>
+            <button
+              type="button"
+              onClick={() => WebApp.close()}
+              style={{
+                border: '1px solid #d8deea',
+                borderRadius: 10,
+                padding: '11px 18px',
+                background: 'white',
+                color: '#526078',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              ↩ Повернутися до бота
             </button>
           </div>
 
@@ -2468,6 +2563,29 @@ function App() {
                   }}>
                     {statusStyle.label}
                   </div>
+
+                  {h.status === 'pending' && (
+                    <button
+                      type="button"
+                      onClick={() => changeStatus(h.id, 'approved', h)}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        marginBottom: 14,
+                        padding: '11px 14px',
+                        border: 0,
+                        borderRadius: 10,
+                        background: 'linear-gradient(135deg, #27ae60, #1e8449)',
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(39, 174, 96, 0.2)'
+                      }}
+                    >
+                      ✅ Підтвердити запис
+                    </button>
+                  )}
 
                   <div style={{
                     display: 'flex',
@@ -2848,17 +2966,35 @@ function App() {
     );
   }
   if (mode === "myAppointments") {
+    const now = new Date();
+    const upcomingAppointments = myHistory
+      .filter(appointment =>
+        appointment.status !== 'canceled' &&
+        new Date(`${appointment.date}T${appointment.time}`) >= now
+      )
+      .sort((a, b) =>
+        new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)
+      );
+    const pendingAppointments = myHistory.filter(appointment => appointment.status === 'pending').length;
+    const approvedAppointments = myHistory.filter(appointment => appointment.status === 'approved').length;
+    const formatAppointmentDate = dateValue => {
+      const date = new Date(`${dateValue}T12:00:00`);
+      return Number.isNaN(date.getTime())
+        ? dateValue
+        : date.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
     return (
       <div className="app-container">
         {/* Modern Header */}
         <div className="card" style={{
-          background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+          background: 'linear-gradient(135deg, #667eea 0%, #c44569 100%)',
           color: 'white',
           textAlign: 'center',
           padding: '30px 20px',
           marginBottom: '30px',
           borderRadius: '20px',
-          boxShadow: '0 10px 30px rgba(168, 237, 234, 0.3)',
+          boxShadow: '0 10px 30px rgba(102, 126, 234, 0.28)',
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -2889,7 +3025,7 @@ function App() {
             zIndex: 1,
             position: 'relative'
           }}>
-            Історія ваших візитів
+            Майбутні записи, підтвердження та історія візитів
           </p>
         </div>
 
@@ -2923,6 +3059,65 @@ function App() {
           </button>
         </div>
 
+        {myHistory.length > 0 && (
+          <section style={{
+            margin: '0 10px 24px',
+            padding: 20,
+            borderRadius: 18,
+            background: 'linear-gradient(135deg, #ffffff 0%, #f6f7ff 100%)',
+            boxShadow: '0 8px 24px rgba(49, 61, 110, 0.1)',
+            border: '1px solid rgba(102, 126, 234, 0.12)'
+          }}>
+            <h3 style={{ margin: '0 0 14px', color: '#303954', fontSize: '1.1rem' }}>
+              ✨ Коротко про ваші записи
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: 10,
+              marginBottom: 14
+            }}>
+              {[
+                { label: 'Найближчі', value: upcomingAppointments.length, color: '#5265c5' },
+                { label: 'Очікують', value: pendingAppointments, color: '#d58a13' },
+                { label: 'Підтверджені', value: approvedAppointments, color: '#239454' }
+              ].map(item => (
+                <div key={item.label} style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'white',
+                  border: '1px solid #edf0f7'
+                }}>
+                  <div style={{ color: '#778098', fontSize: '0.8rem', marginBottom: 4 }}>{item.label}</div>
+                  <strong style={{ color: item.color, fontSize: '1.35rem' }}>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+            {upcomingAppointments[0] ? (
+              <div style={{
+                padding: '13px 15px',
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white'
+              }}>
+                <div style={{ fontSize: '0.8rem', opacity: 0.86, marginBottom: 4 }}>Наступний візит</div>
+                <strong style={{ display: 'block', fontSize: '1rem' }}>
+                  {formatAppointmentDate(upcomingAppointments[0].date)}
+                </strong>
+                <span>
+                  🕒 {upcomingAppointments[0].time}
+                  {upcomingAppointments[0].service ? ` · ${upcomingAppointments[0].service}` : ''}
+                  {upcomingAppointments[0].price ? ` · ${upcomingAppointments[0].price} zł` : ''}
+                </span>
+              </div>
+            ) : (
+              <p style={{ margin: 0, color: '#778098', fontSize: '0.9rem' }}>
+                Немає майбутніх візитів. Перегляньте записи нижче або оберіть новий час.
+              </p>
+            )}
+          </section>
+        )}
+
         {/* Appointments List */}
         {myHistory.length === 0 ? (
           <div style={{
@@ -2949,6 +3144,26 @@ function App() {
               color: '#888',
               fontSize: '1rem'
             }}>Час записатися на перший манікюр! 💅</p>
+            <button
+              type="button"
+              onClick={() => {
+                resetBooking();
+                setMode('booking');
+              }}
+              style={{
+                marginTop: 18,
+                padding: '12px 20px',
+                border: 0,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              💅 Записатися зараз
+            </button>
           </div>
         ) : (
           <div style={{
@@ -3003,7 +3218,7 @@ function App() {
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px'
                   }}>
-                    {h.status === 'approved' ? '✅ Затвер.' : h.status === 'canceled' ? '❌ Скасов.' : '⏳ Очікує'}
+                    {h.status === 'approved' ? '✅ Підтверджено' : h.status === 'canceled' ? '❌ Скасовано' : '⏳ Очікує підтвердження'}
                   </div>
 
                   {/* Date and time */}
@@ -3016,7 +3231,7 @@ function App() {
                   }}>
                     <span style={{ fontSize: '1.5rem', marginRight: '10px' }}>📅</span>
                     <div>
-                      <div>{h.date} — {h.time}</div>
+                      <div>{formatAppointmentDate(h.date)} — {h.time}</div>
                       {label === "today" && (
                         <div style={{
                           color: statusColor.text,
@@ -3271,6 +3486,7 @@ function App() {
                                 setRescheduleOldDate(h.date);
                                 setRescheduleOldTime(h.time);
                                 setRescheduleSelectedSlotId(null);
+                                setIsSlotModalOpen(false);
                               })
                               .catch(err => {
                                 console.error('Error loading slots:', err);
@@ -4424,6 +4640,48 @@ function App() {
 
         {/* Available Slots */}
         <div style={{ padding: '0 10px' }}>
+          <button
+            onClick={() => setIsSlotModalOpen(true)}
+            disabled={slots.length === 0}
+            style={{
+              width: '100%',
+              padding: 20,
+              borderRadius: 15,
+              border: rescheduleSelectedSlotId ? '2px solid #4CAF50' : '2px solid #e0e0e0',
+              background: rescheduleSelectedSlotId ? 'rgba(76, 175, 80, 0.1)' : 'white',
+              fontSize: 18,
+              fontWeight: 'bold',
+              cursor: slots.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: slots.length === 0 ? 0.6 : 1,
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              marginBottom: 20
+            }}
+          >
+            <span>📅</span>
+            {selectedRescheduleSlot ? (
+              <div>
+                <div>{selectedRescheduleSlot.date}</div>
+                <div style={{ fontSize: 14, fontWeight: 'normal', color: '#666' }}>
+                  {selectedRescheduleSlot.time}
+                </div>
+              </div>
+            ) : (
+              <span>Обрати дату та час</span>
+            )}
+          </button>
+
+          {slots.length === 0 && (
+            <p style={{ textAlign: 'center', color: '#888', marginBottom: 30 }}>
+              Вільних часів немає. Спробуйте пізніше 😊
+            </p>
+          )}
+
+          {false && (
+          <>
           <h3 style={{ color: '#333', fontSize: '1.3rem', fontWeight: '600', marginBottom: '20px' }}>
             💫 Вільні часи для запису:
           </h3>
@@ -4506,6 +4764,8 @@ function App() {
               ))}
             </div>
           )}
+          </>
+          )}
 
           {/* Confirm Button */}
           {rescheduleSelectedSlotId && (
@@ -4583,6 +4843,119 @@ function App() {
             </div>
           )}
         </div>
+
+        {isSlotModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              backdropFilter: 'blur(5px)'
+            }}
+            onClick={() => setIsSlotModalOpen(false)}
+          >
+            <div
+              style={{
+                background: 'white',
+                padding: 30,
+                borderRadius: 20,
+                maxWidth: 500,
+                width: '90%',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+              }}
+              onClick={event => event.stopPropagation()}
+            >
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <h2 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 10, color: '#333' }}>
+                  📅 Оберіть дату і час
+                </h2>
+                <p style={{ color: '#666' }}>Доступні слоти для запису</p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
+                {grouped.map(group => {
+                  const dateObj = new Date(group.date);
+                  const isToday = getSlotLabel(group.date) === 'today';
+                  const isTomorrow = getSlotLabel(group.date) === 'tomorrow';
+
+                  return (
+                    <div
+                      key={group.date}
+                      style={{
+                        border: `2px solid ${isToday ? '#4CAF50' : isTomorrow ? '#2196F3' : '#e0e0e0'}`,
+                        borderRadius: 15,
+                        padding: 20,
+                        background: isToday ? 'rgba(76, 175, 80, 0.05)' : isTomorrow ? 'rgba(33, 150, 243, 0.05)' : 'white'
+                      }}
+                    >
+                      <div style={{ textAlign: 'center', marginBottom: 15 }}>
+                        <div style={{ fontSize: 20, fontWeight: 'bold', color: '#333' }}>
+                          {dateObj.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}
+                        </div>
+                        <div style={{
+                          fontSize: 14,
+                          color: isToday ? '#4CAF50' : isTomorrow ? '#2196F3' : '#666',
+                          fontWeight: 'bold'
+                        }}>
+                          {isToday ? '• Сьогодні' : isTomorrow ? '• Завтра' : dateObj.toLocaleDateString('uk-UA', { weekday: 'long' })}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+                        {group.slots.map(slot => (
+                          <button
+                            key={slot.id}
+                            onClick={() => {
+                              setRescheduleSelectedSlotId(slot.id);
+                              setIsSlotModalOpen(false);
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              borderRadius: 12,
+                              background: '#f8f9fa',
+                              border: '2px solid #e9ecef',
+                              cursor: 'pointer',
+                              fontSize: 16,
+                              fontWeight: 'bold',
+                              color: '#495057',
+                              transition: 'all 0.3s ease',
+                              minWidth: 70
+                            }}
+                          >
+                            {slot.time}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ textAlign: 'center', marginTop: 20 }}>
+                <button
+                  onClick={() => setIsSlotModalOpen(false)}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: 25,
+                    border: 'none',
+                    background: '#6c757d',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Закрити
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {modal}
       </div>
@@ -5653,7 +6026,7 @@ function App() {
 
         {renderScheduleNavigation("slots")}
 
-        {/* View Toggle Buttons */}
+        {false && (
         <div style={{
           display: 'flex',
           gap: '10px',
@@ -5717,6 +6090,7 @@ function App() {
             📅 Календар
           </button>
         </div>
+        )}
 
         {/* Add Slot Card */}
         <div
@@ -6200,7 +6574,7 @@ function App() {
 
         {renderScheduleNavigation("slots")}
 
-        {/* View Toggle Buttons */}
+        {false && (
         <div style={{
           display: 'flex',
           gap: '10px',
@@ -6252,6 +6626,7 @@ function App() {
             📅 Календар
           </button>
         </div>
+        )}
 
         {/* Calendar */}
         <div className="card" style={{
@@ -9716,6 +10091,7 @@ function App() {
                 ⏳ Очікують
               </button>
 
+              {false && (
               <button
                 onClick={() => applyFilter("approved")}
                 style={{
@@ -9743,7 +10119,9 @@ function App() {
               >
                 ✔ Підтверджені
               </button>
+              )}
 
+              {false && (
               <button
                 onClick={() => applyFilter("canceled")}
                 style={{
@@ -9771,6 +10149,7 @@ function App() {
               >
                 ❌ Скасовані
               </button>
+              )}
 
               <button
                 onClick={() => setAdminCalendarView(!adminCalendarView)}
