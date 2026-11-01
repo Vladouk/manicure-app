@@ -621,7 +621,7 @@ function App() {
             <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2c3e50', marginBottom: '8px' }}>
               {selectedDetailedAppointment.client || selectedDetailedAppointment.client_name || 'Невідомий'}
             </div>
-            {selectedDetailedAppointment.username && (
+            {selectedDetailedAppointment.username ? (
               <a
                 href={`https://t.me/${selectedDetailedAppointment.username}`}
                 target="_blank"
@@ -637,7 +637,23 @@ function App() {
               >
                 @{selectedDetailedAppointment.username} →
               </a>
-            )}
+            ) : selectedDetailedAppointment.tg_id ? (
+              <button
+                type="button"
+                onClick={() => WebApp.openTelegramLink(`tg://user?id=${selectedDetailedAppointment.tg_id}`)}
+                style={{
+                  padding: '7px 12px',
+                  border: 0,
+                  borderRadius: '9px',
+                  background: '#e8f4fb',
+                  color: '#1682b5',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                📱 Відкрити профіль клієнта
+              </button>
+            ) : null}
           </div>
 
           {/* Date & Time */}
@@ -743,21 +759,19 @@ function App() {
           </div>
 
           {/* Comment */}
-          {selectedDetailedAppointment.comment && (
-            <div style={{
-              background: '#e3f2fd',
-              borderRadius: '12px',
-              padding: '15px',
-              borderLeft: '4px solid #2196F3'
-            }}>
-              <div style={{ fontSize: '0.85rem', color: '#1976d2', fontWeight: '600', marginBottom: '8px' }}>
-                💬 КОМЕНТАР
-              </div>
-              <div style={{ color: '#555', lineHeight: '1.5', fontSize: '0.95rem' }}>
-                {selectedDetailedAppointment.comment}
-              </div>
+          <div style={{
+            background: '#e3f2fd',
+            borderRadius: '12px',
+            padding: '15px',
+            borderLeft: '4px solid #2196F3'
+          }}>
+            <div style={{ fontSize: '0.85rem', color: '#1976d2', fontWeight: '600', marginBottom: '8px' }}>
+              💬 НОТАТКА КЛІЄНТА
             </div>
-          )}
+            <div style={{ color: '#555', lineHeight: '1.5', fontSize: '0.95rem' }}>
+              {selectedDetailedAppointment.comment || 'Клієнт не залишив нотатку.'}
+            </div>
+          </div>
 
           {/* Reference Images */}
           {selectedDetailedAppointment.reference_images && (() => {
@@ -1256,8 +1270,8 @@ function App() {
       .catch(() => alert("❌ Помилка завантаження"));
   };
 
-  const loadAppointments = useCallback(() => {
-    fetch(`${API}/api/admin/appointments?status=${filter}`, {
+  const loadAppointments = useCallback((status = filter) => {
+    fetch(`${API}/api/admin/appointments?status=${status}`, {
       headers: {
         "x-init-data": WebApp.initData
       }
@@ -1279,6 +1293,79 @@ function App() {
       })
       .catch(() => alert("❌ Помилка завантаження"));
   }, [filter]);
+
+  const openAdminSlots = () => {
+    fetch(`${API}/api/admin/slots`, {
+      headers: { "x-init-data": WebApp.initData }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to load slots');
+        return r.json();
+      })
+      .then(data => {
+        setSlotsAdmin(
+          data.sort((a, b) =>
+            new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`)
+          )
+        );
+        setMode("slots");
+      })
+      .catch(err => {
+        console.error('Error loading slots:', err);
+        alert('❌ Помилка завантаження слотів');
+      });
+  };
+
+  const openSlotAppointmentDetails = (slot) => {
+    if (!slot.is_booked) return;
+
+    setSelectedDetailedAppointment({
+      client: slot.client_name,
+      username: slot.client_username,
+      tg_id: slot.client_tg_id,
+      date: slot.date,
+      time: slot.time,
+      status: slot.appointment_status,
+      comment: slot.client_note,
+      service: slot.service,
+      price: slot.price,
+      design: slot.design,
+      length: slot.length,
+      type: slot.type
+    });
+  };
+
+  const renderScheduleNavigation = (activeSection) => (
+    <div className="schedule-switcher" role="tablist" aria-label="Розклад">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeSection === "appointments"}
+        className={activeSection === "appointments" ? "schedule-switcher-button is-active" : "schedule-switcher-button"}
+        onClick={() => {
+          if (activeSection !== "appointments") {
+            loadAppointments("all");
+            setMode("admin");
+          }
+        }}
+      >
+        <span aria-hidden="true">📋</span>
+        Усі записи
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeSection === "slots"}
+        className={activeSection === "slots" ? "schedule-switcher-button is-active" : "schedule-switcher-button"}
+        onClick={() => {
+          if (activeSection !== "slots") openAdminSlots();
+        }}
+      >
+        <span aria-hidden="true">🗓</span>
+        Робочі слоти
+      </button>
+    </div>
+  );
 
 
 
@@ -1312,7 +1399,7 @@ function App() {
       .then(r => r.json())
       .then(() => {
         alert("✅ Статус оновлено!");
-        loadAppointments();
+        loadAppointments("all");
       })
       .catch(() => alert("❌ Помилка оновлення"));
   };
@@ -1620,16 +1707,7 @@ function App() {
           {sortedClientList.map(c => (
             <div
               key={c.tg_id}
-              className="menu-card"
-              style={{
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                borderRadius: '16px',
-                padding: '20px',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                border: 'none',
-                position: 'relative'
-              }}
+              className="menu-card client-list-card"
             >
               <div style={{
                 display: 'flex',
@@ -2089,60 +2167,20 @@ function App() {
     const avgPrice = completedVisits > 0 ? Math.round(totalSpent / completedVisits) : 0;
 
     return (
-      <div className="app-container" style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-        padding: '0',
-      }}>
-        <div style={{
-          maxWidth: 600,
-          margin: '40px auto 0 auto',
-          background: 'rgba(255,255,255,0.95)',
-          borderRadius: '24px',
-          boxShadow: '0 8px 32px rgba(102, 126, 234, 0.18)',
-          padding: '32px 24px 24px 24px',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '18px',
-            marginBottom: '28px',
-          }}>
-            <div style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              borderRadius: '50%',
-              width: '70px',
-              height: '70px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '2.5rem',
-              color: 'white',
-              boxShadow: '0 4px 16px rgba(102, 126, 234, 0.18)',
-            }}>
-              👤
+      <div className="app-container client-profile-shell">
+        <div className="client-profile-card">
+          <div className="client-profile-header">
+            <div className="client-profile-avatar" aria-hidden="true">
+              {(selectedClient?.client_name || selectedClient?.client || 'К').trim().charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 style={{
-                margin: '0 0 6px 0',
-                fontSize: '1.7rem',
-                fontWeight: '700',
-                color: '#2c3e50',
-                letterSpacing: '0.5px',
-              }}>{selectedClient?.client_name || selectedClient?.client}</h2>
+              <h2 className="client-profile-name">{selectedClient?.client_name || selectedClient?.client}</h2>
               {selectedClient?.username && (
                 <a
                   href={`https://t.me/${selectedClient.username}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    color: '#667eea',
-                    textDecoration: 'none',
-                    fontSize: '1rem',
-                    fontWeight: 500,
-                  }}
+                  className="client-profile-username"
                 >
                   @{selectedClient.username}
                 </a>
@@ -2151,19 +2189,7 @@ function App() {
                 <button
                   type="button"
                   onClick={() => WebApp.openTelegramLink(`tg://user?id=${selectedClient.tg_id}`)}
-                  style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '7px 14px',
-                    color: 'white',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    marginTop: 6,
-                    boxShadow: '0 2px 8px rgba(102, 126, 234, 0.12)',
-                    transition: 'all 0.2s',
-                  }}
+                  className="client-profile-contact-button"
                 >
                   📱 Відкрити профіль
                 </button>
@@ -2172,12 +2198,7 @@ function App() {
           </div>
 
           {/* Statistics Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '18px',
-            marginBottom: '18px',
-          }}>
+          <div className="client-profile-stats">
             {[{
               label: 'Всього візитів',
               value: totalVisits,
@@ -2199,19 +2220,11 @@ function App() {
               icon: '💳',
               color: '#f093fb',
             }].map((stat, idx) => (
-              <div key={idx} style={{
-                background: 'rgba(102, 126, 234, 0.07)',
-                borderRadius: '14px',
-                padding: '18px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.07)',
-              }}>
-                <span style={{ fontSize: '1.5rem', color: stat.color }}>{stat.icon}</span>
+              <div key={idx} className="client-profile-stat">
+                <span className="client-profile-stat-icon" style={{ color: stat.color }}>{stat.icon}</span>
                 <div>
-                  <div style={{ fontSize: '0.9rem', color: '#888', marginBottom: 2 }}>{stat.label}</div>
-                  <div style={{ fontSize: '1.3rem', fontWeight: 700, color: stat.color }}>{stat.value}</div>
+                  <div className="client-profile-stat-label">{stat.label}</div>
+                  <div className="client-profile-stat-value" style={{ color: stat.color }}>{stat.value}</div>
                 </div>
               </div>
             ))}
@@ -2220,6 +2233,7 @@ function App() {
           {/* Add Bonus Points Button for Admin */}
           <div style={{ marginTop: '10px', display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: 18 }}>
             <button
+              className="client-profile-bonus-button"
               onClick={() => {
                 const points = prompt('Скільки балів додати клієнту?');
                 if (points && !isNaN(points) && parseInt(points) > 0) {
@@ -2242,18 +2256,6 @@ function App() {
                     .catch(() => alert('❌ Помилка підключення'));
                 }
               }}
-              style={{
-                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px 22px',
-                color: 'white',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(245, 87, 108, 0.12)',
-                transition: 'all 0.2s',
-              }}
             >
               🎁 Додати бонусні бали
             </button>
@@ -2262,43 +2264,17 @@ function App() {
           {/* Back Button */}
           <div style={{ textAlign: 'center', margin: '18px 0 28px 0' }}>
             <button
-              className="primary-btn"
+              className="primary-btn client-profile-back-button"
               onClick={() => setMode("clients")}
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '13px 28px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                color: 'white',
-                cursor: 'pointer',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.13)',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={e => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.18)';
-              }}
-              onMouseLeave={e => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.13)';
-              }}
             >
               ⬅ Назад до клієнтів
             </button>
           </div>
 
           {/* Appointments Timeline */}
-          <h3 style={{
-            margin: '0 0 18px 0',
-            fontSize: '1.25rem',
-            color: '#667eea',
-            fontWeight: 700,
-            letterSpacing: '0.5px',
-          }}>📜 Історія записів</h3>
+          <h3 className="client-profile-history-title">📜 Історія записів</h3>
 
-          <div style={{ maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+          <div className="client-profile-history-list">
             {clientHistory.length === 0 && (
               <div style={{ textAlign: 'center', color: '#aaa', fontSize: '1.1rem', padding: '40px 0' }}>
                 Немає записів для цього клієнта
@@ -2315,15 +2291,8 @@ function App() {
               return (
                 <div
                   key={h.id}
-                  style={{
-                    background: 'rgba(245, 247, 250, 0.95)',
-                    borderRadius: '14px',
-                    padding: '18px',
-                    marginBottom: '16px',
-                    boxShadow: '0 2px 8px rgba(102, 126, 234, 0.07)',
-                    border: `2px solid ${statusStyle.border}`,
-                    transition: 'box-shadow 0.2s',
-                  }}
+                  className="client-profile-history-item"
+                  style={{ borderColor: statusStyle.border }}
                 >
                   <div style={{
                     display: 'inline-block',
@@ -2713,7 +2682,6 @@ function App() {
             })}
           </div>
           {modal}
-          {appointmentDetailModal}
           {priceEditModal}
         </div>
       </div>
@@ -4576,19 +4544,19 @@ function App() {
               fontSize: '3rem',
               marginBottom: '15px',
               filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-            }}>📋</div>
+            }}>🗓</div>
             <h3 style={{
               margin: '0 0 8px 0',
               fontSize: '1.3rem',
               fontWeight: '600',
               color: 'white'
-            }}>Усі записи</h3>
+            }}>Розклад</h3>
             <p style={{
               margin: '0',
               fontSize: '0.9rem',
               opacity: '0.9',
               color: 'white'
-            }}>Перегляд та управління</p>
+            }}>Записи та робочі слоти в одному місці</p>
           </div>
 
           {/* Clients Card */}
@@ -4641,64 +4609,6 @@ function App() {
               opacity: '0.8',
               color: '#2c3e50'
             }}>База клієнтів</p>
-          </div>
-
-          {/* Working Slots Card */}
-          <div
-            className="menu-card"
-            onClick={() => {
-              fetch(`${API}/api/admin/slots`, {
-                headers: { "x-init-data": WebApp.initData }
-              })
-                .then(r => r.json())
-                .then(data => {
-                  setSlotsAdmin(
-                    data.sort((a, b) =>
-                      new Date(`${a.date} ${a.time}`) -
-                      new Date(`${b.date} ${b.time}`)
-                    )
-                  );
-                });
-              setMode("slots");
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              borderRadius: '16px',
-              padding: '25px',
-              textAlign: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 8px 25px rgba(240, 147, 251, 0.3)',
-              border: 'none',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-5px)';
-              e.target.style.boxShadow = '0 15px 35px rgba(240, 147, 251, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 8px 25px rgba(240, 147, 251, 0.3)';
-            }}
-          >
-            <div style={{
-              fontSize: '3rem',
-              marginBottom: '15px',
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-            }}>🗓</div>
-            <h3 style={{
-              margin: '0 0 8px 0',
-              fontSize: '1.3rem',
-              fontWeight: '600',
-              color: 'white'
-            }}>Робочі слоти</h3>
-            <p style={{
-              margin: '0',
-              fontSize: '0.9rem',
-              opacity: '0.9',
-              color: 'white'
-            }}>Графік роботи</p>
           </div>
 
           {/* Price Management Card */}
@@ -5581,6 +5491,8 @@ function App() {
           </button>
         </div>
 
+        {renderScheduleNavigation("slots")}
+
         {/* View Toggle Buttons */}
         <div style={{
           display: 'flex',
@@ -5904,30 +5816,39 @@ function App() {
                       }}>
                         👤 Клієнт:
                       </div>
-                      <div
-                        onClick={() =>
-                          WebApp.openTelegramLink(
-                            `https://t.me/${s.client_username}`
-                          )
-                        }
+                      <button
+                        type="button"
+                        onClick={() => openSlotAppointmentDetails(s)}
                         style={{
+                          display: 'block',
+                          padding: 0,
+                          border: 0,
+                          background: 'none',
                           color: '#d63384',
+                          font: 'inherit',
                           fontWeight: 'bold',
                           cursor: 'pointer',
                           fontSize: '1.2rem',
                           textDecoration: 'underline',
-                          transition: 'all 0.3s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.color = '#c2185b';
-                          e.target.style.transform = 'scale(1.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.color = '#d63384';
-                          e.target.style.transform = 'scale(1)';
+                          textAlign: 'left'
                         }}
                       >
-                        {s.client_name}
+                        {s.client_name || 'Переглянути клієнта'}
+                      </button>
+                      <div style={{
+                        marginTop: '10px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        background: '#fff7fa',
+                        color: '#694d57',
+                        lineHeight: 1.45
+                      }}>
+                        <div style={{ marginBottom: '4px', color: '#a45f76', fontSize: '0.82rem', fontWeight: 700 }}>
+                          💬 Нотатка клієнта
+                        </div>
+                        <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                          {s.client_note || 'Клієнт не залишив нотатку.'}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -5984,6 +5905,7 @@ function App() {
         </div>
 
         {modal}
+        {appointmentDetailModal}
       </div>
     );
   }
@@ -6116,6 +6038,8 @@ function App() {
           </button>
         </div>
 
+        {renderScheduleNavigation("slots")}
+
         {/* View Toggle Buttons */}
         <div style={{
           display: 'flex',
@@ -6216,9 +6140,28 @@ function App() {
                     <strong style={{ fontSize: '1.1rem' }}>{slot.time}</strong>
                     <br />
                     {slot.is_booked ? (
-                      <small style={{ color: '#e74c3c', fontWeight: '600' }}>
-                        🔴 Зайнято {slot.client_name ? `(${slot.client_name})` : ''}
-                      </small>
+                      <div style={{ display: 'grid', gap: '5px', marginTop: '3px' }}>
+                        <button
+                          type="button"
+                          onClick={() => openSlotAppointmentDetails(slot)}
+                          style={{
+                            padding: 0,
+                            border: 0,
+                            background: 'none',
+                            color: '#b33d55',
+                            font: 'inherit',
+                            fontSize: '0.9rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            textAlign: 'left'
+                          }}
+                        >
+                          🔴 {slot.client_name || 'Переглянути клієнта'}
+                        </button>
+                        <small style={{ color: '#694d57', lineHeight: 1.4 }}>
+                          💬 {slot.client_note || 'Клієнт не залишив нотатку.'}
+                        </small>
+                      </div>
                     ) : (
                       <small style={{ color: '#2ecc71', fontWeight: '600' }}>
                         🟢 Вільно
@@ -6328,6 +6271,7 @@ function App() {
         </div>
 
         {modal}
+        {appointmentDetailModal}
 
         {/* Add Slot Modal */}
         {addSlotModalOpen && (
@@ -9441,6 +9385,8 @@ function App() {
           </button>
         </div>
 
+        {renderScheduleNavigation("appointments")}
+
         {/* Admin Tabs - All vs Archive */}
         <div style={{
           display: 'grid',
@@ -10650,7 +10596,6 @@ function App() {
         )}
 
         {modal}
-        {appointmentDetailModal}
         {priceEditModal}
 
         {/* Notification Dialog for Admin Actions */}
