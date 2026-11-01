@@ -440,8 +440,13 @@ async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS client_points (
         tg_id BIGINT PRIMARY KEY,
         points INTEGER DEFAULT 0,
-        referral_discount_available BOOLEAN DEFAULT false
+        referral_discount_available BOOLEAN DEFAULT false,
+        admin_note TEXT
       )
+    `);
+    await pool.query(`
+      ALTER TABLE client_points
+      ADD COLUMN IF NOT EXISTS admin_note TEXT
     `);
 
     // Create service_categories table
@@ -1703,7 +1708,7 @@ app.get('/api/admin/slots', (req, res) => {
   a.username AS client_username,
   a.tg_id AS client_tg_id,
   a.status AS appointment_status,
-  a.comment AS client_note,
+  cp.admin_note AS client_admin_note,
   a.service,
   a.price,
   a.design,
@@ -1712,6 +1717,8 @@ app.get('/api/admin/slots', (req, res) => {
 FROM work_slots ws
 LEFT JOIN appointments a
   ON ws.date = a.date AND ws.time = a.time AND a.status != 'canceled'
+LEFT JOIN client_points cp
+  ON cp.tg_id = a.tg_id
 ORDER BY ws.date, ws.time
     `, [])
     .then(result => {
@@ -3103,6 +3110,7 @@ app.get('/api/admin/clients', (req, res) => {
       MAX(a.client) as client_name,
       MAX(a.username) as username,
       COALESCE(MAX(cp.points), 0) as points,
+      COALESCE(MAX(cp.admin_note), '') as admin_note,
       COUNT(a.id) as total_appointments,
       COUNT(CASE WHEN a.status = 'approved' THEN 1 END) as completed_appointments,
       MAX(a.date) as last_appointment_date,
@@ -3140,6 +3148,35 @@ app.get('/api/admin/clients', (req, res) => {
     .then(result => res.json(result.rows))
     .catch(err => {
       console.error('❌ Clients fetch error:', err);
+      res.status(500).json({ error: 'DB error' });
+    });
+});
+
+app.put('/api/admin/clients/:tg_id/note', (req, res) => {
+  const initData = req.headers['x-init-data'];
+  const { tg_id } = req.params;
+  const { note } = req.body;
+
+  if (!initData || !validateInitData(initData))
+    return res.status(403).json({ error: 'Access denied' });
+
+  const user = JSON.parse(new URLSearchParams(initData).get('user'));
+  if (!ADMIN_TG_IDS.includes(user.id))
+    return res.status(403).json({ error: 'Not admin' });
+
+  if (!/^\d+$/.test(tg_id) || typeof note !== 'string' || note.length > 5000)
+    return res.status(400).json({ error: 'Invalid client id or note (maximum 5000 characters)' });
+
+  pool.query(`
+    INSERT INTO client_points (tg_id, points, admin_note)
+    VALUES ($1, 0, $2)
+    ON CONFLICT (tg_id)
+    DO UPDATE SET admin_note = EXCLUDED.admin_note
+    RETURNING admin_note
+  `, [tg_id, note.trim()])
+    .then(result => res.json({ ok: true, admin_note: result.rows[0].admin_note }))
+    .catch(err => {
+      console.error('Client note update error:', err);
       res.status(500).json({ error: 'DB error' });
     });
 });

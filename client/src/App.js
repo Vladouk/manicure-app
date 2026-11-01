@@ -38,6 +38,8 @@ function App() {
   const [clientList, setClientList] = useState([]);
   const [clientHistory, setClientHistory] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [clientNoteDraft, setClientNoteDraft] = useState('');
+  const [isSavingClientNote, setIsSavingClientNote] = useState(false);
   const [appointmentPhotoFiles, setAppointmentPhotoFiles] = useState({});
   const [appointmentNotes, setAppointmentNotes] = useState({});
   const [savingAppointmentMediaId, setSavingAppointmentMediaId] = useState(null);
@@ -98,6 +100,7 @@ function App() {
 
   // APPOINTMENT DETAILS MODAL
   const [selectedDetailedAppointment, setSelectedDetailedAppointment] = useState(null);
+  const [isSavingSlotClientNote, setIsSavingSlotClientNote] = useState(false);
 
   // CANCEL APPOINTMENT MODAL
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -758,19 +761,114 @@ function App() {
             </div>
           </div>
 
-          {/* Comment */}
+          {selectedDetailedAppointment.comment && (
+            <div style={{
+              background: '#f3f7fb',
+              borderRadius: '12px',
+              padding: '15px',
+              borderLeft: '4px solid #8da7bd'
+            }}>
+              <div style={{ fontSize: '0.85rem', color: '#617b91', fontWeight: '600', marginBottom: '8px' }}>
+                💬 КОМЕНТАР ДО ЗАПИСУ
+              </div>
+              <div style={{ color: '#555', lineHeight: '1.5', fontSize: '0.95rem' }}>
+                {selectedDetailedAppointment.comment}
+              </div>
+            </div>
+          )}
+
           <div style={{
-            background: '#e3f2fd',
+            background: '#fff7fa',
             borderRadius: '12px',
             padding: '15px',
-            borderLeft: '4px solid #2196F3'
+            borderLeft: '4px solid #c47e94'
           }}>
-            <div style={{ fontSize: '0.85rem', color: '#1976d2', fontWeight: '600', marginBottom: '8px' }}>
-              💬 НОТАТКА КЛІЄНТА
+            <div style={{ fontSize: '0.85rem', color: '#a45f76', fontWeight: '600', marginBottom: '8px' }}>
+              📝 ВНУТРІШНЯ НОТАТКА МАЙСТРА
             </div>
-            <div style={{ color: '#555', lineHeight: '1.5', fontSize: '0.95rem' }}>
-              {selectedDetailedAppointment.comment || 'Клієнт не залишив нотатку.'}
-            </div>
+            {selectedDetailedAppointment.tg_id ? (
+              <>
+                <textarea
+                  value={selectedDetailedAppointment.admin_note || ''}
+                  maxLength={5000}
+                  rows={3}
+                  placeholder="Додайте приватну нотатку про клієнта..."
+                  onChange={event => setSelectedDetailedAppointment(current => ({
+                    ...current,
+                    admin_note: event.target.value
+                  }))}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '10px',
+                    border: '1px solid #ead5dc',
+                    borderRadius: '9px',
+                    background: 'white',
+                    color: '#555',
+                    font: 'inherit',
+                    lineHeight: 1.45,
+                    resize: 'vertical'
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={isSavingSlotClientNote}
+                  onClick={async () => {
+                    const clientId = selectedDetailedAppointment.tg_id;
+                    setIsSavingSlotClientNote(true);
+                    try {
+                      const response = await fetch(`${API}/api/admin/clients/${clientId}/note`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'x-init-data': WebApp.initData
+                        },
+                        body: JSON.stringify({ note: selectedDetailedAppointment.admin_note || '' })
+                      });
+                      const data = await response.json();
+                      if (!response.ok) throw new Error(data.error || 'Не вдалося зберегти нотатку');
+
+                      setSelectedDetailedAppointment(current => ({
+                        ...current,
+                        admin_note: data.admin_note
+                      }));
+                      setSlotsAdmin(current => current.map(slot =>
+                        String(slot.client_tg_id) === String(clientId)
+                          ? { ...slot, client_admin_note: data.admin_note }
+                          : slot
+                      ));
+                      setClientList(current => current.map(client =>
+                        String(client.tg_id) === String(clientId)
+                          ? { ...client, admin_note: data.admin_note }
+                          : client
+                      ));
+                    } catch (error) {
+                      console.error('Client note save error:', error);
+                      alert(error.message || 'Помилка збереження нотатки.');
+                    } finally {
+                      setIsSavingSlotClientNote(false);
+                    }
+                  }}
+                  style={{
+                    marginTop: '9px',
+                    padding: '8px 13px',
+                    border: 0,
+                    borderRadius: '9px',
+                    background: 'linear-gradient(135deg, #c47e94, #a9647b)',
+                    color: 'white',
+                    fontWeight: 650,
+                    cursor: isSavingSlotClientNote ? 'wait' : 'pointer',
+                    opacity: isSavingSlotClientNote ? 0.7 : 1
+                  }}
+                >
+                  {isSavingSlotClientNote ? 'Збереження…' : 'Зберегти нотатку клієнта'}
+                </button>
+              </>
+            ) : (
+              <div style={{ color: '#555', lineHeight: '1.5', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>
+                {selectedDetailedAppointment.admin_note || 'Нотатку ще не додано.'}
+              </div>
+            )}
           </div>
 
           {/* Reference Images */}
@@ -1021,6 +1119,7 @@ function App() {
           const found = clients.find(c => String(c.tg_id) === String(clientTgId));
           if (found) {
             setSelectedClient(found);
+            setClientNoteDraft(found.admin_note || '');
             fetch(`${API}/api/admin/client-history?tg_id=${found.tg_id}`, {
               headers: { 'x-init-data': WebApp.initData }
             })
@@ -1326,7 +1425,7 @@ function App() {
       date: slot.date,
       time: slot.time,
       status: slot.appointment_status,
-      comment: slot.client_note,
+      admin_note: slot.client_admin_note,
       service: slot.service,
       price: slot.price,
       design: slot.design,
@@ -1916,6 +2015,7 @@ function App() {
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedClient(c);
+                    setClientNoteDraft(c.admin_note || '');
                     setMode("clientHistory");
                     fetch(`${API}/api/admin/clients/${c.tg_id}/history`, {
                       headers: { "x-init-data": WebApp.initData }
@@ -2196,6 +2296,66 @@ function App() {
               )}
             </div>
           </div>
+
+          <section className="client-admin-note">
+            <label htmlFor="client-admin-note" className="client-admin-note-label">
+              📝 Внутрішня нотатка майстра
+            </label>
+            <p className="client-admin-note-hint">
+              Приватна нотатка про клієнта. Вона не надсилається клієнту й буде видна у його зайнятих слотах.
+            </p>
+            <textarea
+              id="client-admin-note"
+              value={clientNoteDraft}
+              onChange={event => setClientNoteDraft(event.target.value)}
+              maxLength={5000}
+              rows={4}
+              placeholder="Наприклад: бажана форма, чутливість, улюблені кольори..."
+              className="client-admin-note-input"
+            />
+            <div className="client-admin-note-footer">
+              <span>{clientNoteDraft.length}/5000</span>
+              <button
+                type="button"
+                className="client-profile-bonus-button"
+                disabled={isSavingClientNote}
+                onClick={async () => {
+                  if (!selectedClient?.tg_id) {
+                    alert('Не вдалося визначити клієнта.');
+                    return;
+                  }
+
+                  setIsSavingClientNote(true);
+                  try {
+                    const response = await fetch(`${API}/api/admin/clients/${selectedClient.tg_id}/note`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'x-init-data': WebApp.initData
+                      },
+                      body: JSON.stringify({ note: clientNoteDraft })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Не вдалося зберегти нотатку');
+
+                    const updatedClient = { ...selectedClient, admin_note: data.admin_note };
+                    setSelectedClient(updatedClient);
+                    setClientList(current => current.map(client =>
+                      String(client.tg_id) === String(updatedClient.tg_id) ? updatedClient : client
+                    ));
+                    setClientNoteDraft(data.admin_note || '');
+                  } catch (error) {
+                    console.error('Client note save error:', error);
+                    alert(error.message || 'Помилка збереження нотатки.');
+                  } finally {
+                    setIsSavingClientNote(false);
+                  }
+                }}
+              >
+                {isSavingClientNote ? 'Збереження…' : 'Зберегти нотатку'}
+              </button>
+            </div>
+          </section>
 
           {/* Statistics Grid */}
           <div className="client-profile-stats">
@@ -5844,10 +6004,10 @@ function App() {
                         lineHeight: 1.45
                       }}>
                         <div style={{ marginBottom: '4px', color: '#a45f76', fontSize: '0.82rem', fontWeight: 700 }}>
-                          💬 Нотатка клієнта
+                                  📝 Внутрішня нотатка майстра
                         </div>
                         <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-                          {s.client_note || 'Клієнт не залишив нотатку.'}
+                                  {s.client_admin_note || 'Нотатку ще не додано.'}
                         </div>
                       </div>
                     </div>
@@ -6159,7 +6319,7 @@ function App() {
                           🔴 {slot.client_name || 'Переглянути клієнта'}
                         </button>
                         <small style={{ color: '#694d57', lineHeight: 1.4 }}>
-                          💬 {slot.client_note || 'Клієнт не залишив нотатку.'}
+                          📝 {slot.client_admin_note || 'Нотатку ще не додано.'}
                         </small>
                       </div>
                     ) : (
