@@ -194,31 +194,73 @@ app.get('/api/test', (req, res) => {
 
 // Define uploads directory path
 const uploadsDir = path.join(__dirname, 'uploads');
+const privateManicureDir = path.join(__dirname, 'private-manicure-uploads');
 
 // Ensure uploads directory exists and is writable (before multer configuration)
 try {
   fs.mkdirSync(uploadsDir, { recursive: true });
   fs.accessSync(uploadsDir, fs.constants.W_OK);
+  fs.mkdirSync(privateManicureDir, { recursive: true });
+  fs.accessSync(privateManicureDir, fs.constants.W_OK);
   console.log('✅ Uploads directory ready at', uploadsDir);
 } catch (err) {
-  console.error('❌ Uploads directory is not writable or cannot be created:', err);
+  console.error('❌ Upload directory is not writable or cannot be created:', err);
 }
 
 // =============== FILE UPLOADS ===============
-app.use("/uploads", express.static(uploadsDir));
+app.use("/uploads", (req, res, next) => {
+  const fileName = path.basename(req.path);
+  pool.query(`
+    SELECT EXISTS (
+      SELECT 1
+      FROM appointments a,
+           jsonb_array_elements_text(COALESCE(a.manicure_images, '[]'::jsonb)) image_path
+      WHERE image_path = $1
+    ) AS is_private
+  `, [`/uploads/${fileName}`])
+    .then(result => {
+      if (result.rows[0].is_private && !isAdminRequest(req)) {
+        return res.sendStatus(403);
+      }
+      express.static(uploadsDir)(req, res, next);
+    })
+    .catch(error => {
+      console.error('Upload access check failed:', error);
+      res.sendStatus(500);
+    });
+});
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext);
+    cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
   }
 });
 
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+});
+
+const privateManicureStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, privateManicureDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
+  }
+});
+
+const appointmentMediaUpload = multer({
+  storage: privateManicureStorage,
+  limits: { fileSize: 5 * 1024 * 1024, files: 10 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'));
+    }
+    cb(null, true);
+  }
 });
 
 // =============== VALIDATION (Telegram WebApp) ===============
@@ -243,6 +285,93 @@ function validateInitData(initData) {
     .digest('hex');
 
   return calculatedHash === hash;
+}
+
+function isAdminRequest(req) {
+  try {
+    const initData = req.headers['x-init-data'];
+    if (!initData || !validateInitData(initData)) return false;
+    const userData = new URLSearchParams(initData).get('user');
+    return Boolean(userData && ADMIN_TG_IDS.includes(JSON.parse(userData).id));
+  } catch (error) {
+    return false;
+  }
+}
+
+app.get('/api/admin/appointment/media/:filename', (req, res) => {
+  if (!isAdminRequest(req)) return res.sendStatus(403);
+
+  const { filename } = req.params;
+  if (!/^[\w-]+\.[A-Za-z0-9]+$/.test(filename)) return res.sendStatus(400);
+
+  res.sendFile(path.join(privateManicureDir, filename), error => {
+    if (error && !res.headersSent) {
+      if (error.code === 'ENOENT') return res.sendStatus(404);
+      console.error('Private manicure photo read error:', error);
+      res.sendStatus(500);
+    }
+  });
+});
+
+async function secureExistingManicureImages() {
+  const result = await pool.query(`
+    SELECT id, manicure_images
+    FROM appointments
+    WHERE jsonb_typeof(manicure_images) = 'array'
+      AND jsonb_array_length(manicure_images) > 0
+  `);
+
+  for (const appointment of result.rows) {
+    const imagePaths = appointment.manicure_images;
+    const publicFilesToRemove = [];
+    let changed = false;
+    const securedPaths = [];
+
+    for (const imagePath of imagePaths) {
+      if (typeof imagePath !== 'string' || !imagePath.startsWith('/uploads/')) {
+        securedPaths.push(imagePath);
+        continue;
+      }
+
+      const filename = path.basename(imagePath);
+      if (!filename || imagePath !== `/uploads/${filename}`) {
+        securedPaths.push(imagePath);
+        continue;
+      }
+
+      const sourcePath = path.join(uploadsDir, filename);
+      const privateFilename = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${path.extname(filename)}`;
+      const privatePath = path.join(privateManicureDir, privateFilename);
+
+      try {
+        await fs.promises.copyFile(sourcePath, privatePath);
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Could not secure manicure photo for appointment ${appointment.id}:`, error);
+        }
+        securedPaths.push(imagePath);
+        continue;
+      }
+
+      securedPaths.push(`/api/admin/appointment/media/${privateFilename}`);
+      publicFilesToRemove.push(sourcePath);
+      changed = true;
+    }
+
+    if (changed) {
+      await pool.query(
+        `UPDATE appointments SET manicure_images = $1::jsonb WHERE id = $2`,
+        [JSON.stringify(securedPaths), appointment.id]
+      );
+      for (const sourcePath of publicFilesToRemove) {
+        await fs.promises.unlink(sourcePath).catch(error => {
+          if (error.code !== 'ENOENT') {
+            console.error(`Could not remove public manicure photo ${path.basename(sourcePath)}:`, error);
+          }
+        });
+      }
+    }
+  }
 }
 
 // =============== DATABASE ===============
@@ -414,8 +543,31 @@ async function initializeDatabase() {
     await pool.query(`
       ALTER TABLE appointments
       ADD COLUMN IF NOT EXISTS bonus_points_spent INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS bonus_reward TEXT
+      ADD COLUMN IF NOT EXISTS bonus_reward TEXT,
+      ADD COLUMN IF NOT EXISTS manicure_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS admin_notes TEXT,
+      ADD COLUMN IF NOT EXISTS admin_followup_notified BOOLEAN NOT NULL DEFAULT false
     `);
+
+    await secureExistingManicureImages();
+
+    const unnotifiedAppointments = await pool.query(`
+      SELECT id, date, time
+      FROM appointments
+      WHERE status = 'approved' AND admin_followup_notified = false
+    `);
+    const startupTime = Date.now();
+    for (const appointment of unnotifiedAppointments.rows) {
+      if (!appointment.date || !appointment.time) continue;
+      const startTime = parseDateTimeInTimeZone(appointment.date, appointment.time).getTime();
+      const followupTime = startTime + 3 * 60 * 60 * 1000;
+      if (Number.isFinite(followupTime) && followupTime <= startupTime) {
+        await pool.query(
+          `UPDATE appointments SET admin_followup_notified = true WHERE id = $1`,
+          [appointment.id]
+        );
+      }
+    }
 
     // Migrate tg_id columns to BIGINT for larger Telegram IDs
     await pool.query(`ALTER TABLE appointments ALTER COLUMN tg_id TYPE BIGINT`).catch(err => console.log('Appointments tg_id already BIGINT or error:', err.message));
@@ -1438,7 +1590,8 @@ app.get('/api/admin/client-history', (req, res) => {
 
   pool.query(`
     SELECT 
-      id, date, time, design, length, type, status, comment, reference_image, current_hands_images
+      id, date, time, design, length, type, status, comment, reference_image, current_hands_images,
+      manicure_images, admin_notes
     FROM appointments
     WHERE tg_id = $1
     ORDER BY date DESC, time DESC
@@ -1446,6 +1599,70 @@ app.get('/api/admin/client-history', (req, res) => {
     .then(result => res.json(result.rows))
     .catch(err => res.status(500).json({ error: "DB error" }));
 });
+
+app.post(
+  '/api/admin/appointment/media',
+  (req, res, next) => {
+    const initData = req.headers['x-init-data'];
+    if (!initData || !validateInitData(initData)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    let user;
+    try {
+      const userData = new URLSearchParams(initData).get('user');
+      if (!userData) return res.status(403).json({ error: 'Access denied' });
+      user = JSON.parse(userData);
+    } catch (error) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!ADMIN_TG_IDS.includes(user.id)) {
+      return res.status(403).json({ error: 'Not admin' });
+    }
+
+    appointmentMediaUpload.array('photos', 10)(req, res, error => {
+      if (error) return res.status(400).json({ error: error.message });
+      next();
+    });
+  },
+  async (req, res) => {
+    const appointmentId = Number(req.body.appointment_id);
+    const { admin_notes } = req.body;
+
+    if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
+      return res.status(400).json({ error: 'Invalid appointment_id' });
+    }
+    if (typeof admin_notes !== 'string' || admin_notes.length > 5000) {
+      return res.status(400).json({ error: 'Notes must be 5000 characters or fewer' });
+    }
+
+    const photos = (req.files || []).map(file => `/api/admin/appointment/media/${file.filename}`);
+    try {
+      const result = await pool.query(`
+        UPDATE appointments
+        SET manicure_images = COALESCE(manicure_images, '[]'::jsonb) || $2::jsonb,
+            admin_notes = $3
+        WHERE id = $1
+        RETURNING manicure_images, admin_notes
+      `, [appointmentId, JSON.stringify(photos), admin_notes]);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Appointment not found' });
+      }
+
+      res.json({
+        ok: true,
+        manicure_images: result.rows[0].manicure_images,
+        admin_notes: result.rows[0].admin_notes
+      });
+    } catch (error) {
+      console.error('Appointment media save error:', error);
+      res.status(500).json({ error: 'Failed to save appointment photos and notes' });
+    }
+  }
+);
+
 // =============== CLIENT: GET MY APPOINTMENTS ===============
 app.get('/api/my-appointments', (req, res) => {
   const initData = req.headers['x-init-data'];
@@ -2472,6 +2689,69 @@ setInterval(() => {
     })
     .catch(err => console.error("Hourly reminder query error:", err));
 }, 5 * 60 * 1000); // кожні 5 хвилин
+
+// =============== ADMIN FOLLOW-UP (3 HOURS AFTER APPOINTMENT START) ===============
+let adminFollowupCheckRunning = false;
+setInterval(async () => {
+  if (adminFollowupCheckRunning) return;
+  adminFollowupCheckRunning = true;
+
+  try {
+    const result = await pool.query(`
+      SELECT id, client, date, time, tg_id
+      FROM appointments
+      WHERE status = 'approved'
+        AND admin_followup_notified = false
+        AND tg_id IS NOT NULL
+    `);
+    const now = Date.now();
+
+    for (const appointment of result.rows) {
+      if (!appointment.date || !appointment.time) continue;
+      const startTime = parseDateTimeInTimeZone(appointment.date, appointment.time).getTime();
+      const followupTime = startTime + 3 * 60 * 60 * 1000;
+      if (!Number.isFinite(followupTime) || now < followupTime) continue;
+
+      const text = `💅 Час додати фото манікюру та нотатку\n\nКлієнт: ${appointment.client || 'Клієнт'}\n📅 ${appointment.date}\n⏰ ${appointment.time}`;
+      const options = {};
+      if (process.env.CLIENT_URL) {
+        try {
+          const webAppUrl = new URL(process.env.CLIENT_URL);
+          webAppUrl.searchParams.set('startapp', `client_${appointment.tg_id}`);
+          options.reply_markup = {
+            inline_keyboard: [[{
+              text: '📷 Додати фото та нотатку',
+              web_app: { url: webAppUrl.toString() }
+            }]]
+          };
+        } catch (error) {
+          console.error('Invalid CLIENT_URL for admin follow-up:', error);
+        }
+      }
+
+      const deliveries = await Promise.allSettled(
+        ADMIN_TG_IDS.map(adminId => bot.sendMessage(adminId, text, options))
+      );
+      deliveries.forEach((delivery, index) => {
+        if (delivery.status === 'rejected') {
+          console.error(`Admin follow-up notification failed for ${ADMIN_TG_IDS[index]}:`, delivery.reason);
+        }
+      });
+
+      if (deliveries.some(delivery => delivery.status === 'fulfilled')) {
+        await pool.query(
+          `UPDATE appointments SET admin_followup_notified = true WHERE id = $1 AND admin_followup_notified = false`,
+          [appointment.id]
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Admin follow-up query error:', error);
+  } finally {
+    adminFollowupCheckRunning = false;
+  }
+}, 5 * 60 * 1000);
+
 setInterval(() => {
   const now = new Date();
 
@@ -2820,11 +3100,35 @@ app.get('/api/admin/clients', (req, res) => {
       COUNT(a.id) as total_appointments,
       COUNT(CASE WHEN a.status = 'approved' THEN 1 END) as completed_appointments,
       MAX(a.date) as last_appointment_date,
-      COALESCE(SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END), 0) as total_spent
+      COALESCE(SUM(CASE WHEN a.status = 'approved' THEN a.price ELSE 0 END), 0) as total_spent,
+      media.manicure_history
     FROM appointments a
     LEFT JOIN client_points cp ON a.tg_id = cp.tg_id
+    LEFT JOIN LATERAL (
+      SELECT jsonb_agg(
+        jsonb_build_object(
+          'id', recent.id,
+          'date', recent.date,
+          'time', recent.time,
+          'manicure_images', recent.manicure_images,
+          'admin_notes', recent.admin_notes
+        )
+        ORDER BY recent.date DESC, recent.time DESC
+      ) AS manicure_history
+      FROM (
+        SELECT id, date, time, manicure_images, admin_notes
+        FROM appointments
+        WHERE tg_id = a.tg_id
+          AND (
+            jsonb_array_length(COALESCE(manicure_images, '[]'::jsonb)) > 0
+            OR NULLIF(BTRIM(admin_notes), '') IS NOT NULL
+          )
+        ORDER BY date DESC, time DESC
+        LIMIT 5
+      ) recent
+    ) media ON true
     WHERE a.tg_id IS NOT NULL
-    GROUP BY a.tg_id
+    GROUP BY a.tg_id, media.manicure_history
     ORDER BY points DESC NULLS LAST, last_appointment_date DESC NULLS LAST
   `)
     .then(result => res.json(result.rows))

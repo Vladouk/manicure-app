@@ -23,6 +23,7 @@ A full-featured appointment booking system built as a **Telegram Mini App (WebAp
 - **Appointments management** — approve/cancel/delete with optional client notification via Telegram bot
 - **Calendar view** — visual day-by-day schedule with slot management
 - **Client database** — full history per client, total visits, blacklist management
+- **Private manicure portfolio and notes** — save finished-work photos and notes for each client visit; accessible to admins only
 - **Price management** — dynamic price list with categories, length options, and design tiers
 - **Analytics dashboard** — popular hours/days, monthly revenue, forecast, new clients graph
 - **Broadcast messaging** — send announcements to all clients
@@ -33,6 +34,7 @@ A full-featured appointment booking system built as a **Telegram Mini App (WebAp
 - **Webhook-based** — no polling, instant responses
 - **Appointment notifications** — new booking, confirmation, cancellation, price changes
 - **Automated reminders** — 1 day before (18:00) + 3 hours before appointment
+- **Manicure follow-up** — asks admins to add finished-work photos and a note 3 hours after the appointment starts
 - **Daily admin report** — summary at 18:00 with stats and revenue
 - **Auto-cancel** — unconfirmed appointments expire after 24h, slots get freed
 
@@ -111,7 +113,7 @@ A full-featured appointment booking system built as a **Telegram Mini App (WebAp
 | Table | Purpose |
 |-------|---------|
 | `work_slots` | Available time slots (date, time, is_booked) |
-| `appointments` | All bookings with full details, photos, status |
+| `appointments` | All bookings with full details, client and manicure photos, notes, status |
 | `reminders` | Tracks which appointments got reminder notifications |
 | `client_points` | Bonus points balance + referral discount flag |
 | `service_categories` | Service categories (Укріплення, Нарощення, etc.) |
@@ -148,6 +150,7 @@ A full-featured appointment booking system built as a **Telegram Mini App (WebAp
 | POST | `/api/admin/status` | Approve/cancel appointment |
 | POST | `/api/admin/delete` | Delete appointment |
 | POST | `/api/admin/appointment/price` | Update appointment price |
+| POST | `/api/admin/appointment/media` | Add manicure photos and private notes to a visit |
 | POST | `/api/admin/mark-viewed` | Mark new appointments as seen |
 | POST | `/api/admin/add-points` | Add bonus points to client |
 | GET | `/api/admin/clients` | All clients with visit stats |
@@ -255,6 +258,7 @@ cd client && npm start
 | Every 5 min | Slot cleanup | Removes unbooked slots less than 30 min away |
 | Daily 18:00 | Day-before reminder | Notifies clients about tomorrow's appointments |
 | Every 5 min | 3-hour reminder | Notifies clients 3 hours before their appointment |
+| Every 5 min | Manicure follow-up | Asks admins to add visit photos and notes 3 hours after the appointment starts |
 | Daily 18:00 | Admin daily report | Sends stats summary to admins |
 | Daily 00:00 | Old slot cleanup | Deletes slots older than 30 days |
 | Monthly 1st | DB cleanup | Removes reminders for appointments older than 90 days |

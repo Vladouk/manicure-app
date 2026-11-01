@@ -38,6 +38,10 @@ function App() {
   const [clientList, setClientList] = useState([]);
   const [clientHistory, setClientHistory] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [appointmentPhotoFiles, setAppointmentPhotoFiles] = useState({});
+  const [appointmentNotes, setAppointmentNotes] = useState({});
+  const [savingAppointmentMediaId, setSavingAppointmentMediaId] = useState(null);
+  const [privateMediaUrls, setPrivateMediaUrls] = useState({});
   const [comment, setComment] = useState("");
   const [reference, setReference] = useState([]);
   const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
@@ -116,6 +120,8 @@ function App() {
   const [addSlotModalOpen, setAddSlotModalOpen] = useState(false);
   const [newSlotTime, setNewSlotTime] = useState('');
   const [newSlotDate, setNewSlotDate] = useState('');
+  const [slotAddMessage, setSlotAddMessage] = useState('');
+  const [isAddingSlot, setIsAddingSlot] = useState(false);
 
 
   // BOOKING INTERFACE HOOKS
@@ -989,7 +995,8 @@ function App() {
 
     // Handle start_param for deep linking (e.g. admin opens client from bot notification)
     // Format: "client_<tg_id>"
-    const startParam = WebApp.initDataUnsafe?.start_param;
+    const startParam = WebApp.initDataUnsafe?.start_param
+      || new URLSearchParams(window.location.search).get('startapp');
     if (startParam && startParam.startsWith('client_') && isAdmin) {
       const clientTgId = startParam.replace('client_', '');
       fetch(`${API}/api/admin/clients`, {
@@ -1099,6 +1106,54 @@ function App() {
 
     WebApp.MainButton.hide();
   }, [effectiveMode, selectedSlotId, sizeCategory, designCategory, mattingCategory, comment, reference, currentHandsPhotos, tgUser?.first_name, tgUser?.id, isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setPrivateMediaUrls({});
+      return undefined;
+    }
+
+    const imagePaths = new Set();
+    clientList.forEach(client => {
+      (client.manicure_history || []).slice(0, 3).forEach(visit => {
+        (visit.manicure_images || []).slice(0, 4).forEach(imagePath => imagePaths.add(imagePath));
+      });
+    });
+    clientHistory.forEach(visit => {
+      (visit.manicure_images || []).forEach(imagePath => imagePaths.add(imagePath));
+    });
+
+    let cancelled = false;
+    const objectUrls = [];
+
+    Promise.all(Array.from(imagePaths).map(async imagePath => {
+      const response = await fetch(`${API}${imagePath}`, {
+        headers: { 'x-init-data': WebApp.initData }
+      });
+      if (!response.ok) {
+        throw new Error(`Private photo request failed (${response.status})`);
+      }
+
+      const objectUrl = URL.createObjectURL(await response.blob());
+      if (cancelled) {
+        URL.revokeObjectURL(objectUrl);
+        return null;
+      }
+      objectUrls.push(objectUrl);
+      return [imagePath, objectUrl];
+    }).map(request => request.catch(error => {
+      console.error('Could not load private manicure photo:', error);
+      return null;
+    }))).then(results => {
+      if (cancelled) return;
+      setPrivateMediaUrls(Object.fromEntries(results.filter(Boolean)));
+    });
+
+    return () => {
+      cancelled = true;
+      objectUrls.forEach(URL.revokeObjectURL);
+    };
+  }, [clientList, clientHistory, isAdmin]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
@@ -1688,6 +1743,91 @@ function App() {
                 </div>
               )}
 
+              {Array.isArray(c.manicure_history) && c.manicure_history.length > 0 && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  marginBottom: '12px',
+                }}>
+                  <div style={{
+                    color: '#667eea',
+                    fontSize: '0.95rem',
+                    fontWeight: '700',
+                    marginBottom: '10px',
+                  }}>
+                    💅 Останні фото та нотатки
+                  </div>
+                  {c.manicure_history.slice(0, 3).map(visit => (
+                    <div
+                      key={visit.id}
+                      style={{
+                        borderTop: '1px solid #e8eaf2',
+                        paddingTop: '8px',
+                        marginTop: '8px',
+                      }}
+                    >
+                      <div style={{
+                        color: '#666',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        marginBottom: '6px',
+                      }}>
+                        📅 {visit.date}{visit.time ? ` · ${visit.time}` : ''}
+                      </div>
+                      {Array.isArray(visit.manicure_images) && visit.manicure_images.length > 0 && (
+                        <div style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '6px',
+                          marginBottom: visit.admin_notes ? '8px' : 0,
+                        }}>
+                          {visit.manicure_images
+                            .filter(imgPath => privateMediaUrls[imgPath])
+                            .slice(0, 4)
+                            .map((imgPath, index) => (
+                            <img
+                              key={`${imgPath}-${index}`}
+                              src={privateMediaUrls[imgPath]}
+                              alt={`Фото манікюру ${visit.date} ${index + 1}`}
+                              onClick={() => setModalImage(privateMediaUrls[imgPath])}
+                              style={{
+                                width: '58px',
+                                height: '58px',
+                                objectFit: 'cover',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                              }}
+                            />
+                          ))}
+                          {visit.manicure_images.length > 4 && (
+                            <span style={{
+                              alignSelf: 'center',
+                              color: '#667eea',
+                              fontSize: '0.8rem',
+                              fontWeight: '600',
+                            }}>
+                              +{visit.manicure_images.length - 4}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {visit.admin_notes && (
+                        <div style={{
+                          color: '#555',
+                          fontSize: '0.85rem',
+                          lineHeight: '1.4',
+                          whiteSpace: 'pre-wrap',
+                          overflowWrap: 'anywhere',
+                        }}>
+                          📝 {visit.admin_notes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
@@ -1779,6 +1919,8 @@ function App() {
             </div>
           </div>
         )}
+
+        {modal}
 
         {/* Edit Points Modal */}
         {editPointsModalOpen && editPointsClient && (
@@ -1989,7 +2131,7 @@ function App() {
                 fontWeight: '700',
                 color: '#2c3e50',
                 letterSpacing: '0.5px',
-              }}>{selectedClient?.client}</h2>
+              }}>{selectedClient?.client_name || selectedClient?.client}</h2>
               {selectedClient?.username && (
                 <a
                   href={`https://t.me/${selectedClient.username}`}
@@ -2422,6 +2564,150 @@ function App() {
                     }
                     return null;
                   })()}
+
+                  <div style={{
+                    background: '#f8f9fa',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    marginTop: '10px',
+                  }}>
+                    <div style={{
+                      fontSize: '0.95rem',
+                      fontWeight: '700',
+                      color: '#667eea',
+                      marginBottom: '10px',
+                    }}>
+                      💅 Фото манікюру та нотатка майстра
+                    </div>
+                    {Array.isArray(h.manicure_images) && h.manicure_images.length > 0 && (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))',
+                        gap: '8px',
+                        marginBottom: '12px',
+                      }}>
+                        {h.manicure_images.filter(imgPath => privateMediaUrls[imgPath]).map((imgPath, idx) => (
+                          <div
+                            key={`${imgPath}-${idx}`}
+                            style={{
+                              position: 'relative',
+                              paddingTop: '100%',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => setModalImage(privateMediaUrls[imgPath])}
+                          >
+                            <img
+                              src={privateMediaUrls[imgPath]}
+                              alt={`Фото манікюру ${idx + 1}`}
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <textarea
+                      value={appointmentNotes[h.id] ?? h.admin_notes ?? ''}
+                      onChange={event => setAppointmentNotes(current => ({
+                        ...current,
+                        [h.id]: event.target.value
+                      }))}
+                      maxLength={5000}
+                      rows={3}
+                      placeholder="Нотатка про манікюр, матеріали або побажання клієнта"
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        border: '1px solid #d8deea',
+                        borderRadius: '8px',
+                        padding: '10px',
+                        resize: 'vertical',
+                        font: 'inherit',
+                        marginBottom: '8px',
+                      }}
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={event => setAppointmentPhotoFiles(current => ({
+                        ...current,
+                        [h.id]: Array.from(event.target.files || [])
+                      }))}
+                      style={{ display: 'block', marginBottom: '10px', maxWidth: '100%' }}
+                    />
+                    <button
+                      type="button"
+                      disabled={savingAppointmentMediaId !== null}
+                      onClick={async () => {
+                        setSavingAppointmentMediaId(h.id);
+                        try {
+                          const formData = new FormData();
+                          formData.append('appointment_id', h.id);
+                          formData.append('admin_notes', appointmentNotes[h.id] ?? h.admin_notes ?? '');
+                          (appointmentPhotoFiles[h.id] || []).forEach(photo => formData.append('photos', photo));
+
+                          const response = await fetch(`${API}/api/admin/appointment/media`, {
+                            method: 'POST',
+                            headers: { 'x-init-data': WebApp.initData },
+                            body: formData
+                          });
+                          const data = await response.json();
+                          if (!response.ok) throw new Error(data.error || 'Не вдалося зберегти зміни');
+
+                          setClientHistory(current => current.map(appointment =>
+                            appointment.id === h.id
+                              ? { ...appointment, manicure_images: data.manicure_images, admin_notes: data.admin_notes }
+                              : appointment
+                          ));
+                          const savedVisit = {
+                            id: h.id,
+                            date: h.date,
+                            time: h.time,
+                            manicure_images: data.manicure_images,
+                            admin_notes: data.admin_notes
+                          };
+                          const updateClientPortfolio = client => {
+                            if (!client || String(client.tg_id) !== String(selectedClient?.tg_id)) return client;
+                            const visits = [
+                              ...(client.manicure_history || []).filter(visit => visit.id !== h.id),
+                              savedVisit
+                            ].sort((a, b) =>
+                              `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)
+                            );
+                            return { ...client, manicure_history: visits.slice(0, 5) };
+                          };
+                          setClientList(current => current.map(updateClientPortfolio));
+                          setSelectedClient(updateClientPortfolio);
+                          setAppointmentPhotoFiles(current => ({ ...current, [h.id]: [] }));
+                          alert('✅ Фото та нотатку збережено');
+                        } catch (error) {
+                          alert(`❌ ${error.message || 'Помилка збереження'}`);
+                        } finally {
+                          setSavingAppointmentMediaId(null);
+                        }
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '10px 16px',
+                        color: 'white',
+                        fontWeight: '600',
+                        cursor: savingAppointmentMediaId !== null ? 'not-allowed' : 'pointer',
+                        opacity: savingAppointmentMediaId !== null ? 0.7 : 1,
+                      }}
+                    >
+                      {savingAppointmentMediaId === h.id ? 'Збереження…' : 'Зберегти фото та нотатку'}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -3876,7 +4162,7 @@ function App() {
                   new Date(`${b.date} ${b.time}`)
               )
             );
-          });
+            });
       })
       .catch(() => alert("❌ Помилка видалення"));
   };
@@ -3886,6 +4172,9 @@ function App() {
       alert("❗ Введіть час");
       return;
     }
+
+    setIsAddingSlot(true);
+    setSlotAddMessage('');
 
     fetch(`${API}/api/admin/add-slot`, {
       method: "POST",
@@ -3898,15 +4187,16 @@ function App() {
       .then(r => r.json())
       .then(data => {
         if (data.ok) {
-          alert("✅ Слот додано!");
-          setAddSlotModalOpen(false);
+          setSlotAddMessage(`✅ Додано віконце на ${time}`);
           setNewSlotTime('');
 
-          // Reload slots
-          fetch(`${API}/api/admin/slots`, {
+          return fetch(`${API}/api/admin/slots`, {
             headers: { "x-init-data": WebApp.initData },
           })
-            .then(r => r.json())
+            .then(r => {
+              if (!r.ok) throw new Error('Failed to reload slots');
+              return r.json();
+            })
             .then(data => {
               setSlotsAdmin(
                 data.sort(
@@ -3915,6 +4205,10 @@ function App() {
                     new Date(`${b.date} ${b.time}`)
                 )
               );
+            })
+            .catch(err => {
+              console.error('Reload slots error:', err);
+              alert('✅ Слот додано, але не вдалося оновити список слотів');
             });
         } else {
           alert(`❌ ${data.error || 'Помилка додавання слоту'}`);
@@ -3923,6 +4217,9 @@ function App() {
       .catch(err => {
         console.error('Add slot error:', err);
         alert("❌ Помилка додавання слоту");
+      })
+      .finally(() => {
+        setIsAddingSlot(false);
       });
   };
 
@@ -5969,6 +6266,8 @@ function App() {
               const month = String(calendarDate.getMonth() + 1).padStart(2, '0');
               const day = String(calendarDate.getDate()).padStart(2, '0');
               setNewSlotDate(`${year}-${month}-${day}`);
+              setNewSlotTime('');
+              setSlotAddMessage('');
               setAddSlotModalOpen(true);
             }}
             style={{
@@ -6048,6 +6347,7 @@ function App() {
             onClick={() => {
               setAddSlotModalOpen(false);
               setNewSlotTime('');
+              setSlotAddMessage('');
             }}
           >
             <div
@@ -6098,6 +6398,51 @@ function App() {
                 </div>
               </div>
 
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{
+                  fontWeight: '600',
+                  color: '#2c3e50',
+                  fontSize: '0.95rem',
+                  marginBottom: '10px'
+                }}>
+                  Швидко додати:
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {['09:00', '13:00', '17:00'].map(time => (
+                    <button
+                      key={time}
+                      type="button"
+                      disabled={isAddingSlot}
+                      onClick={() => addSlot(newSlotDate, time)}
+                      style={{
+                        flex: 1,
+                        padding: '12px 8px',
+                        borderRadius: '10px',
+                        border: '1px solid #d6dcff',
+                        background: isAddingSlot ? '#f3f4f6' : '#f0f4ff',
+                        color: '#5265c5',
+                        fontWeight: '600',
+                        fontSize: '1rem',
+                        cursor: isAddingSlot ? 'wait' : 'pointer'
+                      }}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {slotAddMessage && (
+                <div role="status" style={{
+                  color: '#218838',
+                  textAlign: 'center',
+                  fontWeight: '600',
+                  marginBottom: '15px'
+                }}>
+                  {slotAddMessage}
+                </div>
+              )}
+
               <label style={{
                 display: 'block',
                 marginBottom: '8px',
@@ -6133,6 +6478,7 @@ function App() {
                   onClick={() => {
                     setAddSlotModalOpen(false);
                     setNewSlotTime('');
+                    setSlotAddMessage('');
                   }}
                   style={{
                     flex: 1,
@@ -6159,16 +6505,19 @@ function App() {
                 </button>
                 <button
                   onClick={() => addSlot(newSlotDate, newSlotTime)}
+                  disabled={isAddingSlot}
                   style={{
                     flex: 1,
                     padding: '12px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: isAddingSlot
+                      ? '#aab2d5'
+                      : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     color: 'white',
                     fontWeight: '600',
                     fontSize: '1rem',
-                    cursor: 'pointer',
+                    cursor: isAddingSlot ? 'wait' : 'pointer',
                     transition: 'all 0.3s ease',
                     boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
                   }}
@@ -6181,7 +6530,7 @@ function App() {
                     e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
                   }}
                 >
-                  ✓ Додати
+                  {isAddingSlot ? 'Додаємо...' : '✓ Додати'}
                 </button>
               </div>
             </div>
