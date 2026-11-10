@@ -7,6 +7,23 @@ const ADMIN_TG_IDS = [1342762796, 1248276494];
 
 const API = process.env.REACT_APP_API_URL || '';
 
+const parseImagePaths = (value) => {
+  if (Array.isArray(value)) {
+    return value.filter(imagePath => typeof imagePath === 'string' && imagePath.length > 0);
+  }
+  if (typeof value !== 'string' || !value.trim()) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.filter(imagePath => typeof imagePath === 'string' && imagePath.length > 0);
+    }
+    return typeof parsed === 'string' && parsed ? [parsed] : [];
+  } catch {
+    return value.startsWith('/') ? [value] : [];
+  }
+};
+
 const getSlotLabel = (dateStr) => {
   const today = new Date();
   const slotDate = new Date(dateStr);
@@ -44,12 +61,18 @@ function App() {
   const [appointmentNotes, setAppointmentNotes] = useState({});
   const [savingAppointmentMediaId, setSavingAppointmentMediaId] = useState(null);
   const [privateMediaUrls, setPrivateMediaUrls] = useState({});
+  const [isLoadingPrivateMedia, setIsLoadingPrivateMedia] = useState(false);
+  const [slotClientGallery, setSlotClientGallery] = useState(null);
+  const [slotClientGalleryHistory, setSlotClientGalleryHistory] = useState([]);
+  const [isLoadingSlotClientGallery, setIsLoadingSlotClientGallery] = useState(false);
+  const [slotClientGalleryError, setSlotClientGalleryError] = useState('');
   const [comment, setComment] = useState("");
   const [reference, setReference] = useState([]);
   const [currentHandsPhotos, setCurrentHandsPhotos] = useState([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [mode, setMode] = useState("menu");
   const deepLinkHandledRef = useRef(false);
+  const slotClientGalleryRequestRef = useRef(0);
   const effectiveMode = mode === "auto" ? (isAdmin ? "admin" : "client") : mode;
   const [appointments, setAppointments] = useState([]);
   const [modalImage, setModalImage] = useState(null);
@@ -661,6 +684,28 @@ function App() {
                 📱 Відкрити профіль клієнта
               </button>
             ) : null}
+            {selectedDetailedAppointment.tg_id && (
+              <button
+                type="button"
+                onClick={() => openSlotClientGallery({
+                  client_tg_id: selectedDetailedAppointment.tg_id,
+                  client_name: selectedDetailedAppointment.client || selectedDetailedAppointment.client_name
+                })}
+                style={{
+                  display: 'block',
+                  marginTop: 10,
+                  padding: '8px 12px',
+                  border: '1px solid #e8c9d5',
+                  borderRadius: 9,
+                  background: '#fff7fa',
+                  color: '#a34d70',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                🖼 Фото клієнта
+              </button>
+            )}
           </div>
 
           {/* Date & Time */}
@@ -1254,6 +1299,7 @@ function App() {
   useEffect(() => {
     if (!isAdmin) {
       setPrivateMediaUrls({});
+      setIsLoadingPrivateMedia(false);
       return undefined;
     }
 
@@ -1266,9 +1312,13 @@ function App() {
     clientHistory.forEach(visit => {
       (visit.manicure_images || []).forEach(imagePath => imagePaths.add(imagePath));
     });
+    slotClientGalleryHistory.forEach(visit => {
+      (visit.manicure_images || []).forEach(imagePath => imagePaths.add(imagePath));
+    });
 
     let cancelled = false;
     const objectUrls = [];
+    setIsLoadingPrivateMedia(imagePaths.size > 0);
 
     Promise.all(Array.from(imagePaths).map(async imagePath => {
       const response = await fetch(`${API}${imagePath}`, {
@@ -1291,13 +1341,14 @@ function App() {
     }))).then(results => {
       if (cancelled) return;
       setPrivateMediaUrls(Object.fromEntries(results.filter(Boolean)));
+      setIsLoadingPrivateMedia(false);
     });
 
     return () => {
       cancelled = true;
       objectUrls.forEach(URL.revokeObjectURL);
     };
-  }, [clientList, clientHistory, isAdmin]);
+  }, [clientList, clientHistory, slotClientGalleryHistory, isAdmin]);
 
   useEffect(() => {
     if (mode === "clientPromotions") {
@@ -1467,6 +1518,206 @@ function App() {
       type: slot.type
     });
   };
+
+  const openSlotClientGallery = async (slot) => {
+    const requestId = ++slotClientGalleryRequestRef.current;
+    if (!slot.client_tg_id) {
+      setSlotClientGallery({ name: slot.client_name || 'Клієнт' });
+      setSlotClientGalleryHistory([]);
+      setSlotClientGalleryError('Не вдалося визначити клієнта для перегляду галереї.');
+      setIsLoadingSlotClientGallery(false);
+      return;
+    }
+
+    setSlotClientGallery({
+      tg_id: slot.client_tg_id,
+      name: slot.client_name || 'Клієнт'
+    });
+    setSlotClientGalleryHistory([]);
+    setSlotClientGalleryError('');
+    setIsLoadingSlotClientGallery(true);
+
+    try {
+      const response = await fetch(
+        `${API}/api/admin/client-history?tg_id=${encodeURIComponent(slot.client_tg_id)}`,
+        { headers: { 'x-init-data': WebApp.initData } }
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const history = await response.json();
+      if (!Array.isArray(history)) {
+        throw new Error('Некоректна відповідь з історією клієнта');
+      }
+      if (requestId !== slotClientGalleryRequestRef.current) return;
+      setSlotClientGalleryHistory(history.map(visit => ({
+        ...visit,
+        galleryPhotos: [
+          ...parseImagePaths(visit.manicure_images).map(path => ({ path, category: 'Манікюр' })),
+          ...parseImagePaths(visit.current_hands_images).map(path => ({ path, category: 'Поточний стан' })),
+          ...parseImagePaths(visit.reference_image).map(path => ({ path, category: 'Приклад дизайну' }))
+        ]
+      })).filter(visit => visit.galleryPhotos.length > 0));
+    } catch (error) {
+      if (requestId !== slotClientGalleryRequestRef.current) return;
+      console.error('Could not load client manicure gallery:', error);
+      setSlotClientGalleryError('Не вдалося завантажити галерею. Спробуйте ще раз.');
+    } finally {
+      if (requestId === slotClientGalleryRequestRef.current) {
+        setIsLoadingSlotClientGallery(false);
+      }
+    }
+  };
+
+  const closeSlotClientGallery = () => {
+    slotClientGalleryRequestRef.current += 1;
+    setSlotClientGallery(null);
+    setSlotClientGalleryHistory([]);
+    setSlotClientGalleryError('');
+    setIsLoadingSlotClientGallery(false);
+  };
+
+  const slotClientGalleryModal = slotClientGallery ? (
+    <div
+      role="presentation"
+      onClick={closeSlotClientGallery}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1002,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        background: 'rgba(24, 19, 34, 0.72)'
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Галерея клієнта ${slotClientGallery.name}`}
+        onClick={event => event.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 620,
+          maxHeight: '85vh',
+          overflowY: 'auto',
+          padding: 22,
+          borderRadius: 20,
+          background: '#fff',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginBottom: 18
+        }}>
+          <div>
+            <h2 style={{ margin: 0, color: '#352b36', fontSize: '1.35rem' }}>🖼 Галерея клієнта</h2>
+            <div style={{ marginTop: 5, color: '#765f6b' }}>{slotClientGallery.name}</div>
+          </div>
+          <button
+            type="button"
+            onClick={closeSlotClientGallery}
+            aria-label="Закрити галерею"
+            style={{
+              flex: '0 0 auto',
+              width: 40,
+              height: 40,
+              border: 0,
+              borderRadius: '50%',
+              background: '#f5eaf0',
+              color: '#765f6b',
+              fontSize: 24,
+              cursor: 'pointer'
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {isLoadingSlotClientGallery ? (
+          <p style={{ textAlign: 'center', color: '#765f6b', padding: '24px 0' }}>Завантажую манікюри…</p>
+        ) : slotClientGalleryError ? (
+          <p role="alert" style={{ textAlign: 'center', color: '#b4233b', padding: '24px 0' }}>
+            {slotClientGalleryError}
+          </p>
+        ) : slotClientGalleryHistory.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#765f6b', padding: '24px 0' }}>
+            Для цього клієнта ще немає фотографій.
+          </p>
+        ) : (
+          <div style={{ display: 'grid', gap: 18 }}>
+            {slotClientGalleryHistory.map(visit => (
+              <article
+                key={visit.id}
+                style={{
+                  padding: 14,
+                  border: '1px solid #f0e2e8',
+                  borderRadius: 14,
+                  background: '#fffafd'
+                }}
+              >
+                <div style={{ marginBottom: 10, color: '#765f6b', fontWeight: 700 }}>
+                  📅 {visit.date}{visit.time ? ` · ${visit.time}` : ''}
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                  gap: 9
+                }}>
+                  {visit.galleryPhotos.map(({ path: imagePath, category }, index) => {
+                    const isPrivateImage = imagePath.startsWith('/api/admin/appointment/media/');
+                    const imageUrl = isPrivateImage
+                      ? privateMediaUrls[imagePath]
+                      : imagePath.startsWith('http') ? imagePath : `${API}${imagePath}`;
+
+                    return imageUrl ? (
+                      <img
+                        key={`${visit.id}-${imagePath}-${index}`}
+                        src={imageUrl}
+                        alt={`${category} від ${visit.date}, фото ${index + 1}`}
+                        title={category}
+                        onClick={() => setModalImage(imageUrl)}
+                        style={{
+                          width: '100%',
+                          height: 125,
+                          objectFit: 'cover',
+                          borderRadius: 10,
+                          cursor: 'pointer'
+                        }}
+                      />
+                    ) : (
+                      <div
+                        key={`${visit.id}-${imagePath}-${index}`}
+                        style={{
+                          minHeight: 125,
+                          display: 'grid',
+                          placeItems: 'center',
+                          borderRadius: 10,
+                          background: '#f7f0f3',
+                          color: '#8b7480',
+                          fontSize: '0.85rem',
+                          textAlign: 'center',
+                          padding: 8
+                        }}
+                      >
+                        {isPrivateImage && isLoadingPrivateMedia ? 'Завантаження фото…' : 'Фото недоступне'}
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  ) : null;
 
   const renderScheduleNavigation = (activeSection) => (
     <div className="schedule-switcher" role="tablist" aria-label="Розклад">
@@ -6448,6 +6699,25 @@ function App() {
                       >
                         {s.client_name || 'Переглянути клієнта'}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => openSlotClientGallery(s)}
+                        style={{
+                          display: 'block',
+                          marginTop: 8,
+                          padding: '7px 10px',
+                          border: '1px solid #e8c9d5',
+                          borderRadius: 9,
+                          background: '#fff7fa',
+                          color: '#a34d70',
+                          font: 'inherit',
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🖼 Галерея клієнта
+                      </button>
                       <div style={{
                         marginTop: '10px',
                         padding: '10px 12px',
@@ -6519,6 +6789,7 @@ function App() {
 
         {modal}
         {appointmentDetailModal}
+        {slotClientGalleryModal}
       </div>
     );
   }
@@ -6772,6 +7043,24 @@ function App() {
                         >
                           🔴 {slot.client_name || 'Переглянути клієнта'}
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => openSlotClientGallery(slot)}
+                          style={{
+                            justifySelf: 'start',
+                            padding: '6px 9px',
+                            border: '1px solid #e8c9d5',
+                            borderRadius: 8,
+                            background: '#fff7fa',
+                            color: '#a34d70',
+                            font: 'inherit',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🖼 Галерея клієнта
+                        </button>
                         <small style={{ color: '#694d57', lineHeight: 1.4 }}>
                           📝 {slot.client_admin_note || 'Нотатку ще не додано.'}
                         </small>
@@ -6886,6 +7175,7 @@ function App() {
 
         {modal}
         {appointmentDetailModal}
+        {slotClientGalleryModal}
 
         {/* Add Slot Modal */}
         {addSlotModalOpen && (
