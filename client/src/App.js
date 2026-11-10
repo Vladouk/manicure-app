@@ -1321,7 +1321,12 @@ function App() {
     setIsLoadingPrivateMedia(imagePaths.size > 0);
 
     Promise.all(Array.from(imagePaths).map(async imagePath => {
-      const imageUrl = imagePath.startsWith('http') ? imagePath : `${API}${imagePath}`;
+      const uploadMatch = imagePath.match(/^\/uploads\/([\w-]+\.[A-Za-z0-9]+)$/);
+      const imageUrl = imagePath.startsWith('http')
+        ? imagePath
+        : uploadMatch
+          ? `${API}/api/admin/client-history/photo/${encodeURIComponent(uploadMatch[1])}`
+          : `${API}${imagePath}`;
       const response = await fetch(imageUrl, {
         headers: { 'x-init-data': WebApp.initData }
       });

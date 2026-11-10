@@ -313,6 +313,21 @@ app.get('/api/admin/appointment/media/:filename', (req, res) => {
   });
 });
 
+app.get('/api/admin/client-history/photo/:filename', (req, res) => {
+  if (!isAdminRequest(req)) return res.sendStatus(403);
+
+  const { filename } = req.params;
+  if (!/^[\w-]+\.[A-Za-z0-9]+$/.test(filename)) return res.sendStatus(400);
+
+  res.sendFile(path.join(uploadsDir, filename), error => {
+    if (error && !res.headersSent) {
+      if (error.code === 'ENOENT') return res.sendStatus(404);
+      console.error('Client history photo read error:', error);
+      res.sendStatus(500);
+    }
+  });
+});
+
 async function secureExistingManicureImages() {
   const result = await pool.query(`
     SELECT id, manicure_images
