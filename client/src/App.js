@@ -1306,14 +1306,14 @@ function App() {
     const imagePaths = new Set();
     clientList.forEach(client => {
       (client.manicure_history || []).slice(0, 3).forEach(visit => {
-        (visit.manicure_images || []).slice(0, 4).forEach(imagePath => imagePaths.add(imagePath));
+        parseImagePaths(visit.manicure_images).slice(0, 4).forEach(imagePath => imagePaths.add(imagePath));
       });
     });
     clientHistory.forEach(visit => {
-      (visit.manicure_images || []).forEach(imagePath => imagePaths.add(imagePath));
+      parseImagePaths(visit.manicure_images).forEach(imagePath => imagePaths.add(imagePath));
     });
     slotClientGalleryHistory.forEach(visit => {
-      (visit.manicure_images || []).forEach(imagePath => imagePaths.add(imagePath));
+      (visit.galleryPhotos || []).forEach(photo => imagePaths.add(photo.path));
     });
 
     let cancelled = false;
@@ -1321,7 +1321,8 @@ function App() {
     setIsLoadingPrivateMedia(imagePaths.size > 0);
 
     Promise.all(Array.from(imagePaths).map(async imagePath => {
-      const response = await fetch(`${API}${imagePath}`, {
+      const imageUrl = imagePath.startsWith('http') ? imagePath : `${API}${imagePath}`;
+      const response = await fetch(imageUrl, {
         headers: { 'x-init-data': WebApp.initData }
       });
       if (!response.ok) {
@@ -1671,10 +1672,12 @@ function App() {
                   gap: 9
                 }}>
                   {visit.galleryPhotos.map(({ path: imagePath, category }, index) => {
-                    const isPrivateImage = imagePath.startsWith('/api/admin/appointment/media/');
-                    const imageUrl = isPrivateImage
-                      ? privateMediaUrls[imagePath]
-                      : imagePath.startsWith('http') ? imagePath : `${API}${imagePath}`;
+                    const isPrivateImage = imagePath.startsWith('/api/admin/appointment/media/')
+                      || imagePath.startsWith('/uploads/');
+                    const imageUrl = privateMediaUrls[imagePath]
+                      || (!isPrivateImage
+                        ? imagePath.startsWith('http') ? imagePath : `${API}${imagePath}`
+                        : null);
 
                     return imageUrl ? (
                       <img
@@ -6699,25 +6702,6 @@ function App() {
                       >
                         {s.client_name || 'Переглянути клієнта'}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => openSlotClientGallery(s)}
-                        style={{
-                          display: 'block',
-                          marginTop: 8,
-                          padding: '7px 10px',
-                          border: '1px solid #e8c9d5',
-                          borderRadius: 9,
-                          background: '#fff7fa',
-                          color: '#a34d70',
-                          font: 'inherit',
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        🖼 Галерея клієнта
-                      </button>
                       <div style={{
                         marginTop: '10px',
                         padding: '10px 12px',
@@ -7042,24 +7026,6 @@ function App() {
                           }}
                         >
                           🔴 {slot.client_name || 'Переглянути клієнта'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openSlotClientGallery(slot)}
-                          style={{
-                            justifySelf: 'start',
-                            padding: '6px 9px',
-                            border: '1px solid #e8c9d5',
-                            borderRadius: 8,
-                            background: '#fff7fa',
-                            color: '#a34d70',
-                            font: 'inherit',
-                            fontSize: '0.8rem',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          🖼 Галерея клієнта
                         </button>
                         <small style={{ color: '#694d57', lineHeight: 1.4 }}>
                           📝 {slot.client_admin_note || 'Нотатку ще не додано.'}
@@ -11505,6 +11471,8 @@ function App() {
 
         {modal}
         {priceEditModal}
+        {appointmentDetailModal}
+        {slotClientGalleryModal}
 
         {/* Notification Dialog for Admin Actions */}
         {notificationDialog.isOpen && (
