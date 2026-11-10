@@ -2349,6 +2349,78 @@ function App() {
 
     return (
       <div className="app-container client-profile-shell">
+        {notificationDialog.isOpen && (
+          <div
+            role="presentation"
+            onClick={() => setNotificationDialog(current => ({ ...current, isOpen: false }))}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 11000,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 16
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="client-history-notification-title"
+              onClick={event => event.stopPropagation()}
+              style={{
+                background: 'white',
+                borderRadius: 16,
+                padding: 24,
+                maxWidth: 450,
+                width: '100%',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                textAlign: 'center'
+              }}
+            >
+              <h3 id="client-history-notification-title" style={{ margin: '0 0 12px', color: '#2c3e50' }}>
+                Відправити клієнту повідомлення?
+              </h3>
+              <p style={{ margin: '0 0 20px', color: '#666', lineHeight: 1.5 }}>
+                Клієнт отримає повідомлення про підтвердження запису
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setNotificationDialog(current => ({ ...current, isOpen: false }))}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #95a5a6', background: 'white', color: '#667', cursor: 'pointer' }}
+                >
+                  Скасувати
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const { appointmentId, action, statusValue } = notificationDialog;
+                    setNotificationDialog(current => ({ ...current, isOpen: false }));
+                    if (action === 'status') executeStatusChange(appointmentId, statusValue, false);
+                    else if (action === 'delete') executeDelete(appointmentId, false);
+                  }}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #3498db', background: 'white', color: '#3498db', cursor: 'pointer' }}
+                >
+                  Ні, без SMS
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const { appointmentId, action, statusValue } = notificationDialog;
+                    setNotificationDialog(current => ({ ...current, isOpen: false }));
+                    if (action === 'status') executeStatusChange(appointmentId, statusValue, true);
+                    else if (action === 'delete') executeDelete(appointmentId, true);
+                  }}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: 0, background: '#27ae60', color: 'white', cursor: 'pointer' }}
+                >
+                  Так, SMS
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="client-profile-card">
           <div className="client-profile-header">
             <div className="client-profile-avatar" aria-hidden="true">
